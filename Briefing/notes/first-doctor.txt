@@ -1,0 +1,15 @@
+ERROR  recorder     -          Dayflow recording (newest card)
+       ↳ Dayflow database not found at /Users/shahzi/Library/Application Support/Dayflow/chunks.sqlite (is Dayflow installed and has it recorded once?)
+NEVER  distill      -          Distill to memory (every 30 min)
+NEVER  nightly      -          Nightly memory upkeep
+NEVER  companion    -          Companion orb talking to the service
+NEVER  improve      -          Self-improvement check (02:30)
+NEVER  cleanup      -          Recording cleanup
+NEVER  wake         -          Wake briefing
+OK     dashboard    Mon 11:45  Dashboard server
+OK     ollama       Mon 11:45  Local model server
+ERROR  permissions  Mon 11:45  ~/Briefing is owner-only
+       ↳ readable by others: companion.log, app/BriefingCompanion, app/companion-Info.plist
+OK     git          Mon 11:45  App folder is a git repo (needed for improvements)
+
+Some checks need attention (see ↳ lines).
