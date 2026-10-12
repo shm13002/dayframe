@@ -66,7 +66,9 @@ extension OllamaProvider {
     urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
     applyAuthorizationHeader(to: &urlRequest)
     var body = request
-    if localEngine == "ollama", body.reasoning == nil, body.reasoning_effort == nil {
+    if localEngine == "ollama" || endpoint.contains(":11434"), body.reasoning == nil,
+      body.reasoning_effort == nil
+    {
       body.reasoning_effort = "none"
     }
     urlRequest.httpBody = try JSONEncoder().encode(body)

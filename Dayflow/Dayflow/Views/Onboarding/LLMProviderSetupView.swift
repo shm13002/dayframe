@@ -207,12 +207,27 @@ struct LLMProviderSetupView: View {
             .fontWeight(.semibold)
             .foregroundColor(Color(hex: "333333"))
           Text(
-            "For local use, LM Studio is the most reliable; Ollama has a known thinking bug in onboarding (can't turn thinking off) and performance is unreliable."
+            "Dayframe runs on Ollama with Qwen 3.5 by default. Its thinking mode is switched off, so it's fast. LM Studio works too."
           )
           .font(.custom("Figtree", size: 14))
           .foregroundColor(Color(hex: "333333"))
         }
         HStack(alignment: .center, spacing: 12) {
+          DayflowSurfaceButton(
+            action: { setupState.selectEngine(.ollama) },
+            content: {
+              Image(systemName: setupState.localEngine == .ollama ? "checkmark.circle.fill" : "cpu")
+              Text("Use Ollama + Qwen 3.5")
+                .font(.custom("Figtree", size: 14))
+                .fontWeight(.semibold)
+            },
+            background: Color(hex: "FF9F6F"),
+            foreground: .white,
+            borderColor: Color(hex: "F4C8B1"),
+            cornerRadius: 200,
+            showOverlayStroke: false,
+            innerGlowColor: Color(hex: "FFDCCB").opacity(0.9)
+          )
           DayflowSurfaceButton(
             action: {
               setupState.selectEngine(.lmstudio)
@@ -255,7 +270,7 @@ struct LLMProviderSetupView: View {
       }
     case .localModelInstall:
       VStack(alignment: .leading, spacing: 16) {
-        Text("Install Qwen3-VL 4B")
+        Text("Install Qwen 3.5 4B")
           .font(.custom("Figtree", size: 24))
           .fontWeight(.semibold)
           .foregroundColor(Color(hex: "333333"))
@@ -266,7 +281,7 @@ struct LLMProviderSetupView: View {
           TerminalCommandView(
             title: String(localized: "Run this command:"),
             subtitle: String(localized: "Downloads Qwen3 Vision 4B for Ollama"),
-            command: "ollama pull qwen3-vl:4b"
+            command: "ollama pull qwen3.5:4b"
           )
         } else if setupState.localEngine == .lmstudio {
           VStack(alignment: .leading, spacing: 16) {
@@ -544,6 +559,7 @@ struct LLMProviderSetupView: View {
                     .font(.custom("Figtree", size: 14))
                     .foregroundColor(Color(hex: "333333"))
                   Picker("Engine", selection: $setupState.localEngine) {
+                    Text("Ollama").tag(LocalEngine.ollama)
                     Text("LM Studio").tag(LocalEngine.lmstudio)
                     Text("Custom model").tag(LocalEngine.custom)
                   }
@@ -559,7 +575,7 @@ struct LLMProviderSetupView: View {
                   modelId: $setupState.localModelId,
                   apiKey: $setupState.localAPIKey,
                   engine: setupState.localEngine,
-                  showInputs: setupState.localEngine == .custom,
+                  showInputs: setupState.localEngine != .lmstudio,
                   onTestComplete: { success in
                     setupState.hasTestedConnection = true
                     setupState.testSuccessful = success
