@@ -25,13 +25,16 @@ echo "Build succeeded."
 # Uses a "Dayframe Local" self-signed certificate or an "Apple Development" one if
 # either is in your keychain; otherwise the app stays ad-hoc signed and macOS asks again.
 APP_BUILT=build/Build/Products/Debug/Dayframe.app
-SIGN_ID=$(security find-identity -p codesigning 2>/dev/null \
-  | grep -E '"(Dayframe Local|Apple Development)' | head -1 | sed -E 's/.*"(.*)"/\1/' || true)
+# Sign by the certificate's SHA-1 so names with spaces or trust notes can't break it.
+SIGN_LINE=$(security find-identity -p codesigning 2>/dev/null \
+  | grep -E '"(Dayframe Local|Apple Development)' | head -1 || true)
+SIGN_ID=$(echo "$SIGN_LINE" | awk '{print $2}')
+SIGN_NAME=$(echo "$SIGN_LINE" | sed -E 's/^[^"]*"([^"]*)".*/\1/')
 if [[ -n "$SIGN_ID" ]]; then
   codesign --force --deep --timestamp=none --sign "$SIGN_ID" \
     --entitlements App/Dayflow/Dayflow.entitlements "$APP_BUILT" >/dev/null 2>&1 \
-    && echo "Signed with: $SIGN_ID (Screen Recording permission will stick)" \
-    || echo "WARN: signing with '$SIGN_ID' failed; app stays ad-hoc signed"
+    && echo "Signed with: $SIGN_NAME (Screen Recording permission will stick)" \
+    || echo "WARN: signing with '$SIGN_NAME' failed; app stays ad-hoc signed"
 else
   echo "Note: no signing certificate found, so macOS may ask for Screen Recording again (see START-HERE.md)."
 fi

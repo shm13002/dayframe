@@ -24,6 +24,19 @@ Entry template:
 
 ## 2026-10-12 (Mon)
 
+### 13:59: Dayframe now signed with the "Dayframe Local" certificate
+- **What:**
+  - The user created a self-signed "Dayframe Local" code-signing certificate in Keychain Access.
+  - `build-and-install.sh` now signs by the certificate's SHA-1. Before, parsing the name picked up "(CSSMERR_TP_NOT_TRUSTED)" and signing failed.
+  - The build was run from the user's Terminal so the keychain approval prompt could appear.
+- **Files:** `build-and-install.sh`
+- **Why:** With a stable signature, macOS keeps the Screen Recording permission across rebuilds, so Resume and recording keep working.
+- **Checked:**
+  - `codesign -dr -` now shows `identifier "local.dayframe.app" and certificate leaf = H"a88ad041…"` instead of a cdhash.
+  - Dayframe relaunched.
+  - The user still has to allow Screen Recording once for this signature.
+- **Commit:** see `git log`
+
 ### 13:51: Recording always on + Dayflow Pro screen removed
 - **What:**
   - New `RecordingWatchdog`: every 30 s, and 2–3 s after wake or unlock, it restarts recording if it stopped. Timed pauses are respected until they end; "pause indefinitely" is overridden. If macOS revoked the permission, it shows the permission notice (at most every 10 min).
