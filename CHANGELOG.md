@@ -24,6 +24,21 @@ Entry template:
 
 ## 2026-10-12 (Mon)
 
+### 14:38: Guide updated for the recording safeguards
+- **What:**
+  - `START-HERE.md` section 7 is rewritten as "Recording: how it stays on". It has a table of every safeguard, the one-line fix if recording is ever blocked, and a check that recording is live.
+  - Added `Keepalive/` to the folder table.
+  - Ticked off the done to-dos: window title, referral step, stable signing.
+  - Noted the upstream unit test that already fails, and how to run the tests.
+  - The "Dayframe Local" certificate steps were removed; the certificate isn't used anymore.
+- **Files:** `START-HERE.md`
+- **Why:** So the user, or any AI picking this up, knows what keeps recording on and what not to change (signing).
+- **Checked:**
+  - Read through.
+  - Batch 1 (11:53–12:08, the old "Processing failed" card) completed on Retry. Every batch today is now completed or skipped-short.
+  - The only gap left is 13:34–14:23, when nothing was recorded.
+- **Commit:** see `git log`
+
 ### 14:37: Whole-app audit: dead ends from removed Dayflow features fixed
 - **What:** An audit traced every menu item, tab, Settings control and onboarding step. Everything broken by the earlier removals was fixed:
   - **Chat:** the Gemini chip is removed. It defaults to Claude, and a stored "gemini" falls back to Claude. The locked screen says to install Claude Code (`claude`, then /login) or the Codex CLI instead of "add a Gemini API key".

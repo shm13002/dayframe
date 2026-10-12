@@ -23,6 +23,7 @@ Everything lives in this one folder: `~/Documents/Projects/Dayframe`.
 | `Briefing/Companion.swift` | The Clicky orb | Yes |
 | `Briefing/notes/` | Logs from the first install test | No |
 | `tools/` | A small helper the app build needs | No |
+| `Keepalive/` | Background job that reopens Dayframe and Ollama if they ever stop (installed by the build script) | Rarely |
 | `Upstream/` | Dayflow's original docs and release scripts; not used by Dayframe | No |
 | `build/` | Build output (safe to delete; recreated on the next build) | No |
 | `LICENSE` | Dayflow's MIT license. **Keep this file**; the license requires it | No |
@@ -60,7 +61,7 @@ python3 ~/Briefing/app/briefing.py brief --force                     # make a ne
 python3 ~/Briefing/app/briefing.py ask "what was I doing at 3pm?"    # ask your memory
 ```
 
-**After installing a new app build,** macOS may ask you to allow Screen Recording again, until you create the signing certificate in section 7.
+**After installing a new app build,** recording keeps working: every build has the same signature, so macOS keeps the Screen Recording permission (see section 7).
 
 ---
 
@@ -165,24 +166,43 @@ The first commit is the untouched Dayflow v2.6.0, so you can always compare agai
 
 ## 6. To do
 
-- [ ] Window title still says "Dayflow" in some places (cosmetic).
+- [x] Window title and permission prompts say Dayframe.
 - [ ] Merge the **Clicky orb** (`Briefing/Companion.swift`) into the app, so it's one app with one permission.
 - [x] Briefing tab rebuilt natively in Dayflow's style (advanced pages still use `Briefing/dashboard.html`).
 - [ ] New **app icon** and intro animation (the intro video still says "Dayflow").
-- [ ] Remove the "How did you hear about us?" step from first-run setup.
-- [ ] Create the "Dayframe Local" signing certificate (section 7) so rebuilds keep the Screen Recording permission.
+- [x] "How did you hear about us?" step skipped in first-run setup.
+- [x] Stable signing, so rebuilds keep the Screen Recording permission (section 7).
+- [ ] Chat can't use Qwen yet (it needs Claude Code or the Codex CLI).
 
-## 7. Recording won't resume / keeps asking for permission
+## 7. Recording: how it stays on (and what to do if it ever stops)
 
-Recording is meant to be always on: a watchdog restarts it every 30 s and after wake or unlock (`App/Dayflow/App/RecordingWatchdog.swift`). It can only fail if macOS's **Screen Recording permission** doesn't match the current build. macOS ties the permission to the app's signature, and local builds without a certificate get a new signature every time.
+Recording is always on, like Dayflow: a screenshot every 10 s goes into 10-minute videos in `~/Library/Application Support/Dayflow/recordings`. Every 15 minutes Qwen turns them into timeline cards.
 
-**Fix it once, for good: create a signing certificate (2 minutes, no Apple account).**
-1. Open **Keychain Access** → menu **Keychain Access → Certificate Assistant → Create a Certificate…**
-2. Name: `Dayframe Local` · Identity Type: **Self-Signed Root** · Certificate Type: **Code Signing** → **Create**.
-3. Run `./build-and-install.sh`. It finds the certificate and signs with it automatically.
-4. System Settings → Privacy & Security → **Screen & System Audio Recording**: remove Dayframe (−) if it's listed, then turn it on when Dayframe asks. From now on, rebuilds keep the permission.
+**What keeps it running (added 2026-10-12, after a 1-hour silent outage):**
 
-**Quick fix for right now** (lasts until the next rebuild): in that same Screen Recording list, select Dayframe → **−** → reopen Dayframe → allow when asked. Or reset just Dayframe's entry in Terminal with `tccutil reset ScreenCapture local.dayframe.app`, then reopen Dayframe.
+| Safeguard | What it does |
+|---|---|
+| Stable signing (`build-and-install.sh`) | Every build is signed ad-hoc with the same identity (`identifier "local.dayframe.app"`), so macOS keeps the Screen Recording permission. The build **fails** if this ever changes. Don't change how the app is signed. |
+| Watchdog (`App/RecordingWatchdog.swift`) | Every 30 s and after wake/unlock: restarts recording if it's off, and restarts capture if no frame was saved for 3+ min while you're at the Mac. |
+| Permission alerts | If macOS blocks recording: an in-app notice (with **Restart Dayframe** and **Reset permission**) plus a Mac notification "Dayframe isn't recording" (at most hourly). |
+| Keep-alive (`Keepalive/`) | A LaunchAgent reopens Dayframe and Ollama within 2 minutes if either isn't running. To turn it off: `launchctl bootout gui/$(id -u)/local.dayframe.keepalive` |
+| Batch recovery (`AnalysisManager`) | Batches cut off by a quit or crash re-run at the next launch. One batch at a time, with a 5-minute AI timeout. |
+| Clean quit | Rebuilds and quits close the current video first, so no minutes are lost. |
+| Health check | `python3 ~/Briefing/app/briefing.py doctor` shows `recorder` as an error if no frame was saved for 15+ minutes. |
+
+**If you ever see "Dayframe isn't recording":** click the notification, or the notice's **Reset permission**, then allow Dayframe and click **Restart Dayframe**. The same fix in Terminal:
+
+```bash
+tccutil reset ScreenCapture local.dayframe.app
+```
+
+Then reopen Dayframe and click Allow. Turning the switch off and on in System Settings does **not** fix a signature mismatch; the reset does.
+
+**Quick check that it's recording:** the newest frame should be seconds old.
+
+```bash
+sqlite3 ~/Library/Application\ Support/Dayflow/chunks.sqlite "select datetime(max(captured_at),'unixepoch','localtime') from screenshots"
+```
 
 ---
 
@@ -191,3 +211,4 @@ Recording is meant to be always on: a watchdog restarts it every 30 s and after 
 - Never run the old **Dayflow** app at the same time. Both use the same data folder.
 - The build needs about 3 GB of free disk. The script checks first.
 - One Briefing test (`test_code_candidate_from_model_goes_through_gate`) was already failing in the original zip. It isn't caused by Dayframe.
+- One app unit test (`OpenAICompatibleProviderTests.testCardRetryRetainsFullContextAndReturnsDetailedCards`) already fails in upstream Dayflow. Run the tests with `xcodebuild test -project App/Dayflow.xcodeproj -scheme Dayflow -derivedDataPath build -destination 'platform=macOS' -only-testing:DayflowTests`.
