@@ -57,7 +57,7 @@ Entry template:
     - The Timeline shows "Installed Dayframe!" at 12:57.
     - Chat shows the 10-hour gate (1h 45m / 10h) and the new privacy note.
   - The Mac was asleep about 14:50–17:41. That is the timeline gap, not a recording fault.
-- **Commit:** see `git log`
+- **Commit:** `f3eb60b`
 
 ### 14:38: Guide updated for the recording safeguards
 - **What:**
