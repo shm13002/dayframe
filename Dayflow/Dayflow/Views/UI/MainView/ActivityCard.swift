@@ -140,7 +140,7 @@ struct ActivityCard: View {
                 .font(.system(size: 14, weight: .semibold))
                 .foregroundColor(.gray.opacity(0.7))
               Text(
-                "Cards are generated about every 15 minutes. If Dayflow is on and no cards show up within 30 minutes, please report a bug."
+                "Cards are generated about every 15 minutes. If Dayframe is on and no cards show up within 30 minutes, please report a bug."
               )
               .font(.custom("Figtree", size: 13))
               .foregroundColor(.gray.opacity(0.6))
@@ -152,7 +152,7 @@ struct ActivityCard: View {
               Text("Recording is off")
                 .font(.system(size: 14, weight: .semibold))
                 .foregroundColor(.gray.opacity(0.7))
-              Text("Dayflow recording is currently turned off, so cards aren’t being produced.")
+              Text("Dayframe recording is currently turned off, so cards aren’t being produced.")
                 .font(.custom("Figtree", size: 13))
                 .foregroundColor(.gray.opacity(0.6))
                 .multilineTextAlignment(.center)

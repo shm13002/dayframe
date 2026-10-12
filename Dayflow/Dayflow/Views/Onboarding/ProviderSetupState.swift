@@ -134,7 +134,7 @@ class ProviderSetupState: ObservableObject {
           id: "complete", title: String(localized: "Complete"),
           contentType: .information(
             String(localized: "All set!"),
-            String(localized: "Local AI is configured and ready to use with Dayflow."))),
+            String(localized: "Local AI is configured and ready to use with Dayframe."))),
       ]
     case .chatGPT, .claude:
       preferredCLITool = provider == .claude ? .claude : .codex
@@ -173,7 +173,7 @@ class ProviderSetupState: ObservableObject {
           title: String(localized: "Complete"),
           contentType: .information(
             String(localized: "All set!"),
-            String(localized: "Your OpenAI-compatible provider is ready to use with Dayflow.")
+            String(localized: "Your OpenAI-compatible provider is ready to use with Dayframe.")
           )
         ),
       ]
@@ -198,7 +198,7 @@ class ProviderSetupState: ObservableObject {
           id: "complete", title: String(localized: "Complete"),
           contentType: .information(
             String(localized: "All set!"),
-            String(localized: "Gemini is now configured and ready to use with Dayflow."))),
+            String(localized: "Gemini is now configured and ready to use with Dayframe."))),
       ]
     }
   }
@@ -237,7 +237,7 @@ class ProviderSetupState: ObservableObject {
         title: String(localized: "Complete"),
         contentType: .information(
           String(localized: "All set!"),
-          String(localized: "\(providerName) is configured and ready to use with Dayflow.")
+          String(localized: "\(providerName) is configured and ready to use with Dayframe.")
         )
       ),
     ]

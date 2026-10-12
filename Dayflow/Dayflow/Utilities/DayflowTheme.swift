@@ -63,165 +63,165 @@ final class SystemAppearanceObserver: ObservableObject {
 // MARK: - Theme tokens
 
 struct DayflowTheme {
-  let isDark: Bool
+  var isDark: Bool
 
   // Window
-  let windowBackground: AnyShapeStyle
-  let windowBorder: Color
+  var windowBackground: AnyShapeStyle
+  var windowBorder: Color
 
   // Main content panel (the big rounded card next to the sidebar)
-  let panelFill: AnyShapeStyle
-  let panelBorder: Color
-  let panelShadow: Color
-  let panelInnerGlow: Color
+  var panelFill: AnyShapeStyle
+  var panelBorder: Color
+  var panelShadow: Color
+  var panelInnerGlow: Color
   /// Opaque approximation of the panel color, for fades that must hide content.
-  let panelSolid: Color
+  var panelSolid: Color
 
   // Sidebar
-  let sidebarSelectedFill: LinearGradient
-  let sidebarSelectedBorder: Color
-  let sidebarSelectedInnerGlow: Color
-  let sidebarSelectedShadow: Color
-  let sidebarLabel: Color
-  let sidebarLabelActive: Color
-  let sidebarIcon: Color
-  let sidebarIconActive: Color
+  var sidebarSelectedFill: LinearGradient
+  var sidebarSelectedBorder: Color
+  var sidebarSelectedInnerGlow: Color
+  var sidebarSelectedShadow: Color
+  var sidebarLabel: Color
+  var sidebarLabelActive: Color
+  var sidebarIcon: Color
+  var sidebarIconActive: Color
 
   // Text
-  let textPrimary: Color
-  let textSecondary: Color
-  let textTertiary: Color
-  let textMuted: Color
-  let accent: Color
-  let accentText: Color
+  var textPrimary: Color
+  var textSecondary: Color
+  var textTertiary: Color
+  var textMuted: Color
+  var accent: Color
+  var accentText: Color
 
   // Peach "glass" control (calendar pill, Pause, selected Day/Week segment)
-  let controlFill: Color
-  let controlBorder: Color
-  let controlInnerGlow: Color
-  let controlText: Color
+  var controlFill: Color
+  var controlBorder: Color
+  var controlInnerGlow: Color
+  var controlText: Color
 
   // Day/Week segmented container
-  let segmentTrackFill: Color
-  let segmentTrackBorder: Color
-  let segmentInactiveText: Color
+  var segmentTrackFill: Color
+  var segmentTrackBorder: Color
+  var segmentInactiveText: Color
 
   // Small circular edit (pencil) button
-  let editButtonFill: Color
-  let editButtonBorder: Color
-  let editButtonInnerGlow: Color
+  var editButtonFill: Color
+  var editButtonBorder: Color
+  var editButtonInnerGlow: Color
 
   // Category chips in the timeline header
-  let chipFill: Color
-  let chipBorder: Color
-  let chipText: Color
+  var chipFill: Color
+  var chipBorder: Color
+  var chipText: Color
 
   // Timeline grid
-  let hourLabel: Color
-  let hourLabelFuture: Color
-  let hourLine: Color
+  var hourLabel: Color
+  var hourLabelFuture: Color
+  var hourLine: Color
 
   // Day timeline activity cards
-  let cardFill: Color
-  let cardBorder: Color
-  let cardInnerGlow: Color
-  let cardTitle: Color
-  let cardTime: Color
-  let cardFailedFill: Color
+  var cardFill: Color
+  var cardBorder: Color
+  var cardInnerGlow: Color
+  var cardTitle: Color
+  var cardTime: Color
+  var cardFailedFill: Color
 
   // "Generating your next card…" card
-  let generatingGradient: LinearGradient
-  let pausedCardGradient: LinearGradient
-  let pausedCardText: Color
+  var generatingGradient: LinearGradient
+  var pausedCardGradient: LinearGradient
+  var pausedCardText: Color
 
   // Week timeline cards
-  let weekCardFillOpacity: Double
+  var weekCardFillOpacity: Double
 
   // Right panel (day summary)
-  let rightPanelFill: Color
-  let rightPanelBorder: Color
-  let rightPanelShadow: Color
-  let rightPanelDivider: Color
+  var rightPanelFill: Color
+  var rightPanelBorder: Color
+  var rightPanelShadow: Color
+  var rightPanelDivider: Color
 
   // Today's targets header
-  let targetsFill: Color
-  let targetsBorder: Color
-  let targetsTrackFill: Color
-  let targetsTrackBorder: Color
-  let targetsBubbleFill: Color
-  let targetsBubbleBorder: Color
-  let targetsInactiveTrack: Color
-  let targetsInactiveFill: Color
+  var targetsFill: Color
+  var targetsBorder: Color
+  var targetsTrackFill: Color
+  var targetsTrackBorder: Color
+  var targetsBubbleFill: Color
+  var targetsBubbleBorder: Color
+  var targetsInactiveTrack: Color
+  var targetsInactiveFill: Color
 
   // Summary cards (Total focus time, Longest focus, Distractions)
-  let summaryCardFill: Color
-  let summaryCardBorder: Color
-  let summaryCardShadow: Color
-  let summaryCardInnerGlow: Color
-  let summaryValue: Color
+  var summaryCardFill: Color
+  var summaryCardBorder: Color
+  var summaryCardShadow: Color
+  var summaryCardInnerGlow: Color
+  var summaryValue: Color
 
   // Donut chart
-  let donutRingBackground: Color
-  let donutCenterFill: Color
-  let donutShadow: Color
-  let legendSwatchOpacity: Double
+  var donutRingBackground: Color
+  var donutCenterFill: Color
+  var donutShadow: Color
+  var legendSwatchOpacity: Double
 
   // Secondary button (Copy timeline, Cancel)
-  let secondaryButtonFill: Color
-  let secondaryButtonBorder: Color
-  let secondaryButtonText: Color
+  var secondaryButtonFill: Color
+  var secondaryButtonBorder: Color
+  var secondaryButtonText: Color
 
   // Primary button (Confirm, Continue)
-  let primaryButtonFill: Color
-  let primaryButtonBorder: Color
-  let primaryButtonInnerGlow: Color
-  let primaryButtonText: Color
+  var primaryButtonFill: Color
+  var primaryButtonBorder: Color
+  var primaryButtonInnerGlow: Color
+  var primaryButtonText: Color
 
   // Floating editors / popovers
-  let popoverFill: Color
-  let popoverBorder: Color
+  var popoverFill: Color
+  var popoverBorder: Color
 
   // Day goal sheet
-  let sheetOverlay: Color
-  let sheetCardFill: Color
-  let sheetCardBorder: Color
-  let sheetFocusHeader: Color
-  let sheetDistractionHeader: Color
-  let sheetFocusStatText: Color
-  let sheetDistractionStatText: Color
-  let sheetPanelFill: Color
-  let sheetPanelBorder: Color
-  let sheetInnerBoxFill: Color
-  let sheetInnerBoxBorder: Color
-  let sheetFooterFill: Color
-  let sheetWheelGradient: LinearGradient
-  let sheetWheelBorder: Color
-  let sheetWheelDimText: Color
+  var sheetOverlay: Color
+  var sheetCardFill: Color
+  var sheetCardBorder: Color
+  var sheetFocusHeader: Color
+  var sheetDistractionHeader: Color
+  var sheetFocusStatText: Color
+  var sheetDistractionStatText: Color
+  var sheetPanelFill: Color
+  var sheetPanelBorder: Color
+  var sheetInnerBoxFill: Color
+  var sheetInnerBoxBorder: Color
+  var sheetFooterFill: Color
+  var sheetWheelGradient: LinearGradient
+  var sheetWheelBorder: Color
+  var sheetWheelDimText: Color
 
   // Daily view
-  let dailyGridFill: Color
-  let dailyGridBorder: Color
-  let dailyTotalsFill: Color
-  let dailyEmptyCell: Color
-  let dailyDistractionTrack: Color
-  let dailyDistractionTrackBorder: Color
-  let dailyStatValue: Color
-  let standupCardGradient: LinearGradient
-  let standupCardBorder: Color
-  let standupBlockersFill: Color
-  let standupBlockersBorder: Color
+  var dailyGridFill: Color
+  var dailyGridBorder: Color
+  var dailyTotalsFill: Color
+  var dailyEmptyCell: Color
+  var dailyDistractionTrack: Color
+  var dailyDistractionTrackBorder: Color
+  var dailyStatValue: Color
+  var standupCardGradient: LinearGradient
+  var standupCardBorder: Color
+  var standupBlockersFill: Color
+  var standupBlockersBorder: Color
 
   // Standard text field / input
-  let inputFill: Color
-  let inputBorder: Color
+  var inputFill: Color
+  var inputBorder: Color
 
   // Chat
-  let chatBackground: AnyShapeStyle
-  let chatSoftAccentFill: Color
-  let chatSoftAccentBorder: Color
-  let chatSidePanelFill: Color
-  let chatSidePanelHeaderFill: Color
-  let chatCodeFill: Color
+  var chatBackground: AnyShapeStyle
+  var chatSoftAccentFill: Color
+  var chatSoftAccentBorder: Color
+  var chatSidePanelFill: Color
+  var chatSidePanelHeaderFill: Color
+  var chatCodeFill: Color
 }
 
 // MARK: - Light
@@ -667,13 +667,15 @@ extension EnvironmentValues {
 private struct DayflowThemeResolver: ViewModifier {
   @Environment(\.colorScheme) private var colorScheme
   @ObservedObject private var preview = StylePreview.shared
+  @ObservedObject private var palette = DayframePaletteStore.shared
 
   func body(content: Content) -> some View {
     content.environment(
       \.dayflowTheme,
-      colorScheme == .dark
-        ? (preview.showAfter ? .dark : .darkBefore)
-        : (preview.showAfter ? .light : .lightBefore))
+      palette.palette.apply(
+        to: colorScheme == .dark
+          ? (preview.showAfter ? .dark : .darkBefore)
+          : (preview.showAfter ? .light : .lightBefore)))
   }
 }
 

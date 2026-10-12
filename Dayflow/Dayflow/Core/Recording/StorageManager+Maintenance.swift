@@ -138,7 +138,7 @@ extension StorageManager {
     let presentAlert = {
       let alert = NSAlert()
       alert.alertStyle = .critical
-      alert.messageText = String(localized: "Dayflow Can't Open Its Database")
+      alert.messageText = String(localized: "Dayframe Can't Open Its Database")
       alert.informativeText = String(
         localized: """
           Dayflow couldn't open its database and has to quit. This usually happens \

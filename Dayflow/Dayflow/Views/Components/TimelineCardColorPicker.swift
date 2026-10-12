@@ -281,7 +281,7 @@ struct ColorOrganizerRoot: View {
       }
 
       Text(
-        "This step is optional. You can customize the categories or create new ones anytime while using Dayflow."
+        "This step is optional. You can customize the categories or create new ones anytime while using Dayframe."
       )
       .font(Font.custom("Figtree", size: 12).weight(.medium))
       .foregroundColor(
@@ -476,7 +476,7 @@ struct ColorOrganizerRoot: View {
       .frame(maxWidth: isCompact ? .infinity : 708)
       .frame(height: containerHeight, alignment: .topLeading)
 
-      Text("This step is optional. You can change the colors anytime while using Dayflow.")
+      Text("This step is optional. You can change the colors anytime while using Dayframe.")
         .font(Font.custom("Figtree", size: 12).weight(.medium))
         .foregroundColor(
           theme.isDark ? Color(hex: "BDBDBD") : Color(red: 0.48, green: 0.48, blue: 0.48)

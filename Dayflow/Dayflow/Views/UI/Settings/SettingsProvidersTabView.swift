@@ -213,7 +213,7 @@ struct SettingsProvidersTabView: View {
             }
           }
         case .dayflow:
-          Text("Hosted cards and transcription run through your Dayflow account.")
+          Text("Hosted cards and transcription run through your Dayframe account.")
             .font(.custom("Figtree", size: 13))
             .foregroundColor(SettingsStyle.secondary)
         }
@@ -360,7 +360,7 @@ struct SettingsProvidersTabView: View {
   private var geminiModelSection: some View {
     SettingsSection(
       title: String(localized: "Gemini model preference"),
-      subtitle: String(localized: "Choose which Gemini model Dayflow should prioritize.")
+      subtitle: String(localized: "Choose which Gemini model Dayframe should prioritize.")
     ) {
       VStack(alignment: .leading, spacing: 14) {
         Picker("Gemini model", selection: $viewModel.selectedGeminiModel) {
@@ -379,7 +379,7 @@ struct SettingsProvidersTabView: View {
           .foregroundColor(SettingsStyle.secondary)
 
         Text(
-          "Dayflow automatically downgrades if your chosen model is rate limited or unavailable."
+          "Dayframe automatically downgrades if your chosen model is rate limited or unavailable."
         )
         .font(.custom("Figtree", size: 11))
         .foregroundColor(SettingsStyle.meta)
@@ -395,7 +395,7 @@ struct SettingsProvidersTabView: View {
     case .gemini:
       promptSection(
         title: String(localized: "Gemini prompt customization"),
-        subtitle: String(localized: "Override Dayflow's defaults to tailor card generation."),
+        subtitle: String(localized: "Override Dayframe's defaults to tailor card generation."),
         intro:
           String(
             localized:
@@ -564,7 +564,7 @@ struct SettingsProvidersTabView: View {
         HStack {
           Spacer()
           SettingsSecondaryButton(
-            title: String(localized: "Reset to Dayflow defaults"),
+            title: String(localized: "Reset to Dayframe defaults"),
             systemImage: "arrow.counterclockwise",
             action: onReset
           )
@@ -767,7 +767,7 @@ struct LocalModelUpgradeSheet: View {
               .font(.custom("Figtree", size: 22))
               .fontWeight(.semibold)
             Text(
-              "Follow the steps below, run a quick test, and Dayflow will switch you over automatically."
+              "Follow the steps below, run a quick test, and Dayframe will switch you over automatically."
             )
             .font(.custom("Figtree", size: 13))
             .foregroundColor(SettingsStyle.secondary)
@@ -829,7 +829,7 @@ struct LocalModelUpgradeSheet: View {
         )
 
         Text(
-          "Once the test succeeds, Dayflow updates your settings to \(preset.displayName) automatically."
+          "Once the test succeeds, Dayframe updates your settings to \(preset.displayName) automatically."
         )
         .font(.custom("Figtree", size: 12))
         .foregroundColor(SettingsStyle.secondary)

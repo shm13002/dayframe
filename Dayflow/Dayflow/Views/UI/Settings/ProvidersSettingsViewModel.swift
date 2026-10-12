@@ -820,7 +820,7 @@ final class ProvidersSettingsViewModel: ObservableObject {
     case .openAICompatible:
       return String(localized: "OpenAI-compatible API")
     case .dayflow:
-      return String(localized: "Dayflow Backend")
+      return String(localized: "Dayframe Backend")
     }
   }
 

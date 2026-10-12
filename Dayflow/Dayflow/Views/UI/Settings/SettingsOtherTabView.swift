@@ -9,8 +9,21 @@ struct SettingsOtherTabView: View {
 
   var body: some View {
     VStack(alignment: .leading, spacing: SettingsStyle.sectionSpacing) {
+      colorsSection
       appPreferencesSection
       outputLanguageSection
+    }
+  }
+
+  // MARK: - Colors (Dayframe)
+
+  private var colorsSection: some View {
+    SettingsSection(
+      title: "Colors",
+      subtitle: "Pick a palette. Click an orb and watch it spread across the window."
+    ) {
+      PalettePicker(orbSize: 34)
+        .padding(.vertical, 10)
     }
   }
 
@@ -60,7 +73,7 @@ struct SettingsOtherTabView: View {
         }
 
         SettingsRow(
-          label: String(localized: "Launch Dayflow at login"),
+          label: String(localized: "Launch Dayframe at login"),
           subtitle:
             String(
               localized:
@@ -75,13 +88,10 @@ struct SettingsOtherTabView: View {
           )
         }
 
-        SettingsRow(label: String(localized: "Share crash reports and anonymous usage data")) {
-          SettingsToggle(isOn: $viewModel.analyticsEnabled)
-        }
 
         SettingsRow(
           label: String(localized: "Show Dock icon"),
-          subtitle: String(localized: "When off, Dayflow runs as a menu bar-only app.")
+          subtitle: String(localized: "When off, Dayframe runs as a menu bar-only app.")
         ) {
           SettingsToggle(isOn: $viewModel.showDockIcon)
         }

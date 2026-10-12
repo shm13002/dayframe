@@ -34,7 +34,7 @@ struct BugReportView: View {
   var body: some View {
     VStack(spacing: 24) {
       VStack(spacing: 10) {
-        Text("Thanks for using Dayflow")
+        Text("Thanks for using Dayframe")
           .font(.custom("InstrumentSerif-Regular", size: 40))
           .foregroundColor(theme.textPrimary)
 

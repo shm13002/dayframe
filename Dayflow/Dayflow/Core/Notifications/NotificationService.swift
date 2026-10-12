@@ -57,7 +57,7 @@ final class NotificationService: NSObject, ObservableObject {
         NotificationBadgeManager.shared.supportUnreadCount > 0
       else { return }
       let content = UNMutableNotificationContent()
-      content.title = String(localized: "New reply from Dayflow")
+      content.title = String(localized: "New reply from Dayframe")
       content.body = String(localized: "You have a new support reply. Open Support to read it.")
       content.sound = .default
       do {

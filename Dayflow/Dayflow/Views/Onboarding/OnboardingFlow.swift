@@ -633,7 +633,7 @@ struct OnboardingPrototypeReferralStep: View {
 
       VStack(spacing: 20) {
         ReferralSurveyView(
-          prompt: String(localized: "Where did you first hear about Dayflow?"),
+          prompt: String(localized: "Where did you first hear about Dayframe?"),
           showSubmitButton: false,
           selectedReferral: $selectedReferral,
           customReferral: $referralDetail
@@ -692,7 +692,7 @@ struct OnboardingPersonalGoalStep: View {
       Spacer()
         .frame(height: 39)
 
-      Text("Dayflow adapts to what you need")
+      Text("Dayframe adapts to what you need")
         .font(.custom("InstrumentSerif-Regular", size: 40))
         .tracking(-1.2)
         .multilineTextAlignment(.center)
@@ -703,7 +703,7 @@ struct OnboardingPersonalGoalStep: View {
       Spacer()
         .frame(height: 12)
 
-      Text("Tell Dayflow what you're hoping to get out of it.")
+      Text("Tell Dayframe what you're hoping to get out of it.")
         .font(.custom("Figtree", size: 18))
         .foregroundColor(Color(hex: "89380E").opacity(0.78))
         .multilineTextAlignment(.center)
@@ -818,7 +818,7 @@ struct CompletionView: View {
           .foregroundColor(.black.opacity(0.9))
 
         Text(
-          "To get useful insights, let Dayflow run in the background for an hour or two to gather enough context, then check back in."
+          "To get useful insights, let Dayframe run in the background for an hour or two to gather enough context, then check back in."
         )
         .font(.custom("Figtree", size: 15))
         .foregroundColor(.black.opacity(0.6))
@@ -831,7 +831,7 @@ struct CompletionView: View {
           onFinish()
         },
         content: {
-          Text("Launch Dayflow")
+          Text("Launch Dayframe")
             .font(.custom("Figtree", size: 16))
             .fontWeight(.semibold)
         },

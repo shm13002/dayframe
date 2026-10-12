@@ -224,9 +224,9 @@ struct DayflowApp: App {
   /// Mirrors FlowNudgeVariant.current so the menu title re-renders on toggle.
   @AppStorage(FlowNudgeVariant.defaultsKey) private var flowNudgeVariant = FlowNudgeVariant.side
     .rawValue
-  @State private var showVideoLaunch = true
-  @State private var contentOpacity = 0.0
-  @State private var contentScale = 0.98
+  @State private var showVideoLaunch = false  // Dayframe: no upstream launch video
+  @State private var contentOpacity = 1.0
+  @State private var contentScale = 1.0
   @State private var isShowingGitHubStarPrompt = false
   @State private var gitHubStarCount: Int? = nil
   @State private var gitHubStarPromptUsesBrowser = false
@@ -311,7 +311,7 @@ struct DayflowApp: App {
             }
         }
 
-        if didOnboard && !showVideoLaunch && isShowingGitHubStarPrompt {
+        if DayframeFlags.upstreamPrompts && didOnboard && !showVideoLaunch && isShowingGitHubStarPrompt {
           GitHubStarPromptCard(
             starCount: gitHubStarCount,
             usesBrowser: gitHubStarPromptUsesBrowser,
@@ -325,7 +325,7 @@ struct DayflowApp: App {
           .zIndex(10)
         }
 
-        if didOnboard && !showVideoLaunch, let survey = surveyCenter.activeSurvey {
+        if DayframeFlags.upstreamPrompts, didOnboard, !showVideoLaunch, let survey = surveyCenter.activeSurvey {
           SurveyPromptCard(survey: survey, center: surveyCenter)
             .id(survey.id)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
@@ -335,6 +335,11 @@ struct DayflowApp: App {
             .zIndex(10)
         }
 
+        if didOnboard {
+          PaletteRevealOverlay()
+            .ignoresSafeArea()
+            .zIndex(20)
+        }
       }
       .animation(
         .spring(response: 0.34, dampingFraction: 0.88), value: surveyCenter.activeSurvey?.id
@@ -544,10 +549,15 @@ final class MainWindowController {
 /// Full-window gradient behind the main app (Figma: dark linear / light radial).
 private struct DayflowWindowBackground: View {
   @Environment(\.dayflowTheme) private var theme
+  @ObservedObject private var palette = DayframePaletteStore.shared
 
   var body: some View {
     GeometryReader { proxy in
-      if theme.isDark {
+      if palette.palette != .original {
+        Rectangle()
+          .fill(theme.windowBackground)
+          .frame(width: proxy.size.width, height: proxy.size.height)
+      } else if theme.isDark {
         Image("DarkWindowBackground")
           .resizable()
           .interpolation(.high)

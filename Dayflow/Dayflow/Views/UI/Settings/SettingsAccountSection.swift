@@ -54,7 +54,7 @@ struct SettingsAccountSection: View {
     ) {
       VStack(alignment: .leading, spacing: 0) {
         SettingsRow(
-          label: String(localized: "Dayflow account"),
+          label: String(localized: "Dayframe account"),
           subtitle: authManager.isSignedIn
             ? authManager.displayIdentity
             : nil,
@@ -91,7 +91,7 @@ struct SettingsAccountSection: View {
   private var currentPlanSection: some View {
     SettingsSection(
       title: String(localized: "Account"),
-      subtitle: String(localized: "Manage your Dayflow account and subscription.")
+      subtitle: String(localized: "Manage your Dayframe account and subscription.")
     ) {
       ActiveProCard(
         entitlement: authManager.entitlements,
@@ -581,7 +581,7 @@ private struct ReferralProgramCard: View {
           .foregroundColor(theme.textPrimary)
 
         Text(
-          "Referral credits are tied to your Dayflow account so we can credit you when friends join."
+          "Referral credits are tied to your Dayframe account so we can credit you when friends join."
         )
         .font(.custom("Figtree", size: 11))
         .foregroundColor(theme.textSecondary)

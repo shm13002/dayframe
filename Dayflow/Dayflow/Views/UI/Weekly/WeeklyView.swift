@@ -1050,7 +1050,7 @@ private struct WeeklyGeneratedWithDayflowText: View {
         .font(.custom("Figtree-SemiBold", size: 10))
         .foregroundStyle(WeeklyPalette.secondaryText)
 
-      Text("Dayflow")
+      Text("Dayframe")
         .font(.custom("Figtree-Bold", size: 10))
         .foregroundStyle(WeeklyPalette.title)
     }

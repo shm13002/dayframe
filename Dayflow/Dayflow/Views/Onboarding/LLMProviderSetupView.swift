@@ -417,7 +417,7 @@ struct LLMProviderSetupView: View {
             .fontWeight(.semibold)
             .foregroundColor(Color(hex: "333333"))
 
-          Text("This model enables Dayflow to understand what's on your screen")
+          Text("This model enables Dayframe to understand what's on your screen")
             .font(.custom("Figtree", size: 14))
             .foregroundColor(Color(hex: "333333"))
         }
@@ -612,7 +612,7 @@ struct LLMProviderSetupView: View {
             .foregroundColor(Color(hex: "333333"))
 
           Text(
-            "allows you to run Dayflow for free. All you need is a Google account - no credit card required."
+            "allows you to run Dayframe for free. All you need is a Google account - no credit card required."
           )
           .font(.custom("Figtree", size: 14))
           .foregroundColor(Color(hex: "333333"))
@@ -751,7 +751,7 @@ struct LLMProviderSetupView: View {
       return true
     } catch {
       setupState.saveErrorMessage =
-        String(localized: "Dayflow couldn't finish saving this provider. Please try again.")
+        String(localized: "Dayframe couldn't finish saving this provider. Please try again.")
       return false
     }
   }

@@ -17,8 +17,9 @@ private enum SidebarMetrics {
 }
 
 enum SidebarIcon: CaseIterable {
+  case briefing
   /// Tabs Dayframe shows. Flow (waitlist), Agents and Support are upstream-only.
-  static let visible: [SidebarIcon] = [.timeline, .daily, .weekly, .chat, .settings]
+  static let visible: [SidebarIcon] = [.briefing, .timeline, .daily, .weekly, .chat, .settings]
 
   case timeline
   case daily
@@ -31,6 +32,7 @@ enum SidebarIcon: CaseIterable {
 
   var assetName: String? {
     switch self {
+    case .briefing: return nil
     case .timeline: return "TimelineIcon"
     case .daily: return "DailyIcon"
     case .weekly: return "WeeklyIcon"
@@ -44,6 +46,7 @@ enum SidebarIcon: CaseIterable {
 
   var systemNameFallback: String? {
     switch self {
+    case .briefing: return "sun.horizon.fill"
     case .flow: return "water.waves"
     case .agents: return "sparkles"
     case .bug: return "exclamationmark.bubble.fill"
@@ -54,6 +57,7 @@ enum SidebarIcon: CaseIterable {
 
   var displayName: String {
     switch self {
+    case .briefing: return "Briefing"
     case .timeline: return String(localized: "Timeline")
     case .daily:
       return String(
@@ -73,6 +77,7 @@ enum SidebarIcon: CaseIterable {
 
   var analyticsTabName: String {
     switch self {
+    case .briefing: return "briefing"
     case .timeline: return "timeline"
     case .daily: return "daily"
     case .weekly: return "weekly"

@@ -64,6 +64,8 @@ extension MainView {
     // Right column: Main white panel including header + content
     ZStack {
       switch selectedIcon {
+      case .briefing:
+        BriefingPanelView()
       case .settings:
         SettingsView()
           .padding(15)

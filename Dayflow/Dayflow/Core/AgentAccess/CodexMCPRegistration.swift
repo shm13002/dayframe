@@ -113,7 +113,7 @@ struct CodexMCPRegistration: @unchecked Sendable {
 
     guard status(using: executableURL) == .available else {
       return .failed(
-        String(localized: "Codex removed the connection, but Dayflow couldn't verify the change."))
+        String(localized: "Codex removed the connection, but Dayframe couldn't verify the change."))
     }
     return .disconnected
   }
@@ -200,16 +200,16 @@ struct CodexMCPRegistration: @unchecked Sendable {
     switch action {
     case .connect:
       return detail.isEmpty
-        ? String(localized: "Codex couldn't connect to Dayflow.")
-        : String(localized: "Codex couldn't connect to Dayflow: \(detail)")
+        ? String(localized: "Codex couldn't connect to Dayframe.")
+        : String(localized: "Codex couldn't connect to Dayframe: \(detail)")
     case .disconnect:
       return detail.isEmpty
-        ? String(localized: "Codex couldn't disconnect from Dayflow.")
-        : String(localized: "Codex couldn't disconnect from Dayflow: \(detail)")
+        ? String(localized: "Codex couldn't disconnect from Dayframe.")
+        : String(localized: "Codex couldn't disconnect from Dayframe: \(detail)")
     case .check:
       return detail.isEmpty
-        ? String(localized: "Codex couldn't check the Dayflow connection.")
-        : String(localized: "Codex couldn't check the Dayflow connection: \(detail)")
+        ? String(localized: "Codex couldn't check the Dayframe connection.")
+        : String(localized: "Codex couldn't check the Dayframe connection: \(detail)")
     }
   }
 

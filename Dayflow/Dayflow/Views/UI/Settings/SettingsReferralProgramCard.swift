@@ -32,7 +32,7 @@ struct ReferralPassCard: View {
             .scaledToFit()
             .frame(width: 24, height: 24)
 
-          Text("Dayflow")
+          Text("Dayframe")
             .font(.custom("InstrumentSerif-Regular", size: 28))
             .foregroundColor(.white)
             .lineLimit(1)

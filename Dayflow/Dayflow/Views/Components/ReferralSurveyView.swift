@@ -270,9 +270,9 @@ enum ReferralOption: CaseIterable, Identifiable, Hashable {
     case .youtube:
       return String(localized: "Which channel?")
     case .chatGPTClaudeAI:
-      return String(localized: "What did you ask ChatGPT or Claude that led you to Dayflow?")
+      return String(localized: "What did you ask ChatGPT or Claude that led you to Dayframe?")
     case .other:
-      return String(localized: "Where did you hear about Dayflow?")
+      return String(localized: "Where did you hear about Dayframe?")
     default:
       return ""
     }

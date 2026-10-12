@@ -198,7 +198,7 @@ struct TimelineFailureClassification {
     case "chatgpt": return String(localized: "ChatGPT")
     case "claude": return String(localized: "Claude")
     case "local", "ollama": return String(localized: "Ollama/LM Studio")
-    case "dayflow": return String(localized: "Dayflow")
+    case "dayflow": return String(localized: "Dayframe")
     default: return label
     }
   }

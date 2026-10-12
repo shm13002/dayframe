@@ -83,7 +83,7 @@ struct DayflowProOnboardingSignInPanel: View {
           .frame(width: scaled(40), height: scaled(40))
 
         VStack(alignment: .leading, spacing: scaled(4)) {
-          Text("Sign up / Sign in to Dayflow")
+          Text("Sign up / Sign in to Dayframe")
             .font(.custom("Figtree", size: scaledText(20)))
             .fontWeight(.semibold)
             .foregroundColor(Color(hex: "492304"))
@@ -297,7 +297,7 @@ struct DayflowProOnboardingSignInPanel: View {
           .multilineTextAlignment(.center)
 
         Text(
-          "We want you to be able to try Dayflow for free, no credit card and no strings attached!"
+          "We want you to be able to try Dayframe for free, no credit card and no strings attached!"
         )
         .font(.custom("Figtree", size: scaledText(13)))
         .foregroundColor(Color(hex: "89380E").opacity(0.75))
@@ -333,7 +333,7 @@ struct DayflowProOnboardingSignInPanel: View {
           .foregroundColor(Color(hex: "492304"))
           .multilineTextAlignment(.center)
 
-        Text("No credit card needed. You can set up billing later if Dayflow is useful.")
+        Text("No credit card needed. You can set up billing later if Dayframe is useful.")
           .font(.custom("Figtree", size: scaledText(13)))
           .foregroundColor(Color(hex: "89380E").opacity(0.75))
           .multilineTextAlignment(.center)

@@ -124,7 +124,7 @@ struct SettingsAgentAccessTabView: View {
           label: viewModel.editsEnabled
             ? String(localized: "Edits are on") : String(localized: "Edits are off"),
           subtitle: viewModel.editsEnabled
-            ? String(localized: "AI tools can make changes through Dayflow while it's running.")
+            ? String(localized: "AI tools can make changes through Dayframe while it's running.")
             : nil,
           showsDivider: false
         ) {

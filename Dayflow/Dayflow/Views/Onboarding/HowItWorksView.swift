@@ -13,7 +13,7 @@ struct HowItWorksView: View {
   @State private var cardOpacities: [Double] = [0, 0, 0]
   @State private var buttonsOpacity: Double = 0
 
-  private let fullText = String(localized: "How Dayflow Works")
+  private let fullText = String(localized: "How Dayframe Works")
 
   // Navigation callbacks
   var onBack: () -> Void
@@ -111,7 +111,7 @@ struct HowItWorksView: View {
               Image("GithubIcon").resizable().aspectRatio(contentMode: .fit).frame(
                 width: 20, height: 20
               ).colorInvert()
-              Text("Star Dayflow on GitHub").font(.custom("Figtree", size: 14)).fontWeight(.medium)
+              Text("Star Dayframe on GitHub").font(.custom("Figtree", size: 14)).fontWeight(.medium)
             }
           },
           background: Color(hex: "FF9F6F"),

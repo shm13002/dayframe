@@ -118,7 +118,7 @@ struct GitHubStarPromptCard: View {
   var body: some View {
     VStack(spacing: 40) {
       VStack(spacing: 12) {
-        Text("Enjoying Dayflow?")
+        Text("Enjoying Dayframe?")
           .font(.custom("Figtree", size: 16).weight(.semibold))
           .foregroundStyle(theme.textPrimary)
           .frame(maxWidth: .infinity)
@@ -129,7 +129,7 @@ struct GitHubStarPromptCard: View {
           .fixedSize(horizontal: false, vertical: true)
           .frame(maxWidth: .infinity, alignment: .leading)
 
-        Text("— Jerry, who makes Dayflow")
+        Text("— Jerry, who makes Dayframe")
           .font(.custom("Figtree", size: 13))
           .foregroundStyle(theme.textPrimary.opacity(0.6))
           .frame(maxWidth: .infinity, alignment: .trailing)
