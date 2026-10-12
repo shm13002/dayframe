@@ -85,7 +85,7 @@ struct CodexMCPRegistration: @unchecked Sendable {
       return .failed(
         String(
           localized:
-            "Codex updated its configuration, but Dayflow couldn't verify the connection."))
+            "Codex updated its configuration, but Dayframe couldn't verify the connection."))
     }
     return .connected
   }

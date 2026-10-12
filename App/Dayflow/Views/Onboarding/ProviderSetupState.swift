@@ -113,7 +113,7 @@ class ProviderSetupState: ObservableObject {
             String(localized: "For experienced users"),
             String(
               localized:
-                "This path is recommended only if you're comfortable running LLMs locally and debugging technical issues. If terms like vLLM or API endpoint don't ring a bell, we recommend going back and picking ChatGPT, Claude, or Gemini. It's non-technical and takes about 30 seconds.\n\nFor local mode, Dayflow recommends Qwen3-VL 4B as the core vision-language model (Qwen2.5-VL 3B remains available if you need a smaller download)."
+                "This path is recommended only if you're comfortable running LLMs locally and debugging technical issues. If terms like vLLM or API endpoint don't ring a bell, we recommend going back and picking ChatGPT, Claude, or Gemini. It's non-technical and takes about 30 seconds.\n\nFor local mode, Dayframe recommends Qwen3-VL 4B as the core vision-language model (Qwen2.5-VL 3B remains available if you need a smaller download)."
             )
           )
         ),
@@ -215,7 +215,7 @@ class ProviderSetupState: ObservableObject {
           "",
           String(
             localized:
-              "Dayflow uses \(cliName) through your existing \(providerName) subscription. Install it and sign in on this Mac, then we'll verify the connection."
+              "Dayframe uses \(cliName) through your existing \(providerName) subscription. Install it and sign in on this Mac, then we'll verify the connection."
           )
         )
       ),

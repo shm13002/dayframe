@@ -756,7 +756,7 @@ struct LLMProviderSetupView: View {
         setupState.saveErrorMessage =
           String(
             localized:
-              "Dayflow couldn't save this endpoint configuration. Your previous configuration is still active."
+              "Dayframe couldn't save this endpoint configuration. Your previous configuration is still active."
           )
         return false
       }
@@ -778,7 +778,7 @@ struct LLMProviderSetupView: View {
       setupState.saveErrorMessage =
         String(
           localized:
-            "The provider is configured, but Dayflow couldn't update your routing. Your previous selection is still active."
+            "The provider is configured, but Dayframe couldn't update your routing. Your previous selection is still active."
         )
       return
     }

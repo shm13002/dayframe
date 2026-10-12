@@ -328,7 +328,7 @@ final class ProvidersSettingsViewModel: ObservableObject {
       providerRoutingErrorMessage =
         String(
           localized:
-            "Dayflow couldn't load your provider routing. Your saved providers were left unchanged."
+            "Dayframe couldn't load your provider routing. Your saved providers were left unchanged."
         )
     }
   }
@@ -687,7 +687,7 @@ final class ProvidersSettingsViewModel: ObservableObject {
       providerRoutingErrorMessage =
         String(
           localized:
-            "Dayflow couldn't save your provider routing. Your previous selection is still active.")
+            "Dayframe couldn't save your provider routing. Your previous selection is still active.")
       return false
     }
   }

@@ -258,7 +258,7 @@ struct OnboardingFlow: View {
     } catch {
       if presentsError {
         routingSaveErrorMessage = String(
-          localized: "Dayflow couldn't save this provider. Please try again.")
+          localized: "Dayframe couldn't save this provider. Please try again.")
       }
       AnalyticsService.shared.capture(
         "llm_provider_routing_save_failed",

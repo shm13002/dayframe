@@ -400,7 +400,7 @@ struct SettingsProvidersTabView: View {
         intro:
           String(
             localized:
-              "Overrides apply only when their toggle is on. Unchecked sections fall back to Dayflow's defaults."
+              "Overrides apply only when their toggle is on. Unchecked sections fall back to Dayframe's defaults."
           ),
         sections: [
           promptEditorConfig(
@@ -482,7 +482,7 @@ struct SettingsProvidersTabView: View {
       intro:
         String(
           localized:
-            "Overrides apply only when their toggle is on. Unchecked sections fall back to Dayflow's defaults."
+            "Overrides apply only when their toggle is on. Unchecked sections fall back to Dayframe's defaults."
         ),
       sections: [
         promptEditorConfig(

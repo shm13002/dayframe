@@ -18,18 +18,37 @@ struct BriefingTodo: Identifiable, Decodable, Equatable {
 struct BriefingCard: Identifiable, Decodable, Equatable {
   var id: String { "\(startTs)-\(ln ?? 0)" }
   let ln: Int?
-  let startTs: Int
-  let endTs: Int?
+  let ts: Double?
+  let rawStart: Double?
+  let rawEnd: Double?
   let title: String?
   let summary: String?
   let category: String?
   let type: String?
 
+  /// Cards have start/end; notes only have `ts`.
+  var startTs: Int { Int(rawStart ?? ts ?? 0) }
+  var endTs: Int? { rawEnd.map { Int($0) } }
+
   enum CodingKeys: String, CodingKey {
-    case ln, title, summary, category, type
-    case startTs = "start_ts"
-    case endTs = "end_ts"
+    case ln, ts, title, summary, category, type
+    case rawStart = "start_ts"
+    case rawEnd = "end_ts"
   }
+}
+
+/// Decodes an array, skipping elements that don't fit instead of failing the whole response.
+struct Lossy<Element: Decodable & Equatable>: Decodable, Equatable {
+  let items: [Element]
+  init(from decoder: Decoder) throws {
+    var c = try decoder.unkeyedContainer()
+    var out: [Element] = []
+    while !c.isAtEnd {
+      if let e = try? c.decode(Element.self) { out.append(e) } else { _ = try? c.decode(Skip.self) }
+    }
+    items = out
+  }
+  private struct Skip: Decodable {}
 }
 
 struct BriefingProject: Identifiable, Decodable, Equatable {
@@ -55,14 +74,21 @@ struct BriefingState: Decodable, Equatable {
   let briefing: String?
   let briefingAt: Double?
   let sessionGoal: String?
-  let timeline: [BriefingCard]?
-  let todos: [BriefingTodo]?
-  let projects: [BriefingProject]?
+  private let rawTimeline: Lossy<BriefingCard>?
+  private let rawTodos: Lossy<BriefingTodo>?
+  private let rawProjects: Lossy<BriefingProject>?
   let stats: BriefingStats?
   let settings: [String: JSONValue]?
 
+  var timeline: [BriefingCard]? { rawTimeline?.items }
+  var todos: [BriefingTodo]? { rawTodos?.items }
+  var projects: [BriefingProject]? { rawProjects?.items }
+
   enum CodingKeys: String, CodingKey {
-    case briefing, timeline, todos, projects, stats, settings
+    case briefing, stats, settings
+    case rawTimeline = "timeline"
+    case rawTodos = "todos"
+    case rawProjects = "projects"
     case briefingAt = "briefing_at"
     case sessionGoal = "session_goal"
   }
@@ -190,6 +216,9 @@ final class BriefingService: ObservableObject {
       let decoded = try JSONDecoder().decode(BriefingState.self, from: data)
       if decoded != state { state = decoded }
       phase = .ready
+    } catch is DecodingError {
+      lastError = "Couldn't read the briefing data"
+      phase = state == nil ? .offline : .ready
     } catch {
       if state == nil { phase = .offline }
     }

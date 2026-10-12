@@ -264,7 +264,7 @@ struct ColorOrganizerRoot: View {
           text:
             String(
               localized:
-                "Dayflow organizes your activities by the category titles and descriptions you provide."
+                "Dayframe organizes your activities by the category titles and descriptions you provide."
             )
         )
         .frame(maxWidth: isCompact ? .infinity : 280, alignment: .leading)
@@ -274,7 +274,7 @@ struct ColorOrganizerRoot: View {
           text:
             String(
               localized:
-                "Try to provide as much details in the descriptions as you can to help Dayflow understand your workflow and habits."
+                "Try to provide as much details in the descriptions as you can to help Dayframe understand your workflow and habits."
             )
         )
         .frame(maxWidth: isCompact ? .infinity : 280, alignment: .leading)

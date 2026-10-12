@@ -93,19 +93,19 @@ struct GitHubStarPromptCard: View {
     if usesBrowser {
       return String(
         localized:
-          "Dayflow is free and open source, and GitHub stars are how other people find it. If you’re enjoying it, a star would mean a lot."
+          "Dayframe is free and open source, and GitHub stars are how other people find it. If you’re enjoying it, a star would mean a lot."
       )
     }
     if let starCount {
       let formattedCount = starCount.formatted(.number)
       return String(
         localized:
-          "Dayflow is free and open source, and GitHub stars are how other people find it. Join \(formattedCount) people who’ve starred it. It’s one click, no browser needed."
+          "Dayframe is free and open source, and GitHub stars are how other people find it. Join \(formattedCount) people who’ve starred it. It’s one click, no browser needed."
       )
     }
     return String(
       localized:
-        "Dayflow is free and open source, and GitHub stars are how other people find it. It’s one click, no browser needed."
+        "Dayframe is free and open source, and GitHub stars are how other people find it. It’s one click, no browser needed."
     )
   }
 

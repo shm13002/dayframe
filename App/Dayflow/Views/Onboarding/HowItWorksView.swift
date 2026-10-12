@@ -25,7 +25,7 @@ struct HowItWorksView: View {
       String(localized: "Install and Forget"),
       String(
         localized:
-          "Dayflow takes periodic screen captures to understand what you're working on, all stored privately on your device. You can toggle this whenever you like."
+          "Dayframe takes periodic screen captures to understand what you're working on, all stored privately on your device. You can toggle this whenever you like."
       )
     ),
     (
@@ -33,7 +33,7 @@ struct HowItWorksView: View {
       String(localized: "Privacy by Default"),
       String(
         localized:
-          "Dayflow can run entirely on local AI models, which means your data never leaves your computer. You can also find the source code below - please consider giving it a star on Github!"
+          "Dayframe can run entirely on local AI models, which means your data never leaves your computer. You can also find the source code below - please consider giving it a star on Github!"
       )
     ),
     (
@@ -41,7 +41,7 @@ struct HowItWorksView: View {
       String(localized: "Understand your Day"),
       String(
         localized:
-          "Knows the difference between YouTube tutorials and YouTube rabbit holes. Dayflow actually gets what you're working on."
+          "Knows the difference between YouTube tutorials and YouTube rabbit holes. Dayframe actually gets what you're working on."
       )
     ),
   ]

@@ -301,7 +301,7 @@ private struct ActiveProCard: View {
     }
 
     return String(
-      localized: "Your Pro access is active on this Mac and attached to your Dayflow account.")
+      localized: "Your Pro access is active on this Mac and attached to your Dayframe account.")
   }
 
   private var dateLabel: String {

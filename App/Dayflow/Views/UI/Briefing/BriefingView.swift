@@ -172,6 +172,7 @@ struct BriefingView: View {
           Text(s.leftOff)
             .font(.custom("Figtree", size: 17))
             .lineSpacing(4)
+            .fixedSize(horizontal: false, vertical: true)
             .foregroundStyle(theme.textPrimary)
             .textSelection(.enabled)
           if s.nextSteps.count > 1 {
@@ -190,6 +191,7 @@ struct BriefingView: View {
                   Text(step)
                     .font(.custom("Figtree", size: 14))
                     .foregroundStyle(theme.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
                     .textSelection(.enabled)
                 }
               }
