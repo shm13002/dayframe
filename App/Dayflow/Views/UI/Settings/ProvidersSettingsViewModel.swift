@@ -735,10 +735,6 @@ final class ProvidersSettingsViewModel: ObservableObject {
   private var providerCatalog: [CompactProviderInfo] {
     [
       CompactProviderInfo(
-        id: .dayflow,
-        summary: String(localized: "Hosted cards & transcription • no API keys • requires Pro")
-      ),
-      CompactProviderInfo(
         id: .claude,
         summary: String(localized: "Uses Claude Code through your existing Claude plan")
       ),
@@ -747,16 +743,8 @@ final class ProvidersSettingsViewModel: ObservableObject {
         summary: String(localized: "Uses Codex CLI through your existing ChatGPT plan")
       ),
       CompactProviderInfo(
-        id: .gemini,
-        summary: String(localized: "Gemini free tier • fast & accurate")
-      ),
-      CompactProviderInfo(
-        id: .openAICompatible,
-        summary: String(localized: "OpenRouter or another OpenAI Chat Completions endpoint")
-      ),
-      CompactProviderInfo(
         id: .local,
-        summary: String(localized: "Private & offline • 16GB+ RAM • less intelligent")
+        summary: String(localized: "Qwen 3.5 on this Mac • private & offline")
       ),
     ]
   }

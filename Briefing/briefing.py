@@ -46,7 +46,8 @@ RAM_TIERS = [  # (max_gb, model)
 DEFAULTS = {
     "model": None,  # filled from RAM tier
     "ollama_url": "http://localhost:11434",
-    "llm_backend": "ollama",         # ollama | openai (LM Studio or any OpenAI-compatible server)
+    "llm_backend": "ollama",         # ollama | openai (LM Studio) | claude_cli | codex_cli (your Claude / ChatGPT plan, no API key)
+    "cli_model": "",                 # optional model for claude_cli / codex_cli; blank = the CLI's default
     "llm_url": "http://localhost:1234/v1",
     "cooldown_minutes": 30,
     "lookback_hours": 12,
@@ -463,8 +464,83 @@ def fmt_cards(cards, limit=60):
 def is_openai(cfg):
     return cfg.get("llm_backend") == "openai"
 
+def is_cli(cfg):
+    return cfg.get("llm_backend") in ("claude_cli", "codex_cli")
+
 def llm_name(cfg):
-    return "LM Studio" if is_openai(cfg) else "Ollama"
+    return {"openai": "LM Studio", "claude_cli": "Claude (your plan)", "codex_cli": "ChatGPT (your plan)"}.get(
+        cfg.get("llm_backend"), "Ollama")
+
+CLI_DIRS = [str(Path.home() / ".local/bin"), "/opt/homebrew/bin", "/usr/local/bin", str(Path.home() / ".npm-global/bin")]
+
+def cli_bin(cfg):
+    import shutil
+    name = "claude" if cfg.get("llm_backend") == "claude_cli" else "codex"
+    return shutil.which(name, path=os.pathsep.join(CLI_DIRS + [os.environ.get("PATH", "")]))
+
+def cli_chat(cfg, system, user):
+    """Run one prompt through the Claude Code or Codex CLI, signed in with the user's own plan.
+    Returns (text, error). Tools, MCP servers and web search are off: it only writes text."""
+    exe = cli_bin(cfg)
+    backend = cfg.get("llm_backend")
+    if not exe:
+        return "", f"{'claude' if backend == 'claude_cli' else 'codex'} CLI not found (install it and sign in)"
+    model = (cfg.get("cli_model") or "").strip()
+    sandbox = HOME / ".cli-sandbox"   # empty working dir so no project context leaks in
+    sandbox.mkdir(parents=True, exist_ok=True)
+    env = dict(os.environ, PATH=os.pathsep.join(CLI_DIRS + [os.environ.get("PATH", "/usr/bin:/bin")]))
+    if backend == "claude_cli":
+        cmd = [exe, "-p", "--output-format", "json", "--allowedTools", "[]", "--strict-mcp-config",
+               "--append-system-prompt", system]
+        if model:
+            cmd += ["--model", model]
+        stdin = user
+    else:
+        cmd = [exe, "exec", "--skip-git-repo-check", "--json", "-c", "web_search=disabled", "-c", "rmcp_client=false"]
+        if model:
+            cmd += ["-m", model]
+        cmd += ["-"]
+        stdin = f"{system}\n\n---\n\n{user}"
+    t0 = time.time()
+    try:
+        r = subprocess.run(cmd, input=stdin, capture_output=True, text=True, cwd=sandbox, env=env,
+                           timeout=max(120, cfg.get("request_timeout_s", 180) * 2))
+    except subprocess.TimeoutExpired:
+        telemetry("llm", ms=int((time.time() - t0) * 1000), ok=False, backend=backend, error="timeout")
+        return "", f"{llm_name(cfg)} timed out"
+    ms = int((time.time() - t0) * 1000)
+    text, tin, tout, cli_err = "", 0, 0, ""
+    if backend == "claude_cli":
+        try:
+            j = json.loads(r.stdout.strip().splitlines()[-1])
+            text = j.get("result") or ""
+            u = j.get("usage") or {}
+            tin = int(u.get("input_tokens", 0)) + int(u.get("cache_read_input_tokens", 0)) + int(u.get("cache_creation_input_tokens", 0))
+            tout = int(u.get("output_tokens", 0))
+            if j.get("is_error"):
+                text, cli_err = "", str(j.get("result") or "error")
+        except Exception:
+            text = ""
+    else:
+        for line in r.stdout.splitlines():
+            try:
+                ev = json.loads(line)
+            except Exception:
+                continue
+            item = ev.get("item") or {}
+            if ev.get("type") == "item.completed" and item.get("type") in ("agent_message", "assistant_message"):
+                text = item.get("text") or text
+            u = ev.get("usage") or {}
+            if u:
+                tin, tout = int(u.get("input_tokens", tin)), int(u.get("output_tokens", tout))
+    ok = bool(text.strip()) and r.returncode == 0
+    telemetry("llm", ms=ms, ok=ok, backend=backend, tokens_in=tin, tokens_out=tout)
+    if not ok:
+        err = cli_err or ((r.stderr or r.stdout or "").strip().splitlines()[-1:] or ["no output"])[0]
+        if "authenticat" in err.lower() or "login" in err.lower():
+            err += " (sign in: run `claude` then /login)" if backend == "claude_cli" else " (sign in: run `codex login`)"
+        return "", f"{llm_name(cfg)} failed: {err[:240]}"
+    return strip_think(text), None
 
 def llm_base(cfg):
     return (cfg["llm_url"] if is_openai(cfg) else cfg["ollama_url"]).rstrip("/")
@@ -481,6 +557,11 @@ def openai_messages(system, user, images=None):
 
 def llm_models(cfg):
     """Model ids the server has (raises if unreachable)."""
+    if is_cli(cfg):
+        exe = cli_bin(cfg)
+        if not exe:
+            raise RuntimeError("CLI not installed")
+        return {cfg["model"], "cli"}
     if is_openai(cfg):
         with urllib.request.urlopen(llm_base(cfg) + "/models", timeout=5) as r:
             return {m.get("id", "") for m in json.loads(r.read()).get("data", [])}
@@ -496,6 +577,12 @@ def missing_model_hint(cfg, model=None):
     return f"lms load {m}" if is_openai(cfg) else f"ollama pull {m}"
 
 def ollama_chat(cfg, system, user, images=None, model=None):
+    if is_cli(cfg) and not images:  # screenshots for the orb stay with the local vision model
+        out, err = cli_chat(cfg, system, user)
+        if not err:
+            return out, None
+        log(f"{err}; falling back to local Ollama")
+        cfg = dict(cfg, llm_backend="ollama")
     if is_openai(cfg):
         return openai_chat(cfg, system, user, images, model)
     url = cfg["ollama_url"].rstrip("/") + "/api/chat"
@@ -1996,6 +2083,8 @@ def cmd_forget(cfg, frm, to, rebuild=False):
 # ---------------------------------------------------------------- hybrid search (FTS5 + embeddings)
 
 def embed(cfg, texts):
+    if is_cli(cfg):  # embeddings always come from local Ollama
+        cfg = dict(cfg, llm_backend="ollama")
     url = llm_base(cfg) + ("/embeddings" if is_openai(cfg) else "/api/embed")
     body = json.dumps({"model": cfg.get("embed_model", "nomic-embed-text"), "input": texts}).encode()
     try:
@@ -2292,7 +2381,7 @@ SETTABLE = {"companion_enabled", "companion_sensitivity", "companion_hint_mode",
             "cleanup_min_age_hours", "blocklist", "coach_enabled", "coach_threshold_minutes", "debrief_hour",
             "debrief_use_whisper", "phone_push", "ntfy_topic", "ntfy_server", "imessage_to", "push_briefing",
             "ask_session_goal", "embeddings", "improve_enabled", "improve_auto_apply_params", "improve_code_model",
-            "obsidian_links", "things_sync", "things_list"}
+            "obsidian_links", "things_sync", "things_list", "llm_backend", "cli_model"}
 
 DASH_TIMELINE_MAX = 400
 
@@ -3202,6 +3291,12 @@ def openai_stream(cfg, system, user, images=None, model=None):
                 yield piece
 
 def ollama_stream(cfg, system, user, images=None, model=None):
+    if is_cli(cfg) and not images:
+        out, err = cli_chat(cfg, system, user)
+        if not err:
+            yield out
+            return
+        cfg = dict(cfg, llm_backend="ollama")
     if is_openai(cfg):
         yield from openai_stream(cfg, system, user, images, model)
         return

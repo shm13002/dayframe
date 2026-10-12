@@ -61,8 +61,10 @@ struct OnboardingPrototypeChooseProviderStep: View {
   @State private var isCodexCLIInstalled = false
   @State private var isClaudeCLIInstalled = false
 
-  // Dayframe: local-only. Cloud options stay defined upstream but are not offered.
-  private static let providers: [ComparisonProvider] = allProviders.filter { $0.providerID == .local }
+  // Dayframe: your Mac (Qwen) or your own Claude / ChatGPT subscription. No API keys.
+  private static let providers: [ComparisonProvider] = allProviders.filter {
+    [.local, .claude, .chatGPT].contains($0.providerID)
+  }
 
   private static let allProviders: [ComparisonProvider] = [
     ComparisonProvider(
@@ -120,7 +122,7 @@ struct OnboardingPrototypeChooseProviderStep: View {
 
   var body: some View {
     VStack(spacing: 0) {
-      Text("Dayframe runs on your Mac")
+      Text("How should Dayframe think?")
         .font(.custom("InstrumentSerif-Regular", size: 40))
         .tracking(-1.2)
         .multilineTextAlignment(.center)

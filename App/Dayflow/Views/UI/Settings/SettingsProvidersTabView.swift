@@ -9,7 +9,7 @@ struct SettingsProvidersTabView: View {
     VStack(alignment: .leading, spacing: SettingsStyle.sectionSpacing) {
       if viewModel.currentProvider == .local, viewModel.showLocalModelUpgradeBanner {
         LocalModelUpgradeBanner(
-          preset: .qwen3VL4B,
+          preset: .qwen35_4B,
           onKeepLegacy: { viewModel.markUpgradeBannerKeepLegacy() },
           onUpgrade: {
             viewModel.markUpgradeBannerUpgrade()
@@ -34,6 +34,7 @@ struct SettingsProvidersTabView: View {
       currentConfigurationSection
       connectionHealthSection
       failoverRoutingSection
+      AIUsageSection()
 
       if viewModel.currentProvider == .gemini {
         geminiModelSection
