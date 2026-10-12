@@ -24,6 +24,37 @@ Entry template:
 
 ## 2026-10-12 (Mon)
 
+### 14:35: Recording fixed, and safeguards so it can't silently stop again
+- **What:**
+  - **Root cause.** Recording stopped at 13:34. The app had been signed three different ways in one day (by hash, then the "Dayframe Local" cert at 13:59, then ad-hoc with a fixed requirement at 14:04). macOS kept the Screen Recording grant for an old signature. `tccd` logged "Failed to match existing code requirement" and denied every capture. Flipping the switch in Settings doesn't refresh that.
+  - **One-time fix (done by the user):** `tccutil reset ScreenCapture local.dayframe.app`, then Allow.
+  - **Stable signing, locked in.** `build-and-install.sh` signs ad-hoc with the fixed requirement `identifier "local.dayframe.app"`. This replaces the 13:59 certificate approach: no keychain prompt, and the same identity every build. The build fails if the requirement ever changes, and a DO-NOT-CHANGE note explains why.
+  - **AI timeouts.** Ollama calls had a 60 s limit. Qwen 3.5 4B takes up to about 60 s per screenshot, so about 30 calls timed out and then retried, piling on more load. On-device endpoints now get 300 s; remote ones keep 60 s (`OllamaProvider+Networking.swift`).
+  - **One batch at a time.** A new `BatchRunGate` in `AnalysisManager` stops batches from overlapping on the local model (batches 3 and 4 had run together).
+  - **Stuck batches recovered.** At launch, batches left `processing`/`pending` by a quit are reset and re-run (`interruptedBatchIds`). Batches 3 and 4 (12:25–12:55) had been stuck since a rebuild; they completed and the gap is filled.
+  - **No lost minutes on rebuild or quit.** The app catches SIGTERM and quits properly. `applicationWillTerminate` closes the open video segment, so a rebuild kept 0 of 0 frames lost instead of dropping up to 10 minutes. The build script quits Dayframe gracefully (TERM, then wait, then KILL).
+  - **Never fails quietly:**
+    - The in-app "Screen recording access needed" notice now shows for any onboarded user. Before, it was hidden unless a saved `isRecording` preference existed, so it never showed. It gained "Restart Dayframe" and "Already on but still blocked? Reset permission" (runs `tccutil reset` on Dayframe's own entry and asks again).
+    - A Mac notification "Dayframe isn't recording" appears when blocked (at most hourly) and opens the fix.
+    - The watchdog restarts capture if recording is "on" but no frame was saved for 3+ minutes while you're at the Mac.
+    - Resuming from a pause now goes through the permission-aware path.
+    - Onboarding's "Quit & Reopen" actually reopens.
+  - **Keep-alive agent.** `Keepalive/local.dayframe.keepalive.plist` is installed by the build script to `~/Library/LaunchAgents`. Every 2 min it reopens Dayframe, and Ollama, if either isn't running. It skips while installing.
+  - **Pause choices.** "∞" was replaced by "3 Hrs" in the menu bar and the Timeline pill. Recording is always on, so ∞ was undone by the watchdog within 30 s.
+  - The Week view's Paused/Resume pill is now clickable. "Check for Updates" was removed from the menu bar (Sparkle is gone; it did nothing).
+  - The support-chat page and Flow overlay no longer start at launch (`DayframeFlags`). The chat page had been reloading a hidden web view every 60 s.
+  - **Briefing doctor.** The `recorder` check now uses the newest screen frame (15 min), not the newest card (2 h). That old check reported OK through this outage. Deployed to `~/Briefing/app`.
+- **Files:** `build-and-install.sh`, `Keepalive/local.dayframe.keepalive.plist` (new), `App/Dayflow/App/{AppDelegate,PauseManager,RecordingControl,RecordingWatchdog}.swift`, `App/Dayflow/Core/AI/OllamaProvider+Networking.swift`, `App/Dayflow/Core/Analysis/AnalysisManager.swift`, `App/Dayflow/Core/Recording/{ScreenRecorder,StorageManager+Reprocessing,StorageManager+Screenshots,StorageManaging}.swift`, `App/Dayflow/Core/Notifications/NotificationService.swift`, `App/Dayflow/System/ScreenRecordingPermissionNotice.swift`, `App/Dayflow/Utilities/Dayframe.swift`, `App/Dayflow/Views/UI/MainView/{Layout,WeekTimelineGridView}.swift`, `App/Dayflow/Views/UI/PausePillView.swift`, `App/Dayflow/Menu/StatusMenuView.swift`, `App/Dayflow/Views/Onboarding/ScreenRecordingPermissionView.swift`, `Briefing/briefing.py`
+- **Why:** The user said recording wasn't working "like Dayflow" and wants it to never happen again.
+- **Checked:**
+  - After the reset, frames arrive every 10 s.
+  - **Rebuilt and reinstalled:** the new process kept recording with no prompt, and `tccd` logged 0 "Failed to match" lines.
+  - The segment open during the rebuild was saved (0 frames marked deleted).
+  - Batches 3, 4 and 7 completed; Qwen calls now take 5–10 s each with no timeouts. The timeline went from 5 to 9 cards.
+  - Keep-alive test: quit Dayframe, triggered the agent, and Dayframe was back in 1 s (logged in `/tmp/dayframe-keepalive.log`).
+  - `briefing.py doctor` shows the recorder OK on a fresh frame; Briefing pytest is 85/86 (the same old failure).
+- **Commit:** see `git log`
+
 ### 13:59: Dayframe now signed with the "Dayframe Local" certificate
 - **What:**
   - The user created a self-signed "Dayframe Local" code-signing certificate in Keychain Access.

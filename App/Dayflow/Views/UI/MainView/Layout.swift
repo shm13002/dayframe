@@ -127,6 +127,8 @@ extension MainView {
     if showScreenRecordingPermissionNotice {
       ScreenRecordingPermissionNoticeView(
         onOpenSettings: handleScreenRecordingPermissionNoticeOpenSettings,
+        onRestart: { ScreenRecordingPermissionNotice.relaunchApp() },
+        onReset: { ScreenRecordingPermissionNotice.resetAndRequest() },
         onDismiss: handleScreenRecordingPermissionNoticeDismiss
       )
       .padding(.trailing, 24)
@@ -308,7 +310,8 @@ extension MainView {
       showScreenRecordingPermissionNotice = false
       return
     }
-    guard AppState.shared.getSavedPreference() == true || appState.isRecording else { return }
+    // Dayframe records all the time, so any onboarded user needs to know when macOS blocks it.
+    guard UserDefaults.standard.bool(forKey: "didOnboard") else { return }
 
     withAnimation(.spring(response: 0.28, dampingFraction: 0.9)) {
       showScreenRecordingPermissionNotice = true
@@ -485,6 +488,8 @@ private struct TimelineFailureToastView: View {
 private struct ScreenRecordingPermissionNoticeView: View {
   @Environment(\.dayflowTheme) private var theme
   let onOpenSettings: () -> Void
+  let onRestart: () -> Void
+  let onReset: () -> Void
   let onDismiss: () -> Void
 
   var body: some View {
@@ -501,7 +506,9 @@ private struct ScreenRecordingPermissionNoticeView: View {
             .fontWeight(.semibold)
             .foregroundColor(theme.textPrimary)
 
-          Text("Dayframe cannot update your timeline until access is restored.")
+          Text(
+            "Dayframe can't record until macOS allows it. Turn Dayframe on under Screen Recording, then restart Dayframe."
+          )
             .font(.custom("Figtree", size: 12))
             .foregroundColor(theme.textSecondary)
             .fixedSize(horizontal: false, vertical: true)
@@ -518,25 +525,57 @@ private struct ScreenRecordingPermissionNoticeView: View {
         .pointingHandCursorOnHover(reassertOnPressEnd: true)
       }
 
-      DayflowSurfaceButton(
-        action: onOpenSettings,
-        content: {
-          HStack(spacing: 6) {
-            Image(systemName: "gearshape")
-              .font(.system(size: 12))
-            Text("Open System Settings")
-              .font(.custom("Figtree", size: 12))
-              .fontWeight(.semibold)
-          }
-        },
-        background: theme.primaryButtonFill,
-        foreground: theme.primaryButtonText,
-        borderColor: .clear,
-        cornerRadius: 8,
-        horizontalPadding: 14,
-        verticalPadding: 8,
-        showOverlayStroke: true
-      )
+      HStack(spacing: 8) {
+        DayflowSurfaceButton(
+          action: onOpenSettings,
+          content: {
+            HStack(spacing: 6) {
+              Image(systemName: "gearshape")
+                .font(.system(size: 12))
+              Text("Open System Settings")
+                .font(.custom("Figtree", size: 12))
+                .fontWeight(.semibold)
+            }
+          },
+          background: theme.primaryButtonFill,
+          foreground: theme.primaryButtonText,
+          borderColor: .clear,
+          cornerRadius: 8,
+          horizontalPadding: 14,
+          verticalPadding: 8,
+          showOverlayStroke: true
+        )
+
+        DayflowSurfaceButton(
+          action: onRestart,
+          content: {
+            HStack(spacing: 6) {
+              Image(systemName: "arrow.clockwise")
+                .font(.system(size: 12))
+              Text("Restart Dayframe")
+                .font(.custom("Figtree", size: 12))
+                .fontWeight(.semibold)
+            }
+          },
+          background: theme.popoverFill,
+          foreground: theme.textPrimary,
+          borderColor: theme.popoverBorder,
+          cornerRadius: 8,
+          horizontalPadding: 14,
+          verticalPadding: 8,
+          showOverlayStroke: true
+        )
+      }
+
+      // Dayframe: after a rebuild macOS can show the switch as on but still deny this build.
+      Button(action: onReset) {
+        Text("Already on but still blocked? Reset permission")
+          .font(.custom("Figtree", size: 11))
+          .underline()
+          .foregroundColor(theme.textSecondary)
+      }
+      .buttonStyle(.plain)
+      .pointingHandCursorOnHover(reassertOnPressEnd: true)
     }
     .padding(14)
     .frame(width: 360, alignment: .leading)

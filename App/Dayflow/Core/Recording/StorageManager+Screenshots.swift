@@ -169,4 +169,10 @@ extension StorageManager {
     }) ?? []
   }
 
+  /// Dayframe: capture time of the newest saved frame, for the recording watchdog.
+  func newestScreenshotCapturedAt() -> Int? {
+    try? timedRead("newestScreenshotCapturedAt") { db in
+      try Int.fetchOne(db, sql: "SELECT MAX(captured_at) FROM screenshots WHERE is_deleted = 0")
+    }
+  }
 }

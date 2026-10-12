@@ -239,7 +239,7 @@ def job_status(name, ok, detail="", error="", throttle=0):
     jsave(HOME / "status.json", st)
 
 JOBS = {  # name: (what it is, hours before "overdue")
-    "recorder": ("Dayflow recording (newest card)", 2), "distill": ("Distill to memory (every 30 min)", 2),
+    "recorder": ("Dayframe recording (newest screen frame)", 0.25), "distill": ("Distill to memory (every 30 min)", 2),
     "nightly": ("Nightly memory upkeep", 30), "companion": ("Companion orb talking to the service", 1),
     "improve": ("Self-improvement check (02:30)", 30), "cleanup": ("Recording cleanup", 30),
     "wake": ("Wake briefing", 30), "dashboard": ("Dashboard server", 1e9)}
@@ -252,9 +252,13 @@ def doctor(cfg):
     con, err = open_dayflow(cfg)
     if con:
         try:
-            r = con.execute("SELECT MAX(end_ts) FROM timeline_cards").fetchone()[0]
-            st["recorder"] = {"last_run": r, "ok": bool(r) and now - r < 2 * 3600, "detail": "newest Dayflow card",
-                              "error": "" if r and now - r < 2 * 3600 else "no new Dayflow cards for 2h+ (is Dayflow recording?)"}
+            # Frames, not cards: cards lag 15-30 min behind and hid a 1-hour recording outage on 2026-10-12.
+            r = con.execute("SELECT MAX(captured_at) FROM screenshots WHERE is_deleted = 0").fetchone()[0]
+            card = con.execute("SELECT MAX(end_ts) FROM timeline_cards").fetchone()[0]
+            fresh = bool(r) and now - r < 15 * 60
+            card_txt = dt.datetime.fromtimestamp(card).strftime("%H:%M") if card else "none"
+            st["recorder"] = {"last_run": r, "ok": fresh, "detail": f"newest card {card_txt}",
+                              "error": "" if fresh else "no screen frames for 15+ min (Mac asleep, or Dayframe is blocked: open Dayframe)"}
         except Exception as e:
             st["recorder"] = {"last_run": None, "ok": False, "error": f"Dayflow read error: {e}"}
         finally:

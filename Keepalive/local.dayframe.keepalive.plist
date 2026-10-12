@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Dayframe keep-alive. Every 2 minutes (and at login) it reopens Dayframe and Ollama
+  in the background if either isn't running, so recording and analysis never stay off.
+  It does nothing while build-and-install.sh is installing (/tmp/dayframe-installing).
+  Installed to ~/Library/LaunchAgents by build-and-install.sh.
+  To turn it off:  launchctl bootout gui/$(id -u)/local.dayframe.keepalive
+-->
+<plist version="1.0"><dict>
+  <key>Label</key><string>local.dayframe.keepalive</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/sh</string>
+    <string>-c</string>
+    <string>[ -e /tmp/dayframe-installing ] &amp;&amp; exit 0; if ! /usr/bin/pgrep -x Dayframe >/dev/null &amp;&amp; [ -d /Applications/Dayframe.app ]; then echo "$(date '+%F %T') reopening Dayframe"; /usr/bin/open -g -a /Applications/Dayframe.app; fi; if ! /usr/bin/pgrep -f 'Ollama.app/Contents/Resources/ollama serve' >/dev/null &amp;&amp; [ -d /Applications/Ollama.app ]; then echo "$(date '+%F %T') reopening Ollama"; /usr/bin/open -g -a /Applications/Ollama.app; fi; exit 0</string>
+  </array>
+  <key>RunAtLoad</key><true/>
+  <key>StartInterval</key><integer>120</integer>
+  <key>StandardOutPath</key><string>/tmp/dayframe-keepalive.log</string>
+  <key>StandardErrorPath</key><string>/tmp/dayframe-keepalive.log</string>
+</dict></plist>

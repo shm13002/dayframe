@@ -189,6 +189,23 @@ extension StorageManager {
     return affectedBatchIds
   }
 
+  /// Dayframe: batches left "processing" or "pending" when the app quit mid-analysis. Nothing
+  /// else picks them up again (their screenshots are already linked to the batch), so without
+  /// this they stay stuck forever and leave a hole in the timeline.
+  func interruptedBatchIds(since oldestTimestamp: Int) -> [Int64] {
+    (try? timedRead("interruptedBatchIds") { db in
+      try Int64.fetchAll(
+        db,
+        sql: """
+              SELECT id FROM analysis_batches
+              WHERE status IN ('processing', 'pending') AND batch_end_ts >= ?
+              ORDER BY batch_start_ts
+          """,
+        arguments: [oldestTimestamp]
+      )
+    }) ?? []
+  }
+
   func fetchBatches(forDay day: String) -> [(id: Int64, startTs: Int, endTs: Int, status: String)] {
     // Calculate day boundaries (4 AM to 4 AM)
     let formatter = DateFormatter()

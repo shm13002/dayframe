@@ -69,6 +69,34 @@ final class NotificationService: NSObject, ObservableObject {
     }
   }
 
+  /// Dayframe: a Mac notification when macOS blocks recording, so it's noticed even when the
+  /// Dayframe window is closed. Clicking it opens Dayframe with the fix-it notice.
+  func notifyRecordingBlocked() {
+    Task {
+      var status = await authorizationStatus()
+      if status == .notDetermined {
+        await requestPermission()
+        status = await authorizationStatus()
+      }
+      guard Self.canScheduleNotifications(for: status) else { return }
+      let content = UNMutableNotificationContent()
+      content.title = String(localized: "Dayframe isn't recording")
+      content.body = String(
+        localized: "macOS is blocking screen recording. Click to fix it in one step.")
+      content.sound = .default
+      do {
+        try await center.add(
+          UNNotificationRequest(identifier: "recording.blocked", content: content, trigger: nil))
+      } catch {
+        print("[NotificationService] Recording-blocked notification failed: \(error)")
+      }
+    }
+  }
+
+  func clearRecordingBlockedNotification() {
+    center.removeDeliveredNotifications(withIdentifiers: ["recording.blocked"])
+  }
+
   /// Request notification permission from the user
   @discardableResult
   func requestPermission() async -> Bool {
@@ -369,6 +397,15 @@ extension NotificationService: UNUserNotificationCenterDelegate {
     let isWeeklyUnlockNotification = identifier.hasPrefix("weekly.")
 
     let isSupportNotification = identifier.hasPrefix("support.")
+    if identifier.hasPrefix("recording.") {
+      Task { @MainActor in
+        activateAppForNotificationTap()
+        try? await Task.sleep(nanoseconds: 500_000_000)
+        ScreenRecordingPermissionNotice.post(reason: "notification_tap")
+      }
+      completionHandler()
+      return
+    }
     guard isDailyRecapNotification || isWeeklyUnlockNotification || isSupportNotification else {
       completionHandler()
       return

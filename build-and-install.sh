@@ -2,8 +2,8 @@
 # Build Dayframe and install it to /Applications.
 #   ./build-and-install.sh            build + install + relaunch
 #   ./build-and-install.sh --build    build only (check that it compiles)
-# Needs ~3 GB free disk while building. After installing a new build, macOS may
-# ask you to re-allow Screen Recording (the app is signed locally, not by Apple).
+# Needs ~3 GB free disk while building. Signing is local and stable, so the
+# Screen Recording permission you grant once keeps working after rebuilds.
 set -euo pipefail
 cd "$(dirname "$0")"
 
@@ -21,27 +21,50 @@ if ! xcodebuild -project App/Dayflow.xcodeproj -scheme Dayflow -configuration De
 fi
 echo "Build succeeded."
 
-# Stable signature = macOS keeps the Screen Recording permission across rebuilds.
-# Uses a "Dayframe Local" self-signed certificate or an "Apple Development" one if
-# either is in your keychain; otherwise the app stays ad-hoc signed and macOS asks again.
+# DO NOT CHANGE HOW THE APP IS SIGNED. On 2026-10-12 three different signing methods in one
+# day made macOS reject the saved Screen Recording permission and recording stopped silently.
+# The check below fails the build if the designated requirement ever changes.
+# Stable signature without a certificate or keychain (so no password prompt):
+# ad-hoc sign with a fixed designated requirement. macOS stores this requirement when
+# you allow Screen Recording, and every build carries the same one, so the permission
+# survives rebuilds. (Trade-off: any app calling itself local.dayframe.app would match.)
 APP_BUILT=build/Build/Products/Debug/Dayframe.app
-# Sign by the certificate's SHA-1 so names with spaces or trust notes can't break it.
-SIGN_LINE=$(security find-identity -p codesigning 2>/dev/null \
-  | grep -E '"(Dayframe Local|Apple Development)' | head -1 || true)
-SIGN_ID=$(echo "$SIGN_LINE" | awk '{print $2}')
-SIGN_NAME=$(echo "$SIGN_LINE" | sed -E 's/^[^"]*"([^"]*)".*/\1/')
-if [[ -n "$SIGN_ID" ]]; then
-  codesign --force --deep --timestamp=none --sign "$SIGN_ID" \
-    --entitlements App/Dayflow/Dayflow.entitlements "$APP_BUILT" >/dev/null 2>&1 \
-    && echo "Signed with: $SIGN_NAME (Screen Recording permission will stick)" \
-    || echo "WARN: signing with '$SIGN_NAME' failed; app stays ad-hoc signed"
+REQ='designated => identifier "local.dayframe.app"'
+if [[ -d "$APP_BUILT/Contents/Helpers" ]]; then
+  for helper in "$APP_BUILT"/Contents/Helpers/*; do
+    codesign --force --sign - --timestamp=none "$helper" >/dev/null 2>&1 || true
+  done
+fi
+codesign --force --sign - --timestamp=none --entitlements App/Dayflow/Dayflow.entitlements \
+  -r="$REQ" "$APP_BUILT" >/dev/null 2>&1
+if codesign -dr - "$APP_BUILT" 2>&1 | grep -q 'identifier "local.dayframe.app"$'; then
+  echo "Signed (stable identity: local.dayframe.app); Screen Recording permission will stick."
 else
-  echo "Note: no signing certificate found, so macOS may ask for Screen Recording again (see START-HERE.md)."
+  echo "Signing check FAILED:"; codesign -dr - "$APP_BUILT" 2>&1 | tail -2; exit 1
 fi
 [[ "${1:-}" == "--build" ]] && exit 0
 
-pkill -x Dayframe 2>/dev/null && sleep 2 || true
+# Keep the keep-alive agent from reopening the old copy while we swap it.
+touch /tmp/dayframe-installing
+trap 'rm -f /tmp/dayframe-installing' EXIT
+
+# Polite quit first: Dayframe catches SIGTERM, closes the open recording segment and exits.
+if pkill -TERM -x Dayframe 2>/dev/null; then
+  for _ in 1 2 3 4 5 6 7 8 9 10; do pgrep -x Dayframe >/dev/null || break; sleep 0.5; done
+  pkill -KILL -x Dayframe 2>/dev/null || true
+fi
 rm -rf /Applications/Dayframe.app
 cp -R build/Build/Products/Debug/Dayframe.app /Applications/
 open /Applications/Dayframe.app
 echo "Installed and launched /Applications/Dayframe.app"
+
+# Keep-alive agent: reopens Dayframe (and Ollama) within 2 minutes if either isn't running.
+AGENT=local.dayframe.keepalive
+AGENT_DST="$HOME/Library/LaunchAgents/$AGENT.plist"
+if ! cmp -s "Keepalive/$AGENT.plist" "$AGENT_DST"; then
+  cp "Keepalive/$AGENT.plist" "$AGENT_DST"
+  launchctl bootout "gui/$(id -u)/$AGENT" 2>/dev/null || true
+fi
+launchctl print "gui/$(id -u)/$AGENT" >/dev/null 2>&1 \
+  || launchctl bootstrap "gui/$(id -u)" "$AGENT_DST"
+echo "Keep-alive agent active ($AGENT)."

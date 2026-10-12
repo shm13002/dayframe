@@ -16,6 +16,7 @@ enum PauseDuration: Equatable {
   case minutes15
   case minutes30
   case hour1
+  case hours3  // Dayframe: replaces the ∞ choice, since recording is always on
   case indefinite
 
   var timeInterval: TimeInterval? {
@@ -23,6 +24,7 @@ enum PauseDuration: Equatable {
     case .minutes15: return 15 * 60
     case .minutes30: return 30 * 60
     case .hour1: return 60 * 60
+    case .hours3: return 3 * 60 * 60
     case .indefinite: return nil
     }
   }
@@ -32,6 +34,7 @@ enum PauseDuration: Equatable {
     case .minutes15: return "15_mins"
     case .minutes30: return "30_mins"
     case .hour1: return "1_hour"
+    case .hours3: return "3_hours"
     case .indefinite: return "indefinite"
     }
   }
@@ -143,8 +146,13 @@ final class PauseManager: ObservableObject {
 
     clearPauseState()
 
-    // Start recording
-    AppState.shared.setRecording(true, analyticsReason: source.rawValue)
+    // Start recording. Dayframe: if macOS has blocked capture, take the permission-aware path
+    // so the click shows the system prompt instead of silently flipping back off.
+    if ScreenRecordingPermissionNotice.isGranted {
+      AppState.shared.setRecording(true, analyticsReason: source.rawValue)
+    } else {
+      RecordingControl.start(reason: source.rawValue)
+    }
 
     // Send analytics
     AnalyticsService.shared.capture(

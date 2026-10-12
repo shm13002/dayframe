@@ -39,6 +39,12 @@ enum RecordingControl {
       guard await hasScreenRecordingPermission() else {
         print("[RecordingControl] Screen recording permission not granted; start ignored")
         ScreenRecordingPermissionNotice.post(reason: "recording_control_start")
+        // Dayframe: a click on Resume should never do nothing. Ask macOS (adds Dayframe to
+        // the Screen Recording list / shows the system prompt) and open that settings page.
+        if reason.hasPrefix("user") {
+          _ = CGRequestScreenCaptureAccess()
+          ScreenRecordingPermissionNotice.openSystemSettings()
+        }
         return
       }
 

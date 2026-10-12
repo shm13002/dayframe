@@ -46,7 +46,7 @@ struct PausePillView: View {
   // MARK: - Chip Data
 
   private static let chips: [(label: String, duration: PauseDuration, isInf: Bool)] = [
-    ("∞", .indefinite, true),
+    (String(localized: "3 Hrs"), .hours3, false),
     (String(localized: "1 Hour"), .hour1, false),
     (String(localized: "30 Mins"), .minutes30, false),
     (String(localized: "15 Mins"), .minutes15, false),

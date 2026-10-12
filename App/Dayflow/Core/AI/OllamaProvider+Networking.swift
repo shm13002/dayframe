@@ -49,10 +49,21 @@ extension OllamaProvider {
     }
   }
 
+  /// Dayframe: a model on this Mac (Qwen 3.5 4B on Ollama) can take close to a minute per
+  /// screenshot, so the upstream 60 s limit timed out and then retried, piling more work onto
+  /// the model. Allow 5 minutes for on-device endpoints; keep 60 s for anything remote.
+  var defaultTimeoutInterval: TimeInterval {
+    let lowered = endpoint.lowercased()
+    let isOnDevice =
+      localEngine == "ollama" || localEngine == "lmstudio" || lowered.contains("localhost")
+      || lowered.contains("127.0.0.1") || lowered.contains("[::1]")
+    return isOnDevice ? 300 : 60
+  }
+
   func makeChatURLRequest(
     _ request: ChatRequest,
     url: URL? = nil,
-    timeoutInterval: TimeInterval = 60.0
+    timeoutInterval: TimeInterval? = nil
   ) throws -> URLRequest {
     guard let resolvedURL = url ?? LocalEndpointUtilities.chatCompletionsURL(baseURL: endpoint)
     else {
@@ -72,7 +83,7 @@ extension OllamaProvider {
       body.reasoning_effort = "none"
     }
     urlRequest.httpBody = try JSONEncoder().encode(body)
-    urlRequest.timeoutInterval = timeoutInterval
+    urlRequest.timeoutInterval = timeoutInterval ?? defaultTimeoutInterval
     return urlRequest
   }
 

@@ -160,6 +160,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     // Dayframe: keep recording running, and start at login (once, by default).
     RecordingWatchdog.shared.start()
+    installTerminationSignalHandler()
     if didOnboard, !UserDefaults.standard.bool(forKey: "dayframeLaunchAtLoginDefaulted") {
       UserDefaults.standard.set(true, forKey: "dayframeLaunchAtLoginDefaulted")
       LaunchAtLoginManager.shared.setEnabled(true)
@@ -170,13 +171,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     // Start Daily and Weekly notifications and retire legacy Journal reminders
     NotificationService.shared.start()
-    SupportChatSession.shared.start()
+    // Dayframe: the Support tab is gone; its hidden chat page reloaded every 60 s for nothing.
+    if DayframeFlags.upstreamPrompts { SupportChatSession.shared.start() }
 
     // Start daily recap generation scheduler (checks every 5 minutes)
     DailyRecapScheduler.shared.start()
 
-    // Flow desktop overlay (creature toasts/nudges) tracks the session mirror
-    FlowOverlayController.shared.start()
+    // Flow desktop overlay (creature toasts/nudges) tracks the session mirror.
+    // Dayframe: Flow was removed, so the overlay never has a session to show.
+    if DayframeFlags.flow { FlowOverlayController.shared.start() }
 
     // Observe recording state
     analyticsSub = AppState.shared.$isRecording
@@ -223,6 +226,20 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     // Track foreground sessions for engagement analytics
     setupForegroundTracking()
+  }
+
+  /// Dayframe: `kill` (SIGTERM, used by build-and-install.sh) would otherwise end the process
+  /// instantly and drop the half-written video segment. Quit properly instead.
+  private var termSignalSource: DispatchSourceSignal?
+  private func installTerminationSignalHandler() {
+    signal(SIGTERM, SIG_IGN)
+    let source = DispatchSource.makeSignalSource(signal: SIGTERM, queue: .main)
+    source.setEventHandler {
+      AppDelegate.allowTermination = true
+      NSApp.terminate(nil)
+    }
+    source.resume()
+    termSignalSource = source
   }
 
   func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
@@ -307,6 +324,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
   }
 
   func applicationWillTerminate(_ notification: Notification) {
+    // Dayframe: close the open video segment so the last minutes of recording aren't lost.
+    FrameStore.shared.finishCurrentSegment()
+
     // Checkpoint WAL to persist any pending database changes before quit
     // Using .truncate to also reset the WAL file for a clean state
     StorageManager.shared.checkpoint(mode: .truncate)

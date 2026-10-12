@@ -46,6 +46,10 @@ final class AnalysisManager: AnalysisManaging {
 
   private var analysisTimer: Timer?
   private var isProcessing = false
+  private var didRecoverInterruptedBatches = false
+  /// Dayframe: one batch at a time. On a local model, overlapping batches made every call slower
+  /// until they hit the timeout.
+  private static let batchRunGate = BatchRunGate()
   private let queue = DispatchQueue(label: "com.dayflow.geminianalysis.queue", qos: .utility)
 
   func startAnalysisJob() {
@@ -59,6 +63,21 @@ final class AnalysisManager: AnalysisManaging {
         userInfo: nil,
         repeats: true)
       self.triggerAnalysisNow()  // immediate run
+    }
+    queue.async { [weak self] in self?.recoverInterruptedBatchesOnce() }
+  }
+
+  /// Dayframe: re-run batches that were mid-analysis when the app last quit.
+  private func recoverInterruptedBatchesOnce() {
+    guard !didRecoverInterruptedBatches else { return }
+    didRecoverInterruptedBatches = true
+    let oldest = Int(Date().addingTimeInterval(-maxLookback).timeIntervalSince1970)
+    let ids = store.interruptedBatchIds(since: oldest)
+    guard !ids.isEmpty else { return }
+    print("[AnalysisManager] Re-queuing \(ids.count) interrupted batch(es): \(ids)")
+    store.deleteObservations(forBatchIds: ids)
+    for id in store.resetBatchStatuses(forBatchIds: ids) {
+      queueLLMRequest(batchId: id)
     }
   }
 
@@ -470,9 +489,7 @@ final class AnalysisManager: AnalysisManaging {
     ]
     SentryHelper.addBreadcrumb(breadcrumb)
 
-    updateBatchStatus(batchId: batchId, status: "processing")
-
-    llmService.processBatch(batchId, progressHandler: progressHandler) {
+    processBatchSerially(batchId, progressHandler: progressHandler) {
       [weak self] (result: Result<ProcessedBatchResult, Error>) in
       guard let self else { return }
 
@@ -527,6 +544,28 @@ final class AnalysisManager: AnalysisManaging {
 
         self.markBatchFailed(batchId: batchId, reason: err.localizedDescription)
         completion?(.failure(err))
+      }
+    }
+  }
+
+  /// Waits for any running batch to finish, then marks this one "processing" and runs it.
+  private func processBatchSerially(
+    _ batchId: Int64,
+    progressHandler: ((LLMProcessingStep) -> Void)?,
+    completion: @escaping (Result<ProcessedBatchResult, Error>) -> Void
+  ) {
+    Task { [weak self] in
+      guard let self else { return }
+      await Self.batchRunGate.acquire()
+      let release = BatchRunGate.Once { Self.batchRunGate.release() }
+      // Safety net: never let one stuck batch block all later ones.
+      DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + 45 * 60) {
+        release.fire()
+      }
+      self.updateBatchStatus(batchId: batchId, status: "processing")
+      self.llmService.processBatch(batchId, progressHandler: progressHandler) { result in
+        release.fire()
+        completion(result)
       }
     }
   }
@@ -828,6 +867,49 @@ final class AnalysisManager: AnalysisManaging {
       return "\(minutes)m \(remainingSeconds)s"
     } else {
       return "\(remainingSeconds)s"
+    }
+  }
+}
+
+/// Dayframe: async FIFO lock so analysis batches run one after another.
+final class BatchRunGate: @unchecked Sendable {
+  private let lock = NSLock()
+  private var isHeld = false
+  private var waiters: [CheckedContinuation<Void, Never>] = []
+
+  func acquire() async {
+    await withCheckedContinuation { continuation in
+      lock.lock()
+      if isHeld {
+        waiters.append(continuation)
+        lock.unlock()
+      } else {
+        isHeld = true
+        lock.unlock()
+        continuation.resume()
+      }
+    }
+  }
+
+  func release() {
+    lock.lock()
+    let next = waiters.isEmpty ? nil : waiters.removeFirst()
+    if next == nil { isHeld = false }
+    lock.unlock()
+    next?.resume()
+  }
+
+  /// Runs its action at most once, however many times `fire()` is called.
+  final class Once: @unchecked Sendable {
+    private let lock = NSLock()
+    private var action: (() -> Void)?
+    init(_ action: @escaping () -> Void) { self.action = action }
+    func fire() {
+      lock.lock()
+      let run = action
+      action = nil
+      lock.unlock()
+      run?()
     }
   }
 }

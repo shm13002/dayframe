@@ -78,6 +78,7 @@ protocol StorageManaging: Sendable {
   func deleteObservations(forBatchIds batchIds: [Int64])
   func resetBatchStatuses(forDay day: String) -> [Int64]  // Returns affected batch IDs
   func resetBatchStatuses(forBatchIds batchIds: [Int64]) -> [Int64]
+  func interruptedBatchIds(since oldestTimestamp: Int) -> [Int64]
   func fetchBatches(forDay day: String) -> [(id: Int64, startTs: Int, endTs: Int, status: String)]
 
   /// Chunks that belong to one batch, already sorted.

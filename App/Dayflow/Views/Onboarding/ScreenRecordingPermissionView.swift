@@ -325,9 +325,7 @@ struct ScreenRecordingPermissionView: View {
   }
 
   private func quitAndReopen() {
-    Task { @MainActor in
-      AppDelegate.allowTermination = true
-      NSApp.terminate(nil)
-    }
+    // Dayframe: actually reopen after quitting, so the new permission takes effect.
+    Task { @MainActor in ScreenRecordingPermissionNotice.relaunchApp() }
   }
 }

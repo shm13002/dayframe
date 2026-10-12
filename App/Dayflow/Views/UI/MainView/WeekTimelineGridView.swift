@@ -491,6 +491,19 @@ struct WeekTimelineGridView: View {
       width: weekCardWidth(for: dayWidth),
       height: projectionHeight
     )
+    // Dayframe: "Paused" / "Resume" in the Week view works like the Day view's card.
+    .contentShape(Rectangle())
+    .onTapGesture {
+      switch recordingControlMode {
+      case .active:
+        break
+      case .pausedTimed, .pausedIndefinite:
+        PauseManager.shared.resume(source: .userClickedMainApp)
+      case .stopped:
+        RecordingControl.start(reason: "user_main_app")
+      }
+    }
+    .pointingHandCursor()
     .position(
       x: WeekTimelineConfig.timeColumnWidth
         + weekCardXPosition(for: columnIndex, dayWidth: dayWidth),

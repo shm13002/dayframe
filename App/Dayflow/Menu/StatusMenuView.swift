@@ -6,7 +6,6 @@ struct StatusMenuView: View {
   let dismissMenu: () -> Void
   @ObservedObject private var appState = AppState.shared
   @ObservedObject private var pauseManager = PauseManager.shared
-  private let updaterManager = UpdaterManager.shared
 
   private var controlMode: RecordingControlMode {
     RecordingControl.currentMode(appState: appState, pauseManager: pauseManager)
@@ -26,7 +25,6 @@ struct StatusMenuView: View {
       MenuRow(
         title: String(localized: "Open Dayframe"), assetImage: "DayflowLogo", action: openDayflow)
       MenuRow(title: String(localized: "Open Recordings"), action: openRecordingsFolder)
-      MenuRow(title: String(localized: "Check for Updates"), action: checkForUpdates)
 
       MenuDivider()
 
@@ -70,13 +68,6 @@ struct StatusMenuView: View {
     performAfterMenuDismiss {
       let directory = StorageManager.shared.recordingsRoot
       NSWorkspace.shared.open(directory)
-    }
-  }
-
-  private func checkForUpdates() {
-    performAfterMenuDismiss {
-      updaterManager.checkForUpdates(showUI: true)
-      NSApp.activate(ignoringOtherApps: true)
     }
   }
 
@@ -126,7 +117,7 @@ private struct DurationPicker: View {
     (String(localized: "15 Mins"), .minutes15),
     (String(localized: "30 Mins"), .minutes30),
     (String(localized: "1 Hour"), .hour1),
-    ("∞", .indefinite),
+    (String(localized: "3 Hours"), .hours3),
   ]
 
   var body: some View {
