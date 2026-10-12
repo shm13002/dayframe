@@ -724,6 +724,20 @@ final class StorageManager: StorageManaging, @unchecked Sendable {
             """)
         print("✅ Added is_skipped column to day_goals")
       }
+
+      // Dayframe: the sample card written at onboarding before the rename still said
+      // "Installed Dayflow!". Rename it in place (idempotent; real activity cards that
+      // mention Dayflow are left alone because their title differs).
+      try db.execute(
+        sql: """
+              UPDATE timeline_cards
+              SET title = 'Installed Dayframe!',
+                  summary = REPLACE(summary, 'installed Dayflow', 'installed Dayframe')
+              WHERE title = 'Installed Dayflow!';
+          """)
+      if db.changesCount > 0 {
+        print("✅ Renamed \(db.changesCount) sample card(s) to Installed Dayframe!")
+      }
     }
   }
 

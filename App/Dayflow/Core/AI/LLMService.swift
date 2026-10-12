@@ -1294,6 +1294,11 @@ final class LLMService: LLMServicing {
         systemInstruction: request.systemInstruction ?? "",
         history: request.history
       )
+    case .local:
+      return makeOllamaProvider(endpoint: localProviderEndpoint()).generateDashboardChatStreaming(
+        systemInstruction: request.systemInstruction ?? "",
+        history: request.history
+      )
     case .codex:
       return CodexProvider().generateChatStreaming(
         prompt: request.prompt,

@@ -31,11 +31,12 @@ struct ChatView: View {
   @State var isInputFocused = false
   @State var composerFocusToken = 0
   @Namespace var bottomID
-  @AppStorage("dashboardChatProvider") var selectedProviderRaw: String = "claude"
+  @AppStorage("dashboardChatProvider") var selectedProviderRaw: String = "local"
   @AppStorage("hasChatBetaAccepted") var hasBetaAccepted: Bool = false
   @State var geminiConfigured = false
   @State var codexDetected = false
   @State var claudeDetected = false
+  @State var localAvailable = false
   @State var completedAccessBatchCount = 0
   @State var cliDetectionTask: Task<Void, Never>?
   @State var didCheckCLI = false

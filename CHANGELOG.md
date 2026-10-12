@@ -24,6 +24,41 @@ Entry template:
 
 ## 2026-10-12 (Mon)
 
+### 17:50: Chat runs on Qwen; "Installed Dayflow!" card renamed
+- **What:**
+  - **Qwen in Chat.** A new chat provider, `local`, runs the same `fetchTimeline` / `fetchObservations` tool loop as Gemini, against Ollama's OpenAI-style endpoint (streaming, `tool_calls`, `reasoning_effort: "none"`).
+    - It is the default. A **Qwen** pill sits first, before Codex and Claude. A one-time switch moved the stored `claude` (the old default, never actually chosen) to `local`; picking Claude later sticks.
+  - **Fits Qwen's 4,096-token window:**
+    - It keeps the last 6 messages and uses a short system prompt (`localSystemPrompt`).
+    - Tool results are compact text: one line per card with its minutes, a total, and a 6,000-character cap.
+    - `num_ctx` is never sent, because a different window size would reload the model and stall the timeline.
+  - **Shared tools.** The tool code moved out of `GeminiDirectProvider` into `DashboardChatTools`; Gemini forwards to it, so its behavior is unchanged.
+  - **Follow-up questions.** Qwen sometimes ends with a bare JSON list instead of a fenced `suggestions` block. The parser now turns that list into suggestion chips, so raw JSON never shows in the chat.
+  - **Chat screen:**
+    - Qwen readiness is checked through `/api/tags`, including that the model is listed.
+    - Locked-screen and help text mention Qwen.
+    - History shows "Qwen".
+    - The privacy note no longer claims questions are logged (analytics is a no-op stub in Dayframe).
+  - **The 10-hour unlock gate is unchanged**, as the user chose. Chat opens by itself once 10 hours have been analyzed.
+  - **Sample card.** `StorageManager.migrate()` renames any "Installed Dayflow!" card to "Installed Dayframe!" (idempotent), which fixed card 8. Real cards that mention Dayflow work were left alone.
+  - **Briefing's copies.** The same rename was applied to the Ollama sample card in `~/Briefing/memory`: journal lines 4 and 6, `daily/2026-10-12.md`, `projects/dayflow.md`, `data/project-dayflow.json`, and fact `628af85b`. The backup is in `memory/.backups/rename-sample-card-*`. The 11:41 card (the real Dayflow install with LM Studio) was kept.
+- **Files:**
+  - New: `App/Dayflow/Core/AI/DashboardChatTools.swift`, `App/Dayflow/Core/AI/OllamaProvider+DashboardChat.swift`, `App/DayflowTests/LocalDashboardChatTests.swift`
+  - Changed AI code: `App/Dayflow/Core/AI/{LLMTypes,LLMService,ChatService,ChatPromptBuilder,ChatMetadataParser,OllamaProvider+Networking,GeminiDirectProvider+DashboardChat,GeminiDirectProvider+DashboardTools}.swift`
+  - Changed app and UI: `App/Dayflow/App/AppDelegate.swift`, `App/Dayflow/Core/Recording/StorageManager.swift`, `App/Dayflow/Views/UI/{ChatView,ChatView+Actions,ChatView+Content,ChatView+State,ChatHistoryPanel}.swift`
+  - Docs: `START-HERE.md`
+- **Why:** The user asked to fix the two items left open at 14:37 ("Chat still can't use Qwen" and the old welcome card) and wants the app to work as intended. They chose Qwen as the default with Claude optional, and to keep the 10-hour gate.
+- **Checked:**
+  - Before building: a direct Ollama tool-call test returned `fetchTimeline {"date":"2026-10-12"}` in 2.6 s.
+  - Unit tests: 202 run, 1 failure, the known upstream `OpenAICompatibleProviderTests.testCardRetryRetainsFullContextAndReturnsDetailedCards`. The 12 new tests pass.
+  - The live test asked Qwen "What did I work on today?" against the real data. Qwen called `fetchTimeline`, answered in 7.7 s with today's actual work and plausible durations, and returned follow-up questions.
+  - Installed twice. Recording kept going: a fresh frame within seconds each time, and 0 tccd "Failed to match" after install. The 3 at 17:47 came from the test-host build reading the Documents folder.
+  - Screenshots:
+    - The Timeline shows "Installed Dayframe!" at 12:57.
+    - Chat shows the 10-hour gate (1h 45m / 10h) and the new privacy note.
+  - The Mac was asleep about 14:50–17:41. That is the timeline gap, not a recording fault.
+- **Commit:** see `git log`
+
 ### 14:38: Guide updated for the recording safeguards
 - **What:**
   - `START-HERE.md` section 7 is rewritten as "Recording: how it stays on". It has a table of every safeguard, the one-line fix if recording is ever blocked, and a check that recording is live.

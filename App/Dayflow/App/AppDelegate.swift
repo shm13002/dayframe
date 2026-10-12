@@ -165,6 +165,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
       UserDefaults.standard.set(true, forKey: "dayframeLaunchAtLoginDefaulted")
       LaunchAtLoginManager.shared.setEnabled(true)
     }
+    // Dayframe: Chat defaults to Qwen on this Mac. "claude" was only the old default, not a
+    // choice, so move it once; picking Claude in Chat afterwards sticks.
+    if !UserDefaults.standard.bool(forKey: "dayframeChatDefaultsToLocalV1") {
+      UserDefaults.standard.set(true, forKey: "dayframeChatDefaultsToLocalV1")
+      if UserDefaults.standard.string(forKey: "dashboardChatProvider") == "claude" {
+        UserDefaults.standard.set(DashboardChatProvider.local.rawValue, forKey: "dashboardChatProvider")
+      }
+    }
 
     // Start inactivity monitoring for idle reset
     InactivityMonitor.shared.start()

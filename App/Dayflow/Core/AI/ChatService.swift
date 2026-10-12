@@ -173,7 +173,7 @@ final class ChatService: ObservableObject {
     // Build a provider-specific request. Gemini gets structured history;
     // CLI providers keep the existing prompt/session flow.
     let request: DashboardChatRequest
-    let usesSessionResume = provider != .gemini
+    let usesSessionResume = provider.usesCLISession
     let isResume = usesSessionResume && currentSessionId != nil
 
     request = buildChatRequest(provider: provider, isResume: isResume)
@@ -463,6 +463,15 @@ final class ChatService: ObservableObject {
         systemInstruction: buildGeminiSystemInstruction(),
         history: conversationHistory
       )
+    case .local:
+      currentSessionId = nil
+      return DashboardChatRequest(
+        provider: provider,
+        prompt: "",
+        sessionId: nil,
+        systemInstruction: buildLocalSystemInstruction(),
+        history: conversationHistory
+      )
     case .codex:
       let prompt: String
       if isResume {
@@ -530,6 +539,15 @@ final class ChatService: ObservableObject {
     return prompt
   }
 
+  private func buildLocalSystemInstruction() -> String {
+    var instruction = ChatPromptBuilder.localSystemPrompt()
+    let memoryBlob = DashboardChatMemoryStore.load()
+    if !memoryBlob.isEmpty {
+      instruction += "\n\n## User Memory\n\(memoryBlob)"
+    }
+    return instruction
+  }
+
   private func buildGeminiSystemInstruction() -> String {
     var instruction = ChatPromptBuilder.geminiSystemPrompt()
     let memoryBlob = DashboardChatMemoryStore.load()
@@ -547,8 +565,10 @@ final class ChatService: ObservableObject {
 
   private func debugDescription(for request: DashboardChatRequest, isResume: Bool) -> String {
     switch request.provider {
-    case .gemini:
-      var lines: [String] = ["[Gemini Dashboard Chat]"]
+    case .gemini, .local:
+      var lines: [String] = [
+        request.provider == .local ? "[Local Dashboard Chat]" : "[Gemini Dashboard Chat]"
+      ]
       if let systemInstruction = request.systemInstruction, !systemInstruction.isEmpty {
         lines.append("System Instruction:")
         lines.append(systemInstruction)
@@ -697,6 +717,17 @@ final class ChatService: ObservableObject {
       }
     }
 
+    if suggestions.isEmpty,
+      let (stripped, rawSuggestions) = ChatMetadataParser.extractTrailingBareSuggestions(
+        from: workingText),
+      let data = rawSuggestions.data(using: .utf8),
+      let parsed = try? JSONSerialization.jsonObject(with: data) as? [String]
+    {
+      workingText = stripped
+      suggestions = parsed
+      log(.info, "💡 Parsed \(parsed.count) bare suggestions")
+    }
+
     if let (stripped, rawMemory) = ChatMetadataParser.extractTaggedBlock(
       from: workingText, pattern: memoryPattern)
     {
@@ -737,6 +768,10 @@ extension ChatService {
     let geminiKey =
       KeychainManager.shared.retrieve(for: "gemini")?
       .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-    return !geminiKey.isEmpty || CLIDetector.isInstalled(.codex) || CLIDetector.isInstalled(.claude)
+    let localEndpoint =
+      UserDefaults.standard.string(forKey: "llmLocalBaseURL")?
+      .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+    return !geminiKey.isEmpty || !localEndpoint.isEmpty || CLIDetector.isInstalled(.codex)
+      || CLIDetector.isInstalled(.claude)
   }
 }

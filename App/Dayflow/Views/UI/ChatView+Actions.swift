@@ -307,10 +307,12 @@ extension ChatView {
           CLIDetector.isInstalled(.claude)
         )
       }.value
+      let localReady = await LocalChatAvailability.isReady()
 
       guard !Task.isCancelled else { return }
       codexDetected = detection.0
       claudeDetected = detection.1
+      localAvailable = localReady
       geminiConfigured = isGeminiConfigured()
       normalizeSelectedProviderIfNeeded()
     }
@@ -346,6 +348,8 @@ extension ChatView {
     switch provider {
     case .gemini:
       return geminiConfigured
+    case .local:
+      return localAvailable
     case .codex:
       return codexDetected
     case .claude:
@@ -355,12 +359,14 @@ extension ChatView {
 
   func normalizeSelectedProviderIfNeeded() {
     guard !isProviderAvailable(selectedProvider) else { return }
-    if geminiConfigured {
-      applySelectedProvider(.gemini)
-    } else if codexDetected {
-      applySelectedProvider(.codex)
+    if localAvailable {
+      applySelectedProvider(.local)
     } else if claudeDetected {
       applySelectedProvider(.claude)
+    } else if codexDetected {
+      applySelectedProvider(.codex)
+    } else if geminiConfigured {
+      applySelectedProvider(.gemini)
     }
   }
 
@@ -375,6 +381,8 @@ extension ChatView {
     switch pendingProviderSelection {
     case .gemini:
       return String(localized: "Gemini")
+    case .local:
+      return String(localized: "Qwen")
     case .claude:
       return String(localized: "Claude")
     case .codex:
@@ -388,6 +396,6 @@ extension ChatView {
     if selectedProviderAvailable {
       return String(localized: "Choose chat provider")
     }
-    return String(localized: "Configure Gemini key or install Codex/Claude CLI")
+    return String(localized: "Start Ollama (Qwen) or install Claude Code")
   }
 }

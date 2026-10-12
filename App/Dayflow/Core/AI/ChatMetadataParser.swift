@@ -74,6 +74,22 @@ enum ChatMetadataParser {
     return (stripped, content)
   }
 
+  /// Dayframe: the local model sometimes ends with a bare JSON array of follow-up
+  /// questions instead of a fenced ```suggestions block. Only a final line that parses as
+  /// 2–5 short strings counts, so ordinary answers ending in brackets are left alone.
+  static func extractTrailingBareSuggestions(from text: String) -> (String, String)? {
+    let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard trimmed.hasSuffix("]"), let open = trimmed.range(of: "\n[", options: .backwards)
+      ?? (trimmed.hasPrefix("[") ? trimmed.range(of: "[") : nil)
+    else { return nil }
+    let candidate = trimmed[open.lowerBound...].trimmingCharacters(in: .whitespacesAndNewlines)
+    guard let data = candidate.data(using: .utf8),
+      let items = try? JSONSerialization.jsonObject(with: data) as? [String],
+      (2...5).contains(items.count), items.allSatisfy({ !$0.isEmpty && $0.count <= 120 })
+    else { return nil }
+    return (String(trimmed[..<open.lowerBound]), candidate)
+  }
+
   static func extractLooseMemory(from text: String) -> (String, String)? {
     let pattern =
       "(?ims)(?:^|\\n)\\s*(?:#{1,6}\\s*Memory\\s*\\n+|Memory:\\s*\\n?)(Profile:[\\s\\S]*?Style:[^\\n]*(?:\\n[^#\\n].*)*)(?=\\z)"

@@ -501,7 +501,7 @@ extension ChatView {
         .multilineTextAlignment(.center)
         .frame(maxWidth: 600)
 
-        Text("Please send feedback if you see any bugs or weird behavior!")
+        Text("Chats are saved on this Mac, under History.")
           .font(.custom("Figtree-SemiBold", size: 14))
           .foregroundColor(theme.textPrimary)
           .multilineTextAlignment(.center)
@@ -537,17 +537,21 @@ extension ChatView {
             .foregroundColor(theme.textSecondary)
             .multilineTextAlignment(.center)
           } else if anyRuntimeAvailable {
-            Text("Claude Code or Codex CLI detected")
+            Text(
+              localAvailable
+                ? String(localized: "Qwen on this Mac is ready")
+                : String(localized: "Claude Code or Codex CLI detected")
+            )
               .font(.custom("Figtree-SemiBold", size: 15))
               .foregroundColor(Color(hex: "34C759"))
               .transition(.opacity.combined(with: .scale(scale: 0.95)))
           } else {
-            Text("Claude Code or Codex CLI required")
+            Text("Qwen isn't running")
               .font(.custom("Figtree-SemiBold", size: 15))
               .foregroundColor(theme.textPrimary)
 
             Text(
-              "Chat runs through your Claude or ChatGPT plan. Install Claude Code (then run 'claude' and /login in Terminal) or the Codex CLI."
+              "Chat uses Qwen on this Mac through Ollama. Open Ollama (Dayframe reopens it within 2 minutes). Claude Code also works: run 'claude' and /login in Terminal."
             )
             .font(.custom("Figtree-Regular", size: 13))
             .foregroundColor(theme.textSecondary)
@@ -615,7 +619,7 @@ extension ChatView {
           .foregroundColor(theme.textMuted)
 
         Text(
-          "During the beta, your questions are logged to help improve the product. Responses are not logged, so your privacy is maintained."
+          "Nothing you ask is sent to Dayframe or anyone else. With Qwen, chats never leave this Mac. If you pick Claude or Codex, that question goes to that service under your own plan."
         )
         .font(.custom("Figtree-Regular", size: 12))
         .foregroundColor(theme.textMuted)
@@ -752,6 +756,13 @@ extension ChatView {
 
   var providerToggle: some View {
     HStack(spacing: 6) {
+      ProviderTogglePill(
+        title: String(localized: "Qwen"),
+        isSelected: selectedProvider == .local,
+        isEnabled: isProviderAvailable(.local)
+      ) {
+        handleProviderSelection(.local)
+      }
       ProviderTogglePill(
         title: String(localized: "Codex"),
         isSelected: selectedProvider == .codex,

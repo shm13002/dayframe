@@ -27,68 +27,7 @@ extension GeminiDirectProvider {
     let modelFunctionCallParts: [[String: Any]]
   }
 
-  enum DashboardToolName: String {
-    case fetchTimeline
-    case fetchObservations
-  }
-
-  enum DashboardToolArgError: Error, LocalizedError {
-    case invalidCombination
-    case invalidDate(String)
-    case invalidRange
-
-    var errorDescription: String? {
-      switch self {
-      case .invalidCombination:
-        return "Provide either {date} OR {startDate, endDate}."
-      case .invalidDate(let value):
-        return "Invalid date format '\(value)'. Use YYYY-MM-DD."
-      case .invalidRange:
-        return "startDate must be less than or equal to endDate."
-      }
-    }
-  }
-
-  struct DashboardDateRange {
-    let mode: String
-    let date: String?
-    let startDate: String?
-    let endDate: String?
-    let from: Date
-    let to: Date
-  }
-
-  var dashboardDateFormatter: DateFormatter {
-    let formatter = DateFormatter()
-    formatter.dateFormat = "yyyy-MM-dd"
-    formatter.locale = Locale(identifier: "en_US_POSIX")
-    formatter.timeZone = TimeZone.current
-    return formatter
-  }
-
-  var dashboardTimeFormatter: DateFormatter {
-    let formatter = DateFormatter()
-    formatter.dateFormat = "h:mm a"
-    formatter.locale = Locale(identifier: "en_US_POSIX")
-    formatter.timeZone = TimeZone.current
-    return formatter
-  }
-
-  var dashboardSingleDateDisplayFormatter: DateFormatter {
-    let formatter = DateFormatter()
-    formatter.dateFormat = "EEE, MMM d"
-    formatter.locale = Locale(identifier: "en_US_POSIX")
-    formatter.timeZone = TimeZone.current
-    return formatter
-  }
-
-  var dashboardRangeDateDisplayFormatter: DateFormatter {
-    let formatter = DateFormatter()
-    formatter.dateFormat = "MMM d"
-    formatter.locale = Locale(identifier: "en_US_POSIX")
-    formatter.timeZone = TimeZone.current
-    return formatter
-  }
+  typealias DashboardToolName = DashboardChatTools.DashboardToolName
 
   func generateDashboardChatStreaming(
     systemInstruction: String,

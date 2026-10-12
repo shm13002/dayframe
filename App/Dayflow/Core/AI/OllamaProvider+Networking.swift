@@ -300,7 +300,7 @@ extension OllamaProvider {
     return response.choices.first?.message.content ?? ""
   }
 
-  private func applyAuthorizationHeader(to request: inout URLRequest) {
+  func applyAuthorizationHeader(to request: inout URLRequest) {
     if let token = authorizationBearerToken {
       request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
     }

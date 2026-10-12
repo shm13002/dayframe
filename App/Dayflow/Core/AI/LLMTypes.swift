@@ -17,12 +17,29 @@ enum DashboardChatProvider: String, Codable, CaseIterable {
   case gemini
   case codex
   case claude
+  /// Dayframe: the on-device model (Qwen on Ollama), the default chat provider.
+  case local
 
   static func fromStoredValue(_ value: String?) -> DashboardChatProvider {
-    // Dayframe: Gemini isn't offered, so a stored or missing value falls back to Claude.
+    // Dayframe: Gemini isn't offered, so a stored or missing value falls back to Qwen.
     guard let value, let provider = DashboardChatProvider(rawValue: value), provider != .gemini
-    else { return .claude }
+    else { return .local }
     return provider
+  }
+
+  var displayName: String {
+    switch self {
+    case .gemini: return "Gemini"
+    case .codex: return "Codex"
+    case .claude: return "Claude"
+    case .local: return "Qwen"
+    }
+  }
+
+  /// Claude Code and Codex keep their own session and can resume it; the others get the
+  /// full structured history every turn.
+  var usesCLISession: Bool {
+    self == .codex || self == .claude
   }
 
   var analyticsProvider: String {
@@ -33,6 +50,8 @@ enum DashboardChatProvider: String, Codable, CaseIterable {
     switch self {
     case .gemini:
       return "gemini_function_calling"
+    case .local:
+      return "local_function_calling"
     case .codex, .claude:
       return "chat_cli"
     }

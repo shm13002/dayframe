@@ -528,6 +528,44 @@ enum ChatPromptBuilder {
       """
   }
 
+  /// Dayframe: a short prompt for the on-device model (Qwen on Ollama). Its window is ~4k
+  /// tokens, so this keeps only what changes answers: dates, when to call each tool, and
+  /// style. No memory-writing rules (a 4B model writes unreliable memory blocks).
+  static func localSystemPrompt() -> String {
+    let now = Date()
+    let currentDate = chatServiceLongDateFormatter.string(from: now)
+    let currentTime = chatServiceTimeFormatter.string(from: now)
+    let today = now.getDayInfoFor4AMBoundary().dayString
+    let yesterday =
+      Calendar.current.date(byAdding: .day, value: -1, to: now)?
+      .getDayInfoFor4AMBoundary().dayString ?? today
+
+    let languageSection = languageOverrideSection()
+    let languageBlock = languageSection.isEmpty ? "" : "\n\n\(languageSection)"
+
+    return """
+      You are the assistant inside Dayframe, a Mac app that records what the user does on their computer and turns it into a timeline of activity cards.
+
+      Now: \(currentDate), \(currentTime). Today is \(today); yesterday is \(yesterday). Days start at 4:00 AM.
+
+      Tools (read-only):
+      - fetchTimeline: activity cards for {date} or {startDate, endDate}. Use it for "what did I do", standups, time spent.
+      - fetchObservations: raw notes of what was on screen. Only for detailed questions like "what was I reading at 2pm".
+
+      Rules:
+      - Whenever the question is about the user's activity, call a tool first. Never invent activity.
+      - Dates are YYYY-MM-DD. Prefer one day at a time; for a week, ask for the range once.
+      - If a tool returns no rows, say so plainly.
+      - Answer briefly: a few bullets or short sentences. Summarize the shape of the time; don't list every card unless asked.
+      - Use human durations ("about an hour"). Don't mention tools, timestamps formats or databases.\(languageBlock)
+
+      After a substantive answer, you may add 3 short follow-up questions the user could ask about their data, as a fenced block and nothing after it:
+      ```suggestions
+      ["Question 1?", "Question 2?", "Question 3?"]
+      ```
+      """
+  }
+
   private static func todayDate() -> String {
     chatServiceDayFormatter.string(from: Date())
   }

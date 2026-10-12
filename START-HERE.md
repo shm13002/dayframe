@@ -97,6 +97,17 @@ All paths below are relative to this folder. After editing anything in `App/`, r
 | Model Briefing uses | `~/Briefing/config.json` | `"model": "qwen3.5:4b"` |
 | Use LM Studio instead of Ollama for Briefing | `~/Briefing/config.json` | `"llm_backend": "openai"`, `"llm_url": "http://localhost:1234/v1"` |
 
+### Chat (ask about your day)
+| Change | Where |
+|---|---|
+| Which AI answers | The pills above the chat box: **Qwen** (default, on this Mac, free) · Codex · Claude. Your pick is remembered. |
+| Qwen's chat prompt | `App/Dayflow/Core/AI/ChatPromptBuilder.swift` → `localSystemPrompt()` |
+| How Qwen chat talks to Ollama (tool loop, streaming) | `App/Dayflow/Core/AI/OllamaProvider+DashboardChat.swift` |
+| What the tools return to Qwen (one line per card, minutes, total, 6,000-char cap) | `App/Dayflow/Core/AI/DashboardChatTools.swift` → `compactResult` |
+| When Chat unlocks | `App/Dayflow/Core/Access/FeatureAccessRequirements.swift` → `chatRequiredHours = 10` (Dayflow's original rule, kept on purpose) |
+
+Ollama gives Qwen a 4,096-token window, so Qwen chat keeps the last 6 messages and gets compact tool results. Dayframe never asks Ollama for a bigger window, because that would reload the model and stall the timeline. Questions about one day work best; for a whole week, ask for a summary.
+
 ### Claude & ChatGPT (your own plans, no API keys)
 | Change | Where |
 |---|---|
@@ -172,7 +183,7 @@ The first commit is the untouched Dayflow v2.6.0, so you can always compare agai
 - [ ] New **app icon** and intro animation (the intro video still says "Dayflow").
 - [x] "How did you hear about us?" step skipped in first-run setup.
 - [x] Stable signing, so rebuilds keep the Screen Recording permission (section 7).
-- [ ] Chat can't use Qwen yet (it needs Claude Code or the Codex CLI).
+- [x] Chat uses Qwen on this Mac by default (Claude and Codex optional).
 
 ## 7. Recording: how it stays on (and what to do if it ever stops)
 
