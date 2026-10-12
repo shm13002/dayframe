@@ -3,7 +3,6 @@
 //  Dayflow
 //
 
-import Sparkle
 import SwiftUI
 
 struct AppRootView: View {

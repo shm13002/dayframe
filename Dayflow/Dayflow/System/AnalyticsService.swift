@@ -12,7 +12,6 @@
 
 import AppKit
 import Foundation
-import PostHog
 
 struct TelemetrySanitizedStdout: Equatable {
   let originalLength: Int

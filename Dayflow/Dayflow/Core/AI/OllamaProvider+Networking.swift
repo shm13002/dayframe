@@ -13,6 +13,9 @@ extension OllamaProvider {
     var max_tokens: Int = 4000
     var stream: Bool = false
     var reasoning: Reasoning? = nil
+    /// Ollama's OpenAI-compatible endpoint thinks by default on Qwen-style models, which makes
+    /// every call slow and can break JSON output. "none" turns thinking off (Dayframe fix).
+    var reasoning_effort: String? = nil
 
     struct Reasoning: Codable {
       let effort: String
@@ -62,7 +65,11 @@ extension OllamaProvider {
     urlRequest.httpMethod = "POST"
     urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
     applyAuthorizationHeader(to: &urlRequest)
-    urlRequest.httpBody = try JSONEncoder().encode(request)
+    var body = request
+    if localEngine == "ollama", body.reasoning == nil, body.reasoning_effort == nil {
+      body.reasoning_effort = "none"
+    }
+    urlRequest.httpBody = try JSONEncoder().encode(body)
     urlRequest.timeoutInterval = timeoutInterval
     return urlRequest
   }

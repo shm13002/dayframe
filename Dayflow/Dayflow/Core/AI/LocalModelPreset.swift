@@ -13,13 +13,15 @@ struct LocalModelInstructionSet {
 }
 
 enum LocalModelPreset: String, CaseIterable, Codable {
+  case qwen35_4B = "qwen35_4b"
   case qwen3VL4B = "qwen3_vl_4b"
   case qwen25VL3B = "qwen25_vl_3b"
 
-  static let recommended: LocalModelPreset = .qwen3VL4B
+  static let recommended: LocalModelPreset = .qwen35_4B
 
   var displayName: String {
     switch self {
+    case .qwen35_4B: return String(localized: "Qwen3.5 4B")
     case .qwen3VL4B: return String(localized: "Qwen3-VL 4B")
     case .qwen25VL3B: return String(localized: "Qwen2.5-VL 3B")
     }
@@ -27,6 +29,12 @@ enum LocalModelPreset: String, CaseIterable, Codable {
 
   var highlightBullets: [String] {
     switch self {
+    case .qwen35_4B:
+      return [
+        "Dayframe default: sees screenshots and writes briefings",
+        "One model for everything (thinking turned off for speed)",
+        "Fits on 16GB Apple Silicon (≈4GB)",
+      ]
     case .qwen3VL4B:
       return [
         "New, most powerful local VLM",
@@ -43,6 +51,10 @@ enum LocalModelPreset: String, CaseIterable, Codable {
 
   func modelId(for engine: LocalEngine) -> String {
     switch (self, engine) {
+    case (.qwen35_4B, .lmstudio):
+      return "qwen3.5-4b"
+    case (.qwen35_4B, _):
+      return "qwen3.5:4b"
     case (.qwen3VL4B, .lmstudio):
       return "Qwen3-VL-4B-Instruct"
     case (.qwen25VL3B, .lmstudio):
@@ -95,6 +107,7 @@ enum LocalModelPreset: String, CaseIterable, Codable {
 
   var ollamaPullCommand: String {
     switch self {
+    case .qwen35_4B: return "ollama pull qwen3.5:4b"
     case .qwen3VL4B: return "ollama pull qwen3-vl:4b"
     case .qwen25VL3B: return "ollama pull qwen2.5vl:3b"
     }
@@ -102,6 +115,8 @@ enum LocalModelPreset: String, CaseIterable, Codable {
 
   var lmStudioDownloadURL: URL? {
     switch self {
+    case .qwen35_4B:
+      return URL(string: "https://lmstudio.ai/models")
     case .qwen3VL4B:
       return URL(
         string: "https://model.lmstudio.ai/download/lmstudio-community/Qwen3-VL-4B-Instruct-GGUF")

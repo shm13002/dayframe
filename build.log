@@ -1,0 +1,92 @@
+Command line invocation:
+    /Applications/Xcode.app/Contents/Developer/usr/bin/xcodebuild -project Dayflow/Dayflow.xcodeproj -scheme Dayflow -configuration Debug -derivedDataPath build -destination platform=macOS CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM= PROVISIONING_PROFILE_SPECIFIER= build
+
+Build settings from command line:
+    CODE_SIGN_IDENTITY = -
+    CODE_SIGN_STYLE = Manual
+    DEVELOPMENT_TEAM = 
+    PROVISIONING_PROFILE_SPECIFIER = 
+
+Resolve Package Graph
+
+Fetching from https://github.com/gonzalezreal/NetworkImage
+
+Fetching from https://github.com/groue/GRDB.swift
+
+Fetching from https://github.com/gonzalezreal/swift-markdown-ui
+
+Fetching from https://github.com/getsentry/sentry-cocoa.git
+
+Fetching from https://github.com/PostHog/posthog-ios.git
+
+Fetching from https://github.com/swiftlang/swift-cmark
+
+Fetching from https://github.com/sparkle-project/Sparkle
+
+Creating working copy of package ‘swift-cmark’
+
+Creating working copy of package ‘sentry-cocoa’
+
+Creating working copy of package ‘swift-markdown-ui’
+
+Creating working copy of package ‘Sparkle’
+
+Creating working copy of package ‘posthog-ios’
+
+Creating working copy of package ‘GRDB.swift’
+
+Creating working copy of package ‘NetworkImage’
+
+Checking out 0.8.0 of package ‘swift-cmark’
+
+Checking out 2.4.1 of package ‘swift-markdown-ui’
+
+Checking out 2.7.1 of package ‘Sparkle’
+
+Checking out master (0aaa2a4) of package ‘GRDB.swift’
+
+Checking out 6.0.1 of package ‘NetworkImage’
+
+Checking out 8.56.2 of package ‘sentry-cocoa’
+
+Checking out 3.31.0 of package ‘posthog-ios’
+
+failed extracting 'https://github.com/getsentry/sentry-cocoa/releases/download/8.56.2/Sentry-Dynamic-WithARM64e.xcframework.zip' which is required by binary target 'Sentry-Dynamic-WithARM64e': 
+/Users/shahzi/Documents/Projects/Dayframe/build/SourcePackages/artifacts/extract/sentry-cocoa/Sentry-Dynamic-WithARM64e/788BAD17-20FA-41C4-A201-A9B9FFC473C3/Sentry-Dynamic-WithARM64e.xcframework/ios-arm64_arm64e_x86_64-maccatalyst/dSYMs/Sentry.framework.dSYM/Contents/Resources/DWARF/Sentry:  write error (disk full?).  Continue? (y/n/^C) 
+warning:  /Users/shahzi/Documents/Projects/Dayframe/build/SourcePackages/artifacts/extract/sentry-cocoa/Sentry-Dynamic-WithARM64e/788BAD17-20FA-41C4-A201-A9B9FFC473C3/Sentry-Dynamic-WithARM64e.xcframework/ios-arm64_arm64e_x86_64-maccatalyst/dSYMs/Sentry.framework.dSYM/Contents/Resources/DWARF/Sentry is probably truncated
+symlink error: No space left on device
+symlink error: No space left on device
+symlink error: No space left on device
+symlink error: No space left on device
+symlink error: No space left on device
+failed extracting 'https://github.com/getsentry/sentry-cocoa/releases/download/8.56.2/Sentry-WithoutUIKitOrAppKit-WithARM64e.xcframework.zip' which is required by binary target 'Sentry-WithoutUIKitOrAppKit-WithARM64e': 
+/Users/shahzi/Documents/Projects/Dayframe/build/SourcePackages/artifacts/extract/sentry-cocoa/Sentry-WithoutUIKitOrAppKit-WithARM64e/948F2006-D8FD-4D39-B83C-265B48EB4573/Sentry-WithoutUIKitOrAppKit-WithARM64e.xcframework/tvos-arm64_arm64e/SentryWithoutUIKit.framework/SentryWithoutUIKit:  write error (disk full?).  Continue? (y/n/^C) 
+warning:  /Users/shahzi/Documents/Projects/Dayframe/build/SourcePackages/artifacts/extract/sentry-cocoa/Sentry-WithoutUIKitOrAppKit-WithARM64e/948F2006-D8FD-4D39-B83C-265B48EB4573/Sentry-WithoutUIKitOrAppKit-WithARM64e.xcframework/tvos-arm64_arm64e/SentryWithoutUIKit.framework/SentryWithoutUIKit is probably truncated
+symlink error: No space left on device
+symlink error: No space left on device
+symlink error: No space left on device
+symlink error: No space left on device
+symlink error: No space left on device
+symlink error: No space left on device
+symlink error: No space left on device
+failed extracting 'https://github.com/getsentry/sentry-cocoa/releases/download/8.56.2/Sentry-Dynamic.xcframework.zip' which is required by binary target 'Sentry-Dynamic': 
+/Users/shahzi/Documents/Projects/Dayframe/build/SourcePackages/artifacts/extract/sentry-cocoa/Sentry-Dynamic/1346994A-7B23-4C88-B0B1-6DC09FFA0E10/Sentry-Dynamic.xcframework/xros-arm64/Sentry.framework/Sentry:  write error (disk full?).  Continue? (y/n/^C) 
+warning:  /Users/shahzi/Documents/Projects/Dayframe/build/SourcePackages/artifacts/extract/sentry-cocoa/Sentry-Dynamic/1346994A-7B23-4C88-B0B1-6DC09FFA0E10/Sentry-Dynamic.xcframework/xros-arm64/Sentry.framework/Sentry is probably truncated
+symlink error: No space left on device
+symlink error: No space left on device
+symlink error: No space left on device
+symlink error: No space left on device
+symlink error: No space left on device
+symlink error: No space left on device
+symlink error: No space left on device
+symlink error: No space left on device
+symlink error: No space left on device
+symlink error: No space left on device
+encountered an I/O error (code: 28) while reading /Users/shahzi/Documents/Projects/Dayframe/build/SourcePackages/workspace-state.jsonfatalError2026-10-12 12:39:27.776 xcodebuild[64119:5904310] Writing error result bundle to /var/folders/rk/89l8jwrs39n33klj6wfdc4_00000gn/T/ResultBundle_2026-12-10_12-39-0027.xcresult
+xcodebuild: error: Could not resolve package dependencies:
+  failed extracting 'https://github.com/getsentry/sentry-cocoa/releases/download/8.56.2/Sentry-Dynamic-WithARM64e.xcframework.zip' which is required by binary target 'Sentry-Dynamic-WithARM64e':
+  failed extracting 'https://github.com/getsentry/sentry-cocoa/releases/download/8.56.2/Sentry-WithoutUIKitOrAppKit-WithARM64e.xcframework.zip' which is required by binary target 'Sentry-WithoutUIKitOrAppKit-WithARM64e':
+  failed extracting 'https://github.com/getsentry/sentry-cocoa/releases/download/8.56.2/Sentry-Dynamic.xcframework.zip' which is required by binary target 'Sentry-Dynamic':
+  encountered an I/O error (code: 28) while reading /Users/shahzi/Documents/Projects/Dayframe/build/SourcePackages/workspace-state.json
+  fatalError
+

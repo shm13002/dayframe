@@ -17,6 +17,9 @@ private enum SidebarMetrics {
 }
 
 enum SidebarIcon: CaseIterable {
+  /// Tabs Dayframe shows. Flow (waitlist), Agents and Support are upstream-only.
+  static let visible: [SidebarIcon] = [.timeline, .daily, .weekly, .chat, .settings]
+
   case timeline
   case daily
   case weekly
@@ -88,7 +91,7 @@ struct SidebarView: View {
 
   var body: some View {
     VStack(alignment: .center, spacing: SidebarMetrics.itemSpacing) {
-      ForEach(SidebarIcon.allCases, id: \.self) { icon in
+      ForEach(SidebarIcon.visible, id: \.self) { icon in
         SidebarIconButton(
           icon: icon,
           isSelected: selectedIcon == icon,
