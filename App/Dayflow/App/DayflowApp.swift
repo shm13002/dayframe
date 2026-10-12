@@ -122,7 +122,9 @@ struct AppRootView: View {
 
   /// Asks every 3 days, but only people whose gh CLI confirms Dayflow isn't starred.
   private func showGitHubStarPromptIfEligible(source: String) {
-    guard canShowGitHubStarPrompt,
+    // Dayframe: skip the whole check (it shells out to `gh` and calls GitHub's API).
+    guard DayframeFlags.upstreamPrompts,
+      canShowGitHubStarPrompt,
       !isCheckingGitHubStar,
       GitHubStarPromptState.isDue,
       !surveyShownRecently,
@@ -221,9 +223,6 @@ struct DayflowApp: App {
   @StateObject private var systemAppearance = SystemAppearanceObserver()
   @AppStorage(DayflowAppearance.storageKey) private var appearance: DayflowAppearance = .system
   @AppStorage("useBlankUI") private var useBlankUI = false
-  /// Mirrors FlowNudgeVariant.current so the menu title re-renders on toggle.
-  @AppStorage(FlowNudgeVariant.defaultsKey) private var flowNudgeVariant = FlowNudgeVariant.side
-    .rawValue
   @State private var showVideoLaunch = false  // Dayframe: no upstream launch video
   @State private var contentOpacity = 1.0
   @State private var contentScale = 1.0
@@ -250,7 +249,7 @@ struct DayflowApp: App {
   private let updaterManager = UpdaterManager.shared
 
   var body: some Scene {
-    Window("Dayflow", id: "main") {
+    Window("Dayframe", id: "main") {
       ZStack {
         // Main app UI or onboarding with entrance animation
         Group {
@@ -407,12 +406,8 @@ struct DayflowApp: App {
         .keyboardShortcut("R", modifiers: [.command, .shift])
       }
 
-      // Add Sparkle's update menu item
+      // Dayframe: no updater (Sparkle removed), so no "Check for Updates…" item.
       CommandGroup(after: .appInfo) {
-        Button("Check for Updates…") {
-          updaterManager.checkForUpdates(showUI: true)
-        }
-
         Button("View Release Notes") {
           // Activate the app and bring to foreground
           NSApp.activate(ignoringOtherApps: true)
@@ -421,18 +416,6 @@ struct DayflowApp: App {
           NotificationCenter.default.post(name: .showWhatsNew, object: nil)
         }
         .keyboardShortcut("N", modifiers: [.command, .shift])
-      }
-
-      CommandGroup(after: .appInfo) {
-        Divider()
-        Button("Flow: Simulate Distraction") {
-          FlowSessionMirror.shared.simulateDistraction()
-        }
-        .keyboardShortcut("D", modifiers: [.command, .shift])
-        Button("Flow: Nudge Style — \(FlowNudgeVariant.current.title)") {
-          FlowNudgeVariant.current = FlowNudgeVariant.current.next
-          flowNudgeVariant = FlowNudgeVariant.current.rawValue
-        }
       }
     }
     .defaultSize(width: 1200, height: 800)

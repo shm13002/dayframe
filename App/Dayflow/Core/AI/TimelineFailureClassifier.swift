@@ -60,10 +60,10 @@ struct TimelineFailureClassification {
     switch kind {
     case .dayflowProRequired:
       return TimelineFailureToastContent(
-        title: "Dayflow Pro required",
+        title: "This provider isn't available",
         body:
-          "Timeline generation is paused for this account. Subscribe, or refer a friend and earn a free month of Pro. Your recordings are safe — use Retry on the failed cards once you're back.",
-        destination: .account
+          "Dayframe runs on your own AI (Qwen on Ollama, or Claude / ChatGPT through your plans). Pick one in provider settings. Your recordings are safe; use Retry on the failed cards after.",
+        destination: .providers
       )
 
     case .providerLoginExpired:
@@ -85,10 +85,10 @@ struct TimelineFailureClassification {
       let body: String
       if let command = reauthCommand(for: provider) {
         body =
-          "Dayflow talks to \(provider) through its CLI but couldn't find it. Reinstall it and run '\(command)' in Terminal, or switch providers in settings."
+          "Dayframe talks to \(provider) through its CLI but couldn't find it. Reinstall it and run '\(command)' in Terminal, or switch providers in settings."
       } else {
         body =
-          "Dayflow couldn't find the command-line tool for \(provider). Reinstall it, or switch providers in settings."
+          "Dayframe couldn't find the command-line tool for \(provider). Reinstall it, or switch providers in settings."
       }
       return TimelineFailureToastContent(
         title: "\(provider)'s command-line tool is missing",
@@ -108,7 +108,7 @@ struct TimelineFailureClassification {
       return TimelineFailureToastContent(
         title: "Can't reach Ollama / LM Studio",
         body:
-          "Make sure it's running — Dayflow resumes with the next batch. Prefer zero setup? Gemini is free in provider settings.",
+          "Open Ollama (or run 'ollama serve' in Terminal). Dayframe picks up again with the next batch; use Retry on any failed cards.",
         destination: .providers
       )
 
@@ -124,7 +124,7 @@ struct TimelineFailureClassification {
       return TimelineFailureToastContent(
         title: "Your \(provider) API key isn't working",
         body:
-          "It looks missing, expired, or suspended. Add a fresh key in provider settings — Gemini keys are free at aistudio.google.com.",
+          "It looks missing, expired, or suspended. Add a fresh key in provider settings, or switch to Qwen on Ollama.",
         destination: .providers
       )
 
@@ -140,7 +140,7 @@ struct TimelineFailureClassification {
       return TimelineFailureToastContent(
         title: "\(provider) is out of credits",
         body:
-          "Top up billing with your provider, or switch to a free option like Gemini in provider settings.",
+          "Top up billing with your provider, or switch to Qwen on Ollama (free, on this Mac) in provider settings.",
         destination: .providers
       )
 
@@ -164,7 +164,7 @@ struct TimelineFailureClassification {
       return TimelineFailureToastContent(
         title: "Your selected model isn't available",
         body:
-          "The model Dayflow tried to use isn't available on \(provider). Check the model selection in provider settings, or switch providers.",
+          "The model Dayframe tried to use isn't available on \(provider). Check the model selection in provider settings, or switch providers.",
         destination: .providers
       )
 
@@ -172,7 +172,7 @@ struct TimelineFailureClassification {
       return TimelineFailureToastContent(
         title: "No AI provider connected",
         body:
-          "Recordings are saved, but nothing gets summarized until you connect one. Gemini is free and takes about two minutes.",
+          "Recordings are saved, but nothing gets summarized until you connect one. Qwen 3.5 on Ollama is free and runs on this Mac.",
         destination: .providers
       )
 

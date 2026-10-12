@@ -9,12 +9,11 @@ enum DailyRecapProvider: String, Codable, CaseIterable, Sendable {
   case none
 
   private static let storageKey = "dailyRecapProvider_v1"
+  // Dayframe: no Dayflow backend or Gemini, so the picker only offers what can actually run.
   static let allCases: [DailyRecapProvider] = [
-    .dayflow,
+    .local,
     .claude,
     .chatgpt,
-    .gemini,
-    .local,
     .none,
   ]
 
@@ -22,6 +21,10 @@ enum DailyRecapProvider: String, Codable, CaseIterable, Sendable {
     if let rawValue = defaults.string(forKey: storageKey),
       let provider = DailyRecapProvider(rawValue: rawValue)
     {
+      if provider == .dayflow || provider == .gemini {
+        DailyRecapProvider.local.save(to: defaults)
+        return .local
+      }
       return provider
     }
 
@@ -36,7 +39,7 @@ enum DailyRecapProvider: String, Codable, CaseIterable, Sendable {
 
   private static func migrateInitialSelection(from defaults: UserDefaults) -> DailyRecapProvider {
     if defaults.bool(forKey: "isDailyUnlocked") {
-      return .dayflow
+      return .local
     }
 
     guard let providerID = (try? LLMProviderRoutingStore.load(from: defaults))?.primary else {
@@ -44,10 +47,8 @@ enum DailyRecapProvider: String, Codable, CaseIterable, Sendable {
     }
 
     switch providerID {
-    case .gemini:
-      return .gemini
-    case .dayflow:
-      return .dayflow
+    case .gemini, .dayflow:
+      return .local
     case .chatGPT:
       return .chatgpt
     case .claude:

@@ -14,13 +14,13 @@ struct OnboardingFlow: View {
   @State private var step: OnboardingStep = OnboardingStepMigration.restoredStep()
   @AppStorage("didOnboard") private var didOnboard = false
   @AppStorage("onboardingSelectedProviderID") private var selectedProviderIDRawValue =
-    LLMProviderID.gemini.rawValue
+    LLMProviderID.local.rawValue
   @EnvironmentObject private var categoryStore: CategoryStore
   @State private var flowID = UUID().uuidString.lowercased()
   @State private var routingSaveErrorMessage: String?
 
   private var selectedProviderID: LLMProviderID {
-    LLMProviderID(rawValue: selectedProviderIDRawValue) ?? .gemini
+    LLMProviderID(rawValue: selectedProviderIDRawValue) ?? .local
   }
 
   private var onboardingFilledSegments: Int {
@@ -392,7 +392,11 @@ enum OnboardingStep: Int, CaseIterable {
     return step.rawValue > OnboardingStep.screen.rawValue
   }
 
-  mutating func next() { self = OnboardingStep(rawValue: rawValue + 1)! }
+  mutating func next() {
+    self = OnboardingStep(rawValue: rawValue + 1)!
+    // Dayframe: skip the "where did you hear about us" survey (it only fed removed analytics).
+    if self == .referral { self = OnboardingStep(rawValue: rawValue + 1)! }
+  }
 }
 
 enum OnboardingStepMigration {

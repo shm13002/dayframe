@@ -537,17 +537,17 @@ extension ChatView {
             .foregroundColor(theme.textSecondary)
             .multilineTextAlignment(.center)
           } else if anyRuntimeAvailable {
-            Text("Gemini key or CLI runtime detected")
+            Text("Claude Code or Codex CLI detected")
               .font(.custom("Figtree-SemiBold", size: 15))
               .foregroundColor(Color(hex: "34C759"))
               .transition(.opacity.combined(with: .scale(scale: 0.95)))
           } else {
-            Text("Gemini API key or CLI required")
+            Text("Claude Code or Codex CLI required")
               .font(.custom("Figtree-SemiBold", size: 15))
               .foregroundColor(theme.textPrimary)
 
             Text(
-              "Unlock chat by either adding a Gemini API key in Settings or installing Codex/Claude CLI."
+              "Chat runs through your Claude or ChatGPT plan. Install Claude Code (then run 'claude' and /login in Terminal) or the Codex CLI."
             )
             .font(.custom("Figtree-Regular", size: 13))
             .foregroundColor(theme.textSecondary)
@@ -752,13 +752,6 @@ extension ChatView {
 
   var providerToggle: some View {
     HStack(spacing: 6) {
-      ProviderTogglePill(
-        title: String(localized: "Gemini"),
-        isSelected: selectedProvider == .gemini,
-        isEnabled: isProviderAvailable(.gemini)
-      ) {
-        handleProviderSelection(.gemini)
-      }
       ProviderTogglePill(
         title: String(localized: "Codex"),
         isSelected: selectedProvider == .codex,

@@ -19,8 +19,10 @@ enum DashboardChatProvider: String, Codable, CaseIterable {
   case claude
 
   static func fromStoredValue(_ value: String?) -> DashboardChatProvider {
-    guard let value else { return .gemini }
-    return DashboardChatProvider(rawValue: value) ?? .gemini
+    // Dayframe: Gemini isn't offered, so a stored or missing value falls back to Claude.
+    guard let value, let provider = DashboardChatProvider(rawValue: value), provider != .gemini
+    else { return .claude }
+    return provider
   }
 
   var analyticsProvider: String {

@@ -37,11 +37,25 @@ enum LLMProviderRoutingStore {
     defer { lock.unlock() }
 
     if defaults.object(forKey: storageKey) != nil {
-      return try decodeStoredRouting(from: defaults)
+      let stored = try decodeStoredRouting(from: defaults)
+      let supported = dayframeSupported(stored)
+      return supported == stored ? stored : try saveLocked(supported, to: defaults)
     }
 
     let migration = try migrateLegacyArtifacts(from: defaults)
-    return try saveLocked(migration.routing, to: defaults)
+    return try saveLocked(dayframeSupported(migration.routing), to: defaults)
+  }
+
+  /// Dayframe: Gemini and Dayflow Pro were removed, and Settings can't edit them anymore.
+  /// A routing that still points at one moves to the local model (Qwen on Ollama).
+  private static func dayframeSupported(_ routing: LLMProviderRouting) -> LLMProviderRouting {
+    let removed: Set<LLMProviderID> = [.gemini, .dayflow]
+    guard removed.contains(routing.primary) || routing.secondary.map(removed.contains) == true
+    else { return routing }
+    let primary = removed.contains(routing.primary) ? LLMProviderID.local : routing.primary
+    let secondary = routing.secondary.flatMap { removed.contains($0) ? nil : $0 }
+    return LLMProviderRouting(
+      schemaVersion: routing.schemaVersion, primary: primary, secondary: secondary)
   }
 
   static func save(

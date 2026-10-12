@@ -24,6 +24,29 @@ Entry template:
 
 ## 2026-10-12 (Mon)
 
+### 14:37: Whole-app audit: dead ends from removed Dayflow features fixed
+- **What:** An audit traced every menu item, tab, Settings control and onboarding step. Everything broken by the earlier removals was fixed:
+  - **Chat:** the Gemini chip is removed. It defaults to Claude, and a stored "gemini" falls back to Claude. The locked screen says to install Claude Code (`claude`, then /login) or the Codex CLI instead of "add a Gemini API key".
+  - **Daily recap provider list:** now Qwen (local), Claude, ChatGPT and None. It dropped "Dayframe backend", which always failed and could have posted cards to an old upstream server, and the un-configurable Gemini. Stored values for those move to local.
+  - **Provider routing:** a saved Gemini or Dayflow Pro primary/backup moves to the local model on load, because Settings can no longer edit them. Onboarding and legacy migration default to local, not Gemini.
+  - **Failure toasts:** no more "Gemini is free" / "Dayflow Pro required" advice. They now point to Ollama / Qwen.
+  - **App menu:** removed "Check for Updates…" and the dead "Flow: Simulate Distraction / Nudge Style" items. The release notes say "Welcome to Dayframe" instead of "Flow is in beta". The GitHub-star check (which ran `gh` and called GitHub's API) is off.
+  - **Onboarding:** the referral survey step is skipped; it only fed removed analytics.
+  - **Naming:** the window title, bundle name, macOS permission prompts (screen, automation, microphone, all languages), the sample "Installed Dayframe!" card, idle cards, error messages and the export filename now say Dayframe.
+  - **Tests:** the test targets point at Dayframe.app and sign locally (they couldn't run before). Four tests were updated to Dayframe behavior: local default, and the renamed Codex message.
+- **Files:** `App/Dayflow/App/DayflowApp.swift`, `App/Dayflow/Core/AI/{DailyRecapModels,LLMProviderRouting,LegacyLLMProviderMigration,LLMService,LLMTypes,TimelineFailureClassifier}.swift`, `App/Dayflow/Core/Analysis/IdleBatchClassifier.swift`, `App/Dayflow/Core/Recording/StorageManager+TimelineCards.swift`, `App/Dayflow/Info.plist`, `App/Dayflow/InfoPlist.xcstrings`, `App/Dayflow/Views/Onboarding/OnboardingFlow.swift`, `App/Dayflow/Views/UI/{ChatView,ChatView+Content,WhatsNewView}.swift`, `App/Dayflow/Views/UI/Settings/OtherSettingsViewModel.swift`, `App/Dayflow.xcodeproj/project.pbxproj`, `App/DayflowTests/{LLMProviderRoutingTests,AgentClientRegistrationTests}.swift`
+- **Why:** The user asked to "audit the entire app to make sure each function is working" and chose "fix them all".
+- **Checked:**
+  - Build passed.
+  - `xcodebuild test -only-testing:DayflowTests`: 189 passed, 1 failed. The failure, `OpenAICompatibleProviderTests.testCardRetryRetainsFullContextAndReturnsDetailedCards`, is in upstream code nobody changed, so it already failed upstream.
+  - App screenshot: Timeline recording, "Generating your next card", gap filled.
+  - The failed 11:53 batch was re-run with Retry under the new timeout.
+- **Known, left as is:**
+  - The existing "Installed Dayflow!" card in today's data keeps its old title (data, not code).
+  - Deep links and routes to the removed Flow/Agents/Support tabs are unreachable, so they were left.
+  - Daily never unlocks if Mac notifications are denied (upstream behavior).
+- **Commit:** see `git log`
+
 ### 14:35: Recording fixed, and safeguards so it can't silently stop again
 - **What:**
   - **Root cause.** Recording stopped at 13:34. The app had been signed three different ways in one day (by hash, then the "Dayframe Local" cert at 13:59, then ad-hoc with a fixed requirement at 14:04). macOS kept the Screen Recording grant for an old signature. `tccd` logged "Failed to match existing code requirement" and denied every capture. Flipping the switch in Settings doesn't refresh that.

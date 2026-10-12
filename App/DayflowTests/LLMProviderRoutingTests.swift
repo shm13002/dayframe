@@ -24,12 +24,13 @@ final class LLMProviderRoutingTests: XCTestCase {
     super.tearDown()
   }
 
-  func testMissingLegacyValuesDefaultToGeminiWithoutMutatingLegacyState() throws {
+  // Dayframe: Gemini isn't offered, so a fresh install defaults to the local model.
+  func testMissingLegacyValuesDefaultToLocalWithoutMutatingLegacyState() throws {
     let defaults = try makeDefaults()
 
     let migration = LegacyLLMProviderMigration.migrate(from: defaults)
 
-    XCTAssertEqual(migration.routing, LLMProviderRouting(primary: .gemini))
+    XCTAssertEqual(migration.routing, LLMProviderRouting(primary: .local))
     XCTAssertTrue(migration.sharedPromptOverrides.isEmpty)
     XCTAssertNil(migration.dayflowEndpointOverride)
     XCTAssertNil(migration.localEndpointOverride)
@@ -238,7 +239,8 @@ final class LLMProviderRoutingTests: XCTestCase {
 
     let routing = try LLMProviderRoutingStore.load(from: defaults)
 
-    XCTAssertEqual(routing, LLMProviderRouting(primary: .dayflow, secondary: .claude))
+    // Dayframe: the removed Dayflow Pro backend moves to the local model; Claude stays backup.
+    XCTAssertEqual(routing, LLMProviderRouting(primary: .local, secondary: .claude))
     XCTAssertEqual(CodexPromptPreferences.load(from: defaults), sharedOverrides)
     XCTAssertEqual(ClaudePromptPreferences.load(from: defaults), sharedOverrides)
     XCTAssertEqual(DayflowEndpointPreferences.load(from: defaults), "https://example.com/api")
@@ -300,7 +302,8 @@ final class LLMProviderRoutingTests: XCTestCase {
 
     let routing = try LLMProviderRoutingStore.load(from: defaults)
 
-    XCTAssertEqual(routing, LLMProviderRouting(primary: .dayflow))
+    // Dayframe: the removed Dayflow Pro backend moves to the local model.
+    XCTAssertEqual(routing, LLMProviderRouting(primary: .local))
     XCTAssertEqual(
       CodexPromptPreferences.load(from: defaults),
       existingChatGPTOverrides

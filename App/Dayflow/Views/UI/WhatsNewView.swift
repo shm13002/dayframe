@@ -103,11 +103,11 @@ enum WhatsNewConfiguration {
   static var configuredRelease: ReleaseNote? {
     ReleaseNote(
       version: targetVersion,
-      title: String(localized: "Flow is in beta!"),
+      title: String(localized: "Welcome to Dayframe"),
       highlights: [
         String(
           localized:
-            "Meet Flow, our new tool to help you plan your day and stay focused. Interested in trying it? Open Flow in the sidebar and join the waitlist for early access."
+            "Dayframe records all the time, keeps everything on your Mac and builds your timeline with Qwen on Ollama (or your Claude / ChatGPT plan). The Briefing tab sums up where you left off."
         ),
         String(
           localized:

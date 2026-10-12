@@ -503,9 +503,10 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
-				CODE_SIGN_STYLE = Automatic;
+				CODE_SIGN_STYLE = Manual;
+				CODE_SIGN_IDENTITY = "-";
 				CURRENT_PROJECT_VERSION = 133;
-				DEVELOPMENT_TEAM = L75WYD8X4Y;
+				DEVELOPMENT_TEAM = "";
 				GENERATE_INFOPLIST_FILE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 15.1;
 				MARKETING_VERSION = 2.6.0;
@@ -513,7 +514,7 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Dayflow.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Dayflow";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Dayframe.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Dayframe";
 			};
 			name = Debug;
 		};
@@ -521,9 +522,10 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
-				CODE_SIGN_STYLE = Automatic;
+				CODE_SIGN_STYLE = Manual;
+				CODE_SIGN_IDENTITY = "-";
 				CURRENT_PROJECT_VERSION = 133;
-				DEVELOPMENT_TEAM = L75WYD8X4Y;
+				DEVELOPMENT_TEAM = "";
 				GENERATE_INFOPLIST_FILE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 15.1;
 				MARKETING_VERSION = 2.6.0;
@@ -531,16 +533,17 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Dayflow.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Dayflow";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Dayframe.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Dayframe";
 			};
 			name = Release;
 		};
 		C4C1D2CD2DB56806007D5A55 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				CODE_SIGN_STYLE = Automatic;
+				CODE_SIGN_STYLE = Manual;
+				CODE_SIGN_IDENTITY = "-";
 				CURRENT_PROJECT_VERSION = 133;
-				DEVELOPMENT_TEAM = L75WYD8X4Y;
+				DEVELOPMENT_TEAM = "";
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 2.6.0;
 				PRODUCT_BUNDLE_IDENTIFIER = teleportlabs.com.AmiTimeUITests;
@@ -554,9 +557,10 @@
 		C4C1D2CE2DB56806007D5A55 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				CODE_SIGN_STYLE = Automatic;
+				CODE_SIGN_STYLE = Manual;
+				CODE_SIGN_IDENTITY = "-";
 				CURRENT_PROJECT_VERSION = 133;
-				DEVELOPMENT_TEAM = L75WYD8X4Y;
+				DEVELOPMENT_TEAM = "";
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 2.6.0;
 				PRODUCT_BUNDLE_IDENTIFIER = teleportlabs.com.AmiTimeUITests;

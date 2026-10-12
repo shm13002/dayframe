@@ -447,19 +447,19 @@ final class LLMService: LLMServicing {
 
     if rateLimited && !backupConfigured {
       return
-        "Dayflow hit a rate limit and no backup provider is configured. Add a backup in Settings > Providers to avoid interruptions."
+        "Dayframe hit a rate limit and no backup provider is configured. Add a backup in Settings > Providers to avoid interruptions."
     }
 
     switch operation {
     case .transcribing:
       return
-        "Dayflow couldn't transcribe this batch. Check Settings > Providers and configure a backup provider."
+        "Dayframe couldn't transcribe this batch. Check Settings > Providers and configure a backup provider."
     case .generatingCards:
       return
-        "Dayflow couldn't generate timeline cards for this batch. Check Settings > Providers and configure a backup provider."
+        "Dayframe couldn't generate timeline cards for this batch. Check Settings > Providers and configure a backup provider."
     case .none:
       return
-        "Dayflow couldn't finish this batch. Check Settings > Providers and configure a backup provider."
+        "Dayframe couldn't finish this batch. Check Settings > Providers and configure a backup provider."
     }
   }
 
