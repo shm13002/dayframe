@@ -76,8 +76,9 @@ All paths below are relative to this folder. After editing anything in `App/`, r
 |---|---|---|
 | Which **sidebar tabs** show, and their order | `App/Dayflow/Views/UI/MainView/SidebarView.swift` | `static let visible` (line 22) |
 | What a tab shows | `App/Dayflow/Views/UI/MainView/Layout+Panels.swift` | `switch selectedIcon` (line ~66) |
-| The **Briefing tab** (inside the app) | `App/Dayflow/Views/UI/BriefingPanelView.swift` | loads `http://127.0.0.1:8765` |
-| What the **briefing page** looks like | `Briefing/dashboard.html` | one HTML file |
+| The **Briefing tab** (native screen: cards, next thing, loops, today, focus, ask) | `App/Dayflow/Views/UI/Briefing/BriefingView.swift` | one section per `private var …Card` |
+| How the Briefing tab talks to your briefing service | `App/Dayflow/Views/UI/Briefing/BriefingService.swift` | refresh every 2 min; `/api/state`, `/api/brief`, `/api/todo`, `/api/ask` |
+| The advanced pages under **⋯ More** (Memory, Projects, Weekly, Automations, Settings) | `Briefing/dashboard.html` (opened by `App/Dayflow/Views/UI/BriefingPanelView.swift`) | one HTML file |
 | First-run setup wording | `App/Dayflow/Views/Onboarding/LLMProviderSetupView.swift` | e.g. line ~210 |
 | Turn the upstream GitHub-star and survey popups back on | `App/Dayflow/Utilities/Dayframe.swift` | `upstreamPrompts` |
 
@@ -88,6 +89,19 @@ All paths below are relative to this folder. After editing anything in `App/`, r
 | Qwen "thinking" off/on (off = fast) | `App/Dayflow/Core/AI/OllamaProvider+Networking.swift` | `reasoning_effort = "none"` (line ~72) |
 | Model Briefing uses | `~/Briefing/config.json` | `"model": "qwen3.5:4b"` |
 | Use LM Studio instead of Ollama for Briefing | `~/Briefing/config.json` | `"llm_backend": "openai"`, `"llm_url": "http://localhost:1234/v1"` |
+
+### Claude & ChatGPT (your own plans, no API keys)
+| Change | Where |
+|---|---|
+| Sign in to Claude | Terminal: `claude`, then type `/login` (once) |
+| Sign in to ChatGPT | Install once: `brew install codex`, then `codex login` |
+| Which AI analyzes your screen (Claude / ChatGPT / Qwen) | In the app: **Settings → Providers** (primary + fallback) |
+| Which AI writes your briefings | Briefing tab → **⋯** → "Briefings are written by", or `~/Briefing/config.json` → `"llm_backend": "claude_cli"` / `"codex_cli"` / `"ollama"` |
+| Pick a specific Claude/ChatGPT model for briefings | `~/Briefing/config.json` → `"cli_model": ""` (blank = default) |
+| See how much AI you've used | In the app: **Settings → Providers → AI usage** (links to the official "plan remaining" pages) |
+| Code for this | `Briefing/briefing.py` → `cli_chat()`; app: `App/Dayflow/Core/AI/ClaudeProvider*.swift`, `CodexProvider*.swift`; usage: `App/Dayflow/Views/UI/Settings/AIUsageSection.swift` |
+
+If Claude or ChatGPT fails (signed out, offline, limit hit), Briefing automatically falls back to Qwen on your Mac.
 
 ### Briefing schedule and behavior (no rebuild needed)
 Edit `~/Briefing/config.json`. Changes apply on the next run.
@@ -145,8 +159,9 @@ The first commit is the untouched Dayflow v2.6.0, so you can always compare agai
 
 ## 6. To do
 
+- [ ] Window title still says "Dayflow" in some places (cosmetic).
 - [ ] Merge the **Clicky orb** (`Briefing/Companion.swift`) into the app, so it's one app with one permission.
-- [ ] Redesign `Briefing/dashboard.html` so it matches Dayframe and follows the palette inside the tab.
+- [x] Briefing tab rebuilt natively in Dayflow's style (advanced pages still use `Briefing/dashboard.html`).
 - [ ] New **app icon** and intro animation (the intro video still says "Dayflow").
 - [ ] Remove the "How did you hear about us?" step from first-run setup.
 - [ ] Optional: add a free Apple ID in Xcode so rebuilds stop asking for Screen Recording again.
