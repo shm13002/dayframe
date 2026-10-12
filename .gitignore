@@ -1,0 +1,36 @@
+*.dmg
+*.DS_Store
+.DS_Store
+Dayflow/build*
+*.xcuserstate
+xcuserdata/
+LLMEvalScript.swift
+Dayflow/eval/
+evals/
+build/
+build_tmp/
+build_universal/
+.claude/
+scripts/release.env
+Dayflow/Config/LocalSecrets.xcconfig
+signed/
+
+# Ignore Claude prompt notes
+CLAUDE.md
+claude.md
+
+# Tauri migration (WIP)
+dayflow-tauri/
+agents.md
+
+# Internal tools
+tools/*
+!tools/dayflow-cli/
+!tools/dayflow-cli/**
+
+# Eval frameworks
+claudeeval/
+codexeval/
+
+# Dayflow CLI SwiftPM artifacts
+tools/dayflow-cli/.build/

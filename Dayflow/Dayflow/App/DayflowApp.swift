@@ -1,0 +1,576 @@
+//
+//  DayflowApp.swift
+//  Dayflow
+//
+
+import Sparkle
+import SwiftUI
+
+struct AppRootView: View {
+  @EnvironmentObject private var categoryStore: CategoryStore
+  @Binding var isShowingGitHubStarPrompt: Bool
+  @Binding var gitHubStarCount: Int?
+  @Binding var gitHubStarPromptUsesBrowser: Bool
+  @State private var isCheckingGitHubStar = false
+  @State private var whatsNewNote: ReleaseNote? = nil
+  @State private var activeWhatsNewVersion: String? = nil
+  @State private var shouldMarkWhatsNewSeen = false
+  @State private var goalFlowPresentation: DayGoalFlowPresentation? = nil
+
+  var body: some View {
+    ZStack {
+      MainView(goalFlowPresentation: $goalFlowPresentation)
+        .environmentObject(AppState.shared)
+        .environmentObject(categoryStore)
+
+      goalFlowOverlay
+    }
+    .frame(maxWidth: .infinity, maxHeight: .infinity)
+    .onAppear {
+      guard whatsNewNote == nil else { return }
+      DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+        if let note = WhatsNewConfiguration.pendingReleaseForCurrentBuild() {
+          whatsNewNote = note
+          activeWhatsNewVersion = note.version
+          shouldMarkWhatsNewSeen = true
+        }
+      }
+      DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+        showGitHubStarPromptIfEligible(source: "launch")
+      }
+      DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+        showSurveyIfEligible(source: "launch")
+      }
+    }
+    .onReceive(NotificationCenter.default.publisher(for: .showWhatsNew)) { _ in
+      guard let release = WhatsNewConfiguration.latestRelease() else { return }
+      whatsNewNote = release
+      activeWhatsNewVersion = release.version
+      shouldMarkWhatsNewSeen = release.version == currentAppVersion
+
+      // Analytics: track manual view
+      AnalyticsService.shared.capture(
+        "whats_new_viewed_manual",
+        [
+          "version": release.version
+        ])
+    }
+    .onReceive(NotificationCenter.default.publisher(for: .timelineDataUpdated)) { _ in
+      showGitHubStarPromptIfEligible(source: "first_card")
+      showSurveyIfEligible(source: "new_card")
+    }
+    .onReceive(
+      NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)
+    ) { _ in
+      showSurveyIfEligible(source: "app_active")
+    }
+    .onChange(of: whatsNewNote == nil) { _, isDismissed in
+      if isDismissed {
+        showGitHubStarPromptIfEligible(source: "launch")
+        showSurveyIfEligible(source: "launch")
+      }
+    }
+    .sheet(item: $whatsNewNote, onDismiss: handleWhatsNewDismissed) { note in
+      ZStack {
+        // Backdrop
+        Color.black.opacity(0.4)
+          .ignoresSafeArea()
+
+        WhatsNewView(releaseNote: note) {
+          closeWhatsNew()
+        }
+      }
+      .resolveDayflowTheme()
+    }
+  }
+
+  @ViewBuilder
+  private var goalFlowOverlay: some View {
+    if let goalFlowPresentation {
+      DayGoalFlowOverlay(
+        presentation: goalFlowPresentation,
+        onDismiss: {
+          withAnimation(.spring(response: 0.28, dampingFraction: 0.9)) {
+            self.goalFlowPresentation = nil
+          }
+        }
+      )
+      .frame(maxWidth: .infinity, maxHeight: .infinity)
+      .ignoresSafeArea()
+      .transition(.opacity.combined(with: .scale(scale: 0.985)))
+      .zIndex(3)
+    }
+  }
+
+  private var canShowGitHubStarPrompt: Bool {
+    !isShowingGitHubStarPrompt && whatsNewNote == nil && goalFlowPresentation == nil
+      && !SurveyCenter.shared.isShowingSurvey
+  }
+
+  /// Keeps the star card off the day a survey was shown.
+  private var surveyShownRecently: Bool {
+    guard let shownAt = SurveyCenter.lastShownAt else { return false }
+    return Date().timeIntervalSince(shownAt) < SurveyCenter.otherPromptGap
+  }
+
+  /// Surveys share the bottom-right corner with the star card, so only one shows at a time.
+  private func showSurveyIfEligible(source: String) {
+    SurveyCenter.shared.checkForSurvey(source: source) {
+      whatsNewNote == nil && goalFlowPresentation == nil && !isShowingGitHubStarPrompt
+        && !isCheckingGitHubStar
+    }
+  }
+
+  /// Asks every 3 days, but only people whose gh CLI confirms Dayflow isn't starred.
+  private func showGitHubStarPromptIfEligible(source: String) {
+    guard canShowGitHubStarPrompt,
+      !isCheckingGitHubStar,
+      GitHubStarPromptState.isDue,
+      !surveyShownRecently,
+      StorageManager.shared.hasAnyTimelineCards()
+    else { return }
+
+    isCheckingGitHubStar = true
+    Task {
+      let (check, starCount) = await Task.detached(priority: .utility) {
+        let check = GitHubStarPrompt.check()
+        let isUnstarred = check.starredByRepo[GitHubStarPrompt.primaryRepoName] == false
+        return (check, isUnstarred ? GitHubStarPrompt.stargazerCount() : nil)
+      }.value
+      isCheckingGitHubStar = false
+      handleGitHubStarCheck(check, starCount: starCount, source: source)
+    }
+  }
+
+  private func handleGitHubStarCheck(_ check: GitHubStarCheck, starCount: Int?, source: String) {
+    let isDayflowStarred = check.starredByRepo[GitHubStarPrompt.primaryRepoName]
+
+    if isDayflowStarred == true {
+      GitHubStarPromptState.markDone()
+      return
+    }
+
+    // Something else took the screen while gh was running; try again on the next trigger.
+    guard canShowGitHubStarPrompt else { return }
+
+    // No usable gh (missing, logged out, 1Password), so we can't verify the star.
+    // Ask these people once, then only re-check gh every 3 days in case they set it up.
+    guard isDayflowStarred == false else {
+      GitHubStarPromptState.markAttempted()
+      guard !GitHubStarPromptState.hasShownBrowserPrompt else { return }
+      GitHubStarPromptState.markBrowserPromptShown()
+      presentGitHubStarPrompt(check: check, starCount: nil, usesBrowser: true, source: source)
+      return
+    }
+
+    GitHubStarPromptState.markShown()
+    presentGitHubStarPrompt(check: check, starCount: starCount, usesBrowser: false, source: source)
+  }
+
+  private func presentGitHubStarPrompt(
+    check: GitHubStarCheck, starCount: Int?, usesBrowser: Bool, source: String
+  ) {
+    var props = check.analyticsProperties
+    props["source"] = source
+    props["variant"] = usesBrowser ? "browser" : "gh"
+    props["prompt_number"] = GitHubStarPromptState.shownCount
+    if let starCount { props["star_count"] = starCount }
+    AnalyticsService.shared.capture("github_star_prompt_shown", props)
+
+    gitHubStarCount = starCount
+    gitHubStarPromptUsesBrowser = usesBrowser
+    withAnimation(.spring(response: 0.34, dampingFraction: 0.88)) {
+      isShowingGitHubStarPrompt = true
+    }
+  }
+
+  private func closeWhatsNew() {
+    whatsNewNote = nil
+  }
+
+  private func handleWhatsNewDismissed() {
+    guard let version = activeWhatsNewVersion else { return }
+    if shouldMarkWhatsNewSeen {
+      WhatsNewConfiguration.markReleaseAsSeen(version: version)
+      AnalyticsService.shared.capture(
+        "whats_new_viewed",
+        [
+          "version": version,
+          "source": "auto",
+        ])
+    }
+    AnalyticsService.shared.capture(
+      "whats_new_viewed",
+      [
+        "version": version,
+        "source": "manual",
+      ])
+    activeWhatsNewVersion = nil
+    shouldMarkWhatsNewSeen = false
+    showGitHubStarPromptIfEligible(source: "launch")
+  }
+
+  private var currentAppVersion: String {
+    Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? ""
+  }
+}
+
+@main
+struct DayflowApp: App {
+  @NSApplicationDelegateAdaptor(AppDelegate.self) var delegate
+  @AppStorage("didOnboard") private var didOnboard = false
+  @StateObject private var systemAppearance = SystemAppearanceObserver()
+  @AppStorage(DayflowAppearance.storageKey) private var appearance: DayflowAppearance = .system
+  @AppStorage("useBlankUI") private var useBlankUI = false
+  /// Mirrors FlowNudgeVariant.current so the menu title re-renders on toggle.
+  @AppStorage(FlowNudgeVariant.defaultsKey) private var flowNudgeVariant = FlowNudgeVariant.side
+    .rawValue
+  @State private var showVideoLaunch = true
+  @State private var contentOpacity = 0.0
+  @State private var contentScale = 0.98
+  @State private var isShowingGitHubStarPrompt = false
+  @State private var gitHubStarCount: Int? = nil
+  @State private var gitHubStarPromptUsesBrowser = false
+  @ObservedObject private var surveyCenter = SurveyCenter.shared
+  // Must be the shared instance: the agent bridge (AgentWriteHandlers) writes to
+  // CategoryStore.shared, and a second in-memory copy here would overwrite those
+  // edits on the next UI-triggered save (GitHub issue #375).
+  @StateObject private var categoryStore = CategoryStore.shared
+
+  init() {
+    // Writing to stdout after its reader has gone away (app launched from a
+    // terminal or wrapper that exited) raises SIGPIPE and kills the process.
+    // Ignore it so the write simply fails with EPIPE instead.
+    signal(SIGPIPE, SIG_IGN)
+
+    // Comment out for production - only use for testing onboarding
+    // UserDefaults.standard.set(false, forKey: "didOnboard")
+  }
+
+  // Sparkle updater manager
+  private let updaterManager = UpdaterManager.shared
+
+  var body: some Scene {
+    Window("Dayflow", id: "main") {
+      ZStack {
+        // Main app UI or onboarding with entrance animation
+        Group {
+          if didOnboard {
+            // Show UI after onboarding
+            AppRootView(
+              isShowingGitHubStarPrompt: $isShowingGitHubStarPrompt,
+              gitHubStarCount: $gitHubStarCount,
+              gitHubStarPromptUsesBrowser: $gitHubStarPromptUsesBrowser
+            )
+            .environmentObject(categoryStore)
+            .environmentObject(updaterManager)
+          } else if !showVideoLaunch {
+            // Onboarding is designed light-only.
+            OnboardingFlow()
+              .environmentObject(AppState.shared)
+              .environmentObject(categoryStore)
+              .environmentObject(updaterManager)
+              .dayflowTheme(.light)
+          }
+        }
+        .opacity(contentOpacity)
+        .scaleEffect(contentScale)
+        .animation(.easeOut(duration: 0.3).delay(0.15), value: contentOpacity)
+        .animation(.easeOut(duration: 0.3).delay(0.15), value: contentScale)
+
+        // Video overlay on top with scale + opacity exit
+        if showVideoLaunch {
+          VideoLaunchView()
+            .onVideoComplete {
+              // Overlapping animations for smooth handoff
+              withAnimation(.easeOut(duration: 0.25)) {
+                // Start revealing content while video fades
+                contentOpacity = 1.0
+                contentScale = 1.0
+              }
+
+              // Slightly delayed video exit for overlap
+              DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                withAnimation(.easeIn(duration: 0.2)) {
+                  showVideoLaunch = false
+                }
+              }
+
+              dispatchPendingNotificationNavigation(after: 0.3)
+            }
+            .opacity(showVideoLaunch ? 1 : 0)
+            .scaleEffect(showVideoLaunch ? 1 : 1.02)
+            .animation(.easeIn(duration: 0.2), value: showVideoLaunch)
+            .onAppear {
+              // Skip video if opening via notification tap
+              if hasPendingNotificationNavigation {
+                showVideoLaunch = false
+                contentOpacity = 1.0
+                contentScale = 1.0
+                dispatchPendingNotificationNavigation(after: 0.1)
+              }
+            }
+        }
+
+        if didOnboard && !showVideoLaunch && isShowingGitHubStarPrompt {
+          GitHubStarPromptCard(
+            starCount: gitHubStarCount,
+            usesBrowser: gitHubStarPromptUsesBrowser,
+            onStar: starDayflow,
+            onDismiss: dismissGitHubStarPrompt
+          )
+          .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
+          .padding(.trailing, 24)
+          .padding(.bottom, 24)
+          .transition(.move(edge: .trailing).combined(with: .opacity))
+          .zIndex(10)
+        }
+
+        if didOnboard && !showVideoLaunch, let survey = surveyCenter.activeSurvey {
+          SurveyPromptCard(survey: survey, center: surveyCenter)
+            .id(survey.id)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
+            .padding(.trailing, 24)
+            .padding(.bottom, 24)
+            .transition(.move(edge: .trailing).combined(with: .opacity))
+            .zIndex(10)
+        }
+
+      }
+      .animation(
+        .spring(response: 0.34, dampingFraction: 0.88), value: surveyCenter.activeSurvey?.id
+      )
+      // Inline background behind the main app UI only
+      .background {
+        MainWindowRegistrationView()
+
+        if didOnboard {
+          DayflowWindowBackground()
+            .ignoresSafeArea()
+            .allowsHitTesting(false)
+            .accessibilityHidden(true)
+        }
+      }
+      // Use an explicit scheme even for System; clearing an override can lag until focus changes.
+      .preferredColorScheme(
+        didOnboard ? appearance.colorScheme(system: systemAppearance.colorScheme) : .light
+      )
+      .resolveDayflowTheme()
+      .resolveStylePreview()
+      .onAppear {
+        if !showVideoLaunch {
+          dispatchPendingNotificationNavigation(after: 0.1)
+        }
+      }
+      .onReceive(
+        NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)
+      ) { _ in
+        if !showVideoLaunch {
+          dispatchPendingNotificationNavigation(after: 0.1)
+        }
+      }
+      .frame(minWidth: 900, maxWidth: .infinity, minHeight: 558, maxHeight: .infinity)
+    }
+    .windowStyle(.hiddenTitleBar)
+    .windowResizability(.contentMinSize)
+    .defaultSize(width: 1195, height: 675)
+
+    .commands {
+      // Remove the "New Window" command if you want a single window app
+      CommandGroup(replacing: .newItem) {}
+
+      // Add custom menu items after the app info section
+      CommandGroup(after: .appInfo) {
+        Divider()
+        Button("Reset Onboarding") {
+          // Reset the onboarding flag
+          UserDefaults.standard.set(false, forKey: "didOnboard")
+          // Reset the saved onboarding step to start from beginning
+          UserDefaults.standard.set(0, forKey: "onboardingStep")
+          UserDefaults.standard.removeObject(forKey: "onboardingHasPaidAI")
+          UserDefaults.standard.removeObject(forKey: CategoryStore.StoreKeys.onboardingSelectedRole)
+          UserDefaults.standard.removeObject(
+            forKey: CategoryStore.StoreKeys.onboardingAppliedCategoryPreset)
+          UserDefaults.standard.removeObject(
+            forKey: CategoryStore.StoreKeys.onboardingCategoriesCustomized)
+          UserDefaults.standard.removeObject(forKey: "onboardingSelectedProviderID")
+          // Force quit and restart the app to show onboarding
+          Task { @MainActor in
+            AppDelegate.allowTermination = true
+            NSApp.terminate(nil)
+          }
+        }
+        .keyboardShortcut("R", modifiers: [.command, .shift])
+      }
+
+      // Add Sparkle's update menu item
+      CommandGroup(after: .appInfo) {
+        Button("Check for Updates…") {
+          updaterManager.checkForUpdates(showUI: true)
+        }
+
+        Button("View Release Notes") {
+          // Activate the app and bring to foreground
+          NSApp.activate(ignoringOtherApps: true)
+
+          // Post notification to show What's New modal
+          NotificationCenter.default.post(name: .showWhatsNew, object: nil)
+        }
+        .keyboardShortcut("N", modifiers: [.command, .shift])
+      }
+
+      CommandGroup(after: .appInfo) {
+        Divider()
+        Button("Flow: Simulate Distraction") {
+          FlowSessionMirror.shared.simulateDistraction()
+        }
+        .keyboardShortcut("D", modifiers: [.command, .shift])
+        Button("Flow: Nudge Style — \(FlowNudgeVariant.current.title)") {
+          FlowNudgeVariant.current = FlowNudgeVariant.current.next
+          flowNudgeVariant = FlowNudgeVariant.current.rawValue
+        }
+      }
+    }
+    .defaultSize(width: 1200, height: 800)
+
+  }
+
+  private func starDayflow() async -> Bool {
+    // Any click ends the reminders, even if the browser star can't be verified.
+    GitHubStarPromptState.markDone()
+    let promptNumber = GitHubStarPromptState.shownCount
+    AnalyticsService.shared.capture("github_star_prompt_clicked", ["prompt_number": promptNumber])
+    let starred = await GitHubStarService.starDayflow()
+    if starred {
+      AnalyticsService.shared.capture(
+        "github_star_completed", ["method": "gh", "prompt_number": promptNumber])
+      // Leave the card up briefly so the thank-you is visible.
+      Task {
+        try? await Task.sleep(for: .seconds(1.5))
+        hideGitHubStarPrompt()
+      }
+    } else {
+      AnalyticsService.shared.capture(
+        "github_star_browser_fallback", ["prompt_number": promptNumber])
+      NSWorkspace.shared.open(GitHubStarPromptState.repositoryURL)
+      hideGitHubStarPrompt()
+    }
+    return starred
+  }
+
+  private func dismissGitHubStarPrompt() {
+    AnalyticsService.shared.capture(
+      "github_star_prompt_dismissed", ["prompt_number": GitHubStarPromptState.shownCount])
+    hideGitHubStarPrompt()
+  }
+
+  private func hideGitHubStarPrompt() {
+    withAnimation(.easeOut(duration: 0.2)) {
+      isShowingGitHubStarPrompt = false
+    }
+  }
+
+  private var hasPendingNotificationNavigation: Bool {
+    AppDelegate.pendingNotificationNavigationDestination != nil
+  }
+
+  private func dispatchPendingNotificationNavigation(after delay: TimeInterval) {
+    guard hasPendingNotificationNavigation else { return }
+
+    DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+      guard let destination = AppDelegate.pendingNotificationNavigationDestination else { return }
+      AppDelegate.pendingNotificationNavigationDestination = nil
+
+      switch destination {
+      case .daily(let day) where day?.isEmpty == false:
+        NotificationCenter.default.post(
+          name: .navigateToDaily,
+          object: nil,
+          userInfo: ["day": day]
+        )
+      case .daily:
+        NotificationCenter.default.post(name: .navigateToDaily, object: nil)
+      case .support:
+        NotificationCenter.default.post(name: .navigateToSupport, object: nil)
+      case .weekly:
+        NotificationCenter.default.post(name: .navigateToWeekly, object: nil)
+      }
+    }
+  }
+}
+
+// MARK: - Notification Names
+
+extension Notification.Name {
+  static let analyticsPreferenceChanged = Notification.Name("analyticsPreferenceChanged")
+  static let showWhatsNew = Notification.Name("showWhatsNew")
+  static let navigateToDaily = Notification.Name("navigateToDaily")
+  static let navigateToSupport = Notification.Name("navigateToSupport")
+  static let navigateToWeekly = Notification.Name("navigateToWeekly")
+  static let timelineDataUpdated = Notification.Name("timelineDataUpdated")
+  static let showTimelineFailureToast = Notification.Name("showTimelineFailureToast")
+  static let showScreenRecordingPermissionNotice = Notification.Name(
+    "showScreenRecordingPermissionNotice")
+  static let openProvidersSettings = Notification.Name("openProvidersSettings")
+  static let openAccountSettings = Notification.Name("openAccountSettings")
+  static let navigateToFlow = Notification.Name("navigateToFlow")
+}
+
+@MainActor
+final class MainWindowController {
+  static let shared = MainWindowController()
+
+  private var openWindowAction: OpenWindowAction?
+  private var hasPendingOpenRequest = false
+
+  func register(_ openWindowAction: OpenWindowAction) {
+    self.openWindowAction = openWindowAction
+
+    if hasPendingOpenRequest {
+      hasPendingOpenRequest = false
+      openWindowAction(id: "main")
+    }
+  }
+
+  func showMainWindow() {
+    guard let openWindowAction else {
+      hasPendingOpenRequest = true
+      return
+    }
+
+    openWindowAction(id: "main")
+  }
+}
+
+/// Full-window gradient behind the main app (Figma: dark linear / light radial).
+private struct DayflowWindowBackground: View {
+  @Environment(\.dayflowTheme) private var theme
+
+  var body: some View {
+    GeometryReader { proxy in
+      if theme.isDark {
+        Image("DarkWindowBackground")
+          .resizable()
+          .interpolation(.high)
+          .scaledToFill()
+          .frame(width: proxy.size.width, height: proxy.size.height)
+          .clipped()
+      } else {
+        LightWindowGradient()
+          .frame(width: proxy.size.width, height: proxy.size.height)
+      }
+    }
+  }
+}
+
+private struct MainWindowRegistrationView: View {
+  @Environment(\.openWindow) private var openWindow
+
+  var body: some View {
+    Color.clear
+      .frame(width: 0, height: 0)
+      .onAppear {
+        MainWindowController.shared.register(openWindow)
+      }
+  }
+}
