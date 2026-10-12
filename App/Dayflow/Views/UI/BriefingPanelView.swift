@@ -15,6 +15,8 @@ struct BriefingPanelView: View {
   @ObservedObject private var palette = DayframePaletteStore.shared
   @State private var reachable: Bool? = nil
   @State private var reloadToken = UUID()
+  /// Dashboard section to open (e.g. "memory", "weekly"); nil = its home page.
+  var tab: String? = nil
 
   static var port: Int {
     let cfg = FileManager.default.homeDirectoryForCurrentUser
@@ -35,6 +37,7 @@ struct BriefingPanelView: View {
       URLQueryItem(name: "theme", value: theme.isDark ? "dark" : "light"),
       URLQueryItem(name: "palette", value: palette.palette.rawValue),
     ]
+    c.fragment = tab
     return c.url!
   }
 
