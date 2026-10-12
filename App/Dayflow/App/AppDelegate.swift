@@ -125,8 +125,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
           _ = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: true)
           // Permission granted - restore saved preference or default to ON
           await MainActor.run {
-            let savedPref = AppState.shared.getSavedPreference()
-            AppState.shared.setRecording(savedPref ?? true, analyticsReason: "auto")
+            // Dayframe: recording is always on at launch (ignores a saved "off").
+            AppState.shared.setRecording(true, analyticsReason: "auto")
           }
           let finalState = await MainActor.run { AppState.shared.isRecording }
           AnalyticsService.shared.capture(
@@ -157,6 +157,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     // Start the provider-routed analysis background job
     setupTimelineAnalysis()
+
+    // Dayframe: keep recording running, and start at login (once, by default).
+    RecordingWatchdog.shared.start()
+    if didOnboard, !UserDefaults.standard.bool(forKey: "dayframeLaunchAtLoginDefaulted") {
+      UserDefaults.standard.set(true, forKey: "dayframeLaunchAtLoginDefaulted")
+      LaunchAtLoginManager.shared.setEnabled(true)
+    }
 
     // Start inactivity monitoring for idle reset
     InactivityMonitor.shared.start()

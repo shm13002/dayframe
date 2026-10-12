@@ -41,6 +41,12 @@ These are created when the app runs, so leave them where they are.
 
 ---
 
+## Change log (read this first if you're an AI picking up the project)
+
+`CHANGELOG.md` records every change with date, time, what, files, why and how it was checked. Newest is first. **Add an entry for every change.** A git hook blocks commits that don't update it.
+
+---
+
 ## 2. Everyday commands
 
 Run these in Terminal.
@@ -54,7 +60,7 @@ python3 ~/Briefing/app/briefing.py brief --force                     # make a ne
 python3 ~/Briefing/app/briefing.py ask "what was I doing at 3pm?"    # ask your memory
 ```
 
-**After installing a new app build,** macOS may ask you to allow Screen Recording again. The app is signed on this Mac, not by Apple. Adding a free Apple ID in Xcode (Settings → Accounts) would stop that.
+**After installing a new app build,** macOS may ask you to allow Screen Recording again, until you create the signing certificate in section 7.
 
 ---
 
@@ -164,9 +170,23 @@ The first commit is the untouched Dayflow v2.6.0, so you can always compare agai
 - [x] Briefing tab rebuilt natively in Dayflow's style (advanced pages still use `Briefing/dashboard.html`).
 - [ ] New **app icon** and intro animation (the intro video still says "Dayflow").
 - [ ] Remove the "How did you hear about us?" step from first-run setup.
-- [ ] Optional: add a free Apple ID in Xcode so rebuilds stop asking for Screen Recording again.
+- [ ] Create the "Dayframe Local" signing certificate (section 7) so rebuilds keep the Screen Recording permission.
 
-## 7. Known issues
+## 7. Recording won't resume / keeps asking for permission
+
+Recording is meant to be always on: a watchdog restarts it every 30 s and after wake or unlock (`App/Dayflow/App/RecordingWatchdog.swift`). It can only fail if macOS's **Screen Recording permission** doesn't match the current build. macOS ties the permission to the app's signature, and local builds without a certificate get a new signature every time.
+
+**Fix it once, for good: create a signing certificate (2 minutes, no Apple account).**
+1. Open **Keychain Access** → menu **Keychain Access → Certificate Assistant → Create a Certificate…**
+2. Name: `Dayframe Local` · Identity Type: **Self-Signed Root** · Certificate Type: **Code Signing** → **Create**.
+3. Run `./build-and-install.sh`. It finds the certificate and signs with it automatically.
+4. System Settings → Privacy & Security → **Screen & System Audio Recording**: remove Dayframe (−) if it's listed, then turn it on when Dayframe asks. From now on, rebuilds keep the permission.
+
+**Quick fix for right now** (lasts until the next rebuild): in that same Screen Recording list, select Dayframe → **−** → reopen Dayframe → allow when asked. Or reset just Dayframe's entry in Terminal with `tccutil reset ScreenCapture local.dayframe.app`, then reopen Dayframe.
+
+---
+
+## 8. Known issues
 
 - Never run the old **Dayflow** app at the same time. Both use the same data folder.
 - The build needs about 3 GB of free disk. The script checks first.

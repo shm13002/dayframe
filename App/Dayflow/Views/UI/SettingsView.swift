@@ -20,6 +20,9 @@ struct SettingsView: View {
 
     var id: String { rawValue }
 
+    /// Dayframe: no Account tab (it only held Dayflow Pro sign-in and upgrade).
+    static let visible: [SettingsTab] = [.providers, .storage, .privacy, .aiTools, .data, .other]
+
     var title: String {
       switch self {
       case .account: return String(localized: "Account")
@@ -33,7 +36,7 @@ struct SettingsView: View {
     }
   }
 
-  @State private var selectedTab: SettingsTab = .account
+  @State private var selectedTab: SettingsTab = .providers
 
   @Namespace private var sidebarSelectionNamespace
 
@@ -125,9 +128,9 @@ struct SettingsView: View {
       }
     }
     .onReceive(NotificationCenter.default.publisher(for: .openAccountSettings)) { _ in
-      guard selectedTab != .account else { return }
+      guard selectedTab != .providers else { return }
       withAnimation(.easeOut(duration: 0.18)) {
-        selectedTab = .account
+        selectedTab = .providers
       }
     }
   }
@@ -180,7 +183,7 @@ struct SettingsView: View {
         .padding(.bottom, 18)
 
       VStack(alignment: .leading, spacing: 2) {
-        ForEach(SettingsTab.allCases) { tab in
+        ForEach(SettingsTab.visible) { tab in
           sidebarButton(for: tab)
         }
       }
