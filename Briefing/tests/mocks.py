@@ -1,5 +1,25 @@
-"""Test fixtures: in-process fake Ollama + realistic Dayflow / Meetily databases."""
-import hashlib, http.server, json, random, re, sqlite3, threading, datetime as dt, os
+"""Test fixtures: in-process fake Ollama + realistic Dayflow / Meetily databases.
+
+Importing this module also keeps every test off the real Mac (every test file imports it)."""
+import hashlib, http.server, json, random, re, sqlite3, subprocess, threading, datetime as dt, os
+
+# Tests must never act on the user's Mac: no dialogs, notifications, speech, microphone, Messages,
+# Things to-dos, opened apps or links. briefing.run_on_mac() records such commands instead of running
+# them while BRIEFING_NO_DESKTOP is set. The tripwire below fails any test that reaches the Mac
+# another way, instead of popping a dialog or a Chrome tab on the user's screen.
+os.environ["BRIEFING_NO_DESKTOP"] = "1"
+DESKTOP_TOOLS = {"osascript", "open", "say", "afplay", "ffmpeg", "screencapture", "shortcuts"}
+
+
+class _GuardedPopen(subprocess.Popen):
+    def __init__(self, args, *a, **kw):
+        argv = args if isinstance(args, (list, tuple)) else str(args).split()
+        if argv and os.path.basename(str(argv[0])) in DESKTOP_TOOLS:
+            raise AssertionError(f"a test tried to act on the real Mac: {list(argv)[:3]} (go through briefing.run_on_mac)")
+        super().__init__(args, *a, **kw)
+
+
+subprocess.Popen = _GuardedPopen  # subprocess.run creates its process through Popen too
 
 class FakeOllama:
     """mode: ok | garbage | fenced | empty | down(=server stopped)"""

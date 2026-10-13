@@ -31,7 +31,7 @@ PROTECTED_FUNCS = {  # privacy, approval, deletion, network surface, and the loo
     "blocked", "anticipate", "numeric_sig", "automation_decide", "automation_run", "automation_dryrun", "lint_script",
     "automation_draft", "perform_action", "nm_validate", "do_resume", "offer_resume", "resume_targets", "cmd_forget",
     "cmd_cleanup", "deletable_recordings", "make_handler", "set_home", "load_config", "load_overrides", "prompt_text",
-    "telemetry", "telemetry_read", "safe_write", "backup", "push", "ext_get", "ext_post", "main", "things_sync",
+    "telemetry", "telemetry_read", "safe_write", "backup", "push", "ext_get", "ext_post", "main", "things_sync", "cli_chat", "cli_bin",
     "things_add_url", "things_update_url", "things_open", "vault_sync", "record_whisper", "companion_feedback", "record_event",
     "ingest_facts", "forget_fact", "resolve_conflict", "confirm_fact", "recheck_facts", "facts_for_use", "strip_untrusted",
     "scrub_personal", "record_use", "fact_trace", "curate", "merge_file", "add_daily", "todo_add", "build_context"}
@@ -466,9 +466,20 @@ def code_candidate(cfg, problem):
             "summary": f"A local coding model ({model}) proposed a small change to how 'stuck' is scored.", "deltas": {}}, "ok"
 
 # ---------------------------------------------------------------- git gate
+# Variables git exports while a hook runs (a user can export them too). Inherited, they would point
+# the loop's git, and the tests it runs, at another repository's index. Every git call here names its
+# repo explicitly, so they are dropped from every environment the loop hands down.
+GIT_CONTEXT_VARS = ("GIT_DIR", "GIT_INDEX_FILE", "GIT_WORK_TREE", "GIT_COMMON_DIR", "GIT_PREFIX",
+                    "GIT_OBJECT_DIRECTORY", "GIT_ALTERNATE_OBJECT_DIRECTORIES")
+
+def clean_env(**extra):
+    env = {k: v for k, v in os.environ.items() if k not in GIT_CONTEXT_VARS}
+    env.update(extra)
+    return env
+
 def git(repo, *args, check=True):
     r = subprocess.run(["git", "-c", "user.name=Briefing", "-c", "user.email=briefing@localhost", "-C", str(repo), *args],
-                       capture_output=True, text=True, timeout=120)
+                       capture_output=True, text=True, timeout=120, env=clean_env())
     if check and r.returncode:
         raise RuntimeError(f"git {' '.join(args)}: {r.stderr.strip()[:300]}")
     return r.stdout.strip()
@@ -488,8 +499,29 @@ def eval_in_worktree(cfg, wt, home):
     code = ("import sys,json;sys.path.insert(0,'.');import briefing as b,improve as i;b.set_home(sys.argv[1]);c=b.load_config();"
             "e=i.comp_cases();tr,te=i.split(e);r=i.replay_companion(c,te,tr);print(json.dumps(r))")
     r = subprocess.run([sys.executable, "-c", code, str(home)], cwd=wt, capture_output=True, text=True, timeout=600,
-                       env=dict(os.environ, BRIEFING_IGNORE_OVERRIDES="0"))
+                       env=clean_env(BRIEFING_IGNORE_OVERRIDES="0"))
     return json.loads(r.stdout.strip().splitlines()[-1]) if r.returncode == 0 and r.stdout.strip() else None
+
+def run_new_tests(wt, paths, env):
+    """Runs a candidate's new test files by path, from the worktree root.
+
+    Each file is discovered on its own, so it is imported as a top-level module and no other
+    package called `tests` on the machine can shadow it (one in the user's site-packages did,
+    which made every new test "fail" with an ImportError). Returns {"ok", "ran", "why"}.
+    """
+    ok, ran, why = True, True, ""
+    for path in paths:
+        folder, name = os.path.split(path)
+        r = subprocess.run([sys.executable, "-m", "unittest", "discover", "-s", folder or ".", "-t", folder or ".", "-p", name],
+                           cwd=wt, capture_output=True, text=True, timeout=600, env=env)
+        out = r.stderr + r.stdout
+        if "Failed to import test module" in out or re.search(r"^Ran 0 tests", out, re.M):
+            ran = False
+            why = next((l for l in out.splitlines() if l.startswith(("ImportError", "ModuleNotFoundError", "SyntaxError"))),
+                       "no tests found")
+        ok = ok and r.returncode == 0
+    return {"ok": ok and ran, "ran": ran, "why": why}
+
 
 def gate(cfg, cand):
     """Branch + full tests (+ replay for code). On success returns proposal dict, else (None, reason)."""
@@ -528,21 +560,20 @@ def gate(cfg, cand):
             pf = Path(tempfile.mkdtemp()) / "c.patch"
             for part in (test_part, code_part):
                 pf.write_text(part)
-                if subprocess.run(["git", "-C", str(wt), "apply", "--check", str(pf)], capture_output=True).returncode:
+                if subprocess.run(["git", "-C", str(wt), "apply", "--check", str(pf)], capture_output=True, env=clean_env()).returncode:
                     return None, "patch does not apply"
             pf.write_text(test_part)
-            subprocess.run(["git", "-C", str(wt), "apply", str(pf)], check=True)
+            subprocess.run(["git", "-C", str(wt), "apply", str(pf)], check=True, env=clean_env())
             new_tests = re.findall(r"^\+\+\+ (?:b/)?(\S+)", test_part, re.M)
-            env = dict(os.environ, BRIEFING_HOME=tempfile.mkdtemp(prefix="briefing-red-"))
-            red = subprocess.run([sys.executable, "-m", "unittest"] + [t[:-3].replace("/", ".") for t in new_tests],
-                                 cwd=wt, capture_output=True, text=True, timeout=600, env=env)
-            if red.returncode == 0:
+            env = clean_env(BRIEFING_HOME=tempfile.mkdtemp(prefix="briefing-red-"))
+            red = run_new_tests(wt, new_tests, env)
+            if not red["ran"]:
+                return None, "new test doesn't run (it can't be imported): " + red["why"]
+            if red["ok"]:
                 return None, "new test passes before the fix (it doesn't reproduce the root cause)"
             pf.write_text(code_part)
-            subprocess.run(["git", "-C", str(wt), "apply", str(pf)], check=True)
-            green = subprocess.run([sys.executable, "-m", "unittest"] + [t[:-3].replace("/", ".") for t in new_tests],
-                                   cwd=wt, capture_output=True, text=True, timeout=600, env=env)
-            if green.returncode:
+            subprocess.run(["git", "-C", str(wt), "apply", str(pf)], check=True, env=clean_env())
+            if not run_new_tests(wt, new_tests, env)["ok"]:
                 return None, "new test still fails after the fix"
             cand["test_first"] = {"check": ", ".join(new_tests), "baseline": "fail", "candidate": "pass"}
         git(wt, "add", "-A")
@@ -559,7 +590,7 @@ def gate(cfg, cand):
         cmd = cfg.get("improve_test_cmd") or [sys.executable, "-m", "unittest", "discover", "-s", "tests", "-q"]
         t0 = time.time()
         r = subprocess.run(cmd, cwd=wt, capture_output=True, text=True, timeout=1800,
-                           env=dict(os.environ, BRIEFING_HOME=str(scratch)))
+                           env=clean_env(BRIEFING_HOME=str(scratch)))
         shutil.rmtree(scratch, ignore_errors=True)
         if r.returncode:
             return None, "test suite failed: " + (r.stderr or r.stdout).strip().splitlines()[-1][:200] if (r.stderr or r.stdout).strip() else "test suite failed"

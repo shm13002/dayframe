@@ -250,6 +250,19 @@ class TestDebriefWakeCli(Base):
         self.assertIn("Rewrite the FAQ", [t["text"] for t in b.todos_load()])
         self.assertIn("resumed", out.getvalue())
 
+    def test_commands_never_touch_the_real_mac(self):
+        # `resume` opens links and activates apps, and `brief` shows a dialog. In tests they must be
+        # recorded by run_on_mac, never run: tests/mocks.py sets BRIEFING_NO_DESKTOP=1.
+        os.environ["BRIEFING_TEST_RESUME"] = "yes"
+        self.nightly()
+        b.DESKTOP_CALLS.clear()
+        with contextlib.redirect_stdout(io.StringIO()):
+            b.main(["resume"])
+            b.main(["brief", "--force"])
+        calls = [" ".join(c) for c in b.DESKTOP_CALLS]
+        self.assertTrue(any(c.startswith("open ") and "github.com/me/site/pull/12" in c for c in calls), calls)
+        self.assertTrue(any("Where you left off" in c for c in calls), calls)
+
 class TestServer(Base):
     def setUp(self):
         super().setUp()

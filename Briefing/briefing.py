@@ -325,6 +325,22 @@ def is_mac():
 def osa_escape(s):
     return s.replace("\\", "\\\\").replace('"', '\\"')
 
+# ---------------------------------------------------------------- acting on the Mac
+
+# Commands that act on the user's Mac: a dialog or notification, speech, the microphone, a Message,
+# a Things to-do, or opening an app, file or link. Every one goes through run_on_mac(), so tests can
+# switch them all off in one place: with BRIEFING_NO_DESKTOP=1 (tests/mocks.py sets it) the command
+# is recorded in DESKTOP_CALLS instead of run.
+DESKTOP_CALLS = []
+
+def run_on_mac(args, background=False, **kw):
+    if os.environ.get("BRIEFING_NO_DESKTOP") == "1":
+        DESKTOP_CALLS.append(list(args))
+        return subprocess.CompletedProcess(args, 0, "", "")
+    if background:
+        return subprocess.Popen(args)
+    return subprocess.run(args, **kw)
+
 # ---------------------------------------------------------------- UI (macOS; prints elsewhere)
 
 def ask(prompt, title="Briefing", default=""):
@@ -338,7 +354,7 @@ def ask(prompt, title="Briefing", default=""):
               f'with title "{osa_escape(title)}" buttons {{"Skip", "Save"}} default button "Save" giving up after 600\n'
               f'if button returned of r is "Save" then return text returned of r')
     try:
-        r = subprocess.run(["osascript", "-e", script], capture_output=True, text=True, timeout=660)
+        r = run_on_mac(["osascript", "-e", script], capture_output=True, text=True, timeout=660)
         return r.stdout.strip()
     except Exception as e:
         log(f"ask failed: {e}")
@@ -352,14 +368,14 @@ def show(text, title="Where you left off"):
     script = (f'display dialog "{osa_escape(short)}" with title "{osa_escape(title)}" '
               f'buttons {{"OK"}} default button "OK" giving up after 900')
     try:
-        subprocess.run(["osascript", "-e", script], capture_output=True, timeout=960)
+        run_on_mac(["osascript", "-e", script], capture_output=True, timeout=960)
     except Exception as e:
         log(f"show failed: {e}")
 
 def notify(text, title="Briefing"):
     if is_mac():
-        subprocess.run(["osascript", "-e", f'display notification "{osa_escape(text[:200])}" with title "{osa_escape(title)}"'],
-                       capture_output=True)
+        run_on_mac(["osascript", "-e", f'display notification "{osa_escape(text[:200])}" with title "{osa_escape(title)}"'],
+                   capture_output=True)
     else:
         print(f"[notify] {title}: {text}")
 
@@ -368,7 +384,7 @@ def speak(text, cfg):
         return
     args = ["say"] + (["-v", str(cfg["voice"])] if cfg.get("voice") else []) + ["--", text[:1500]]  # "--": text is never an option
     try:
-        subprocess.Popen(args)
+        run_on_mac(args, background=True)
     except Exception as e:
         log(f"say failed: {e}")
 
@@ -1009,7 +1025,7 @@ def push(cfg, title, text):
         if mode == "imessage" and cfg.get("imessage_to") and is_mac():
             sc = ('tell application "Messages" to send "%s" to participant "%s" of (1st account whose service type = iMessage)'
                   % (osa_escape(title + "\n" + text[:3000]), osa_escape(cfg["imessage_to"])))
-            subprocess.run(["osascript", "-e", sc], capture_output=True, timeout=30)
+            run_on_mac(["osascript", "-e", sc], capture_output=True, timeout=30)
             return "imessage"
     except Exception as e:
         log(f"push failed: {e}")
@@ -1639,7 +1655,7 @@ def vault_sync(cfg):
 def things_open(url):
     """Seam for tests. Opens a things:/// URL in the background (no window focus)."""
     if is_mac() and os.environ.get("BRIEFING_TEST_NORUN") != "1":
-        subprocess.run(["open", "-g", url], timeout=15)
+        run_on_mac(["open", "-g", url], timeout=15)
     return url
 
 def things_add_url(cfg, t):
@@ -1674,8 +1690,8 @@ def things_sync(cfg, force=False):
                 things_open(things_update_url(cfg, rec["things_id"]))
             elif is_mac() and os.environ.get("BRIEFING_TEST_NORUN") != "1":
                 tag = "briefing-id:" + re.sub(r"[^0-9a-f]", "", t["id"])
-                subprocess.run(["osascript", "-e", f'tell application "Things3" to set status of (to dos whose notes contains "{tag}") to completed'],
-                               capture_output=True, timeout=20)
+                run_on_mac(["osascript", "-e", f'tell application "Things3" to set status of (to dos whose notes contains "{tag}") to completed'],
+                           capture_output=True, timeout=20)
             rec["done_sent"] = True
             done += 1
     jsave(DATA / "things.json", db)
@@ -1949,8 +1965,8 @@ def record_whisper(seconds=60):
         return ""
     wav = HOME / "debrief.wav"
     notify(f"Recording for {seconds}s… talk now", "Debrief")
-    subprocess.run([ff, "-y", "-f", "avfoundation", "-i", ":0", "-t", str(seconds), "-ar", "16000", "-ac", "1", str(wav)],
-                   capture_output=True, timeout=seconds + 30)
+    run_on_mac([ff, "-y", "-f", "avfoundation", "-i", ":0", "-t", str(seconds), "-ar", "16000", "-ac", "1", str(wav)],
+               capture_output=True, timeout=seconds + 30)
     r = subprocess.run([wc, "-m", model, "-f", str(wav), "-nt"], capture_output=True, text=True, timeout=300)
     try:
         wav.unlink()
@@ -2235,11 +2251,11 @@ def do_resume(t):
     opened = []
     for a in t["apps"]:
         if is_mac():
-            subprocess.run(["osascript", "-e", f'tell application "{osa_escape(a)}" to activate'], capture_output=True, timeout=20)
+            run_on_mac(["osascript", "-e", f'tell application "{osa_escape(a)}" to activate'], capture_output=True, timeout=20)
         opened.append(a)
     for u in t["urls"] + [os.path.expanduser(f) for f in t["files"] if os.path.exists(os.path.expanduser(f))]:
         if is_mac():
-            subprocess.run(["open", u], capture_output=True, timeout=20)
+            run_on_mac(["open", u], capture_output=True, timeout=20)
         opened.append(u)
     return opened
 
@@ -2257,7 +2273,7 @@ def offer_resume(cfg):
     else:
         sc = (f'display dialog "Resume {osa_escape(t["project"])}?\n\n{osa_escape(listing)}" with title "Resume" '
               f'buttons {{"Not now", "Resume"}} default button "Resume" giving up after 300')
-        r = subprocess.run(["osascript", "-e", sc], capture_output=True, text=True, timeout=330)
+        r = run_on_mac(["osascript", "-e", sc], capture_output=True, text=True, timeout=330)
         ok = "Resume" in r.stdout
     return "resumed: " + ", ".join(do_resume(t)) if ok else "declined"
 
@@ -2839,7 +2855,7 @@ def automation_run(cfg, aid, confirm=False):
         cmd = [sys.executable, str(f)]
     else:
         return {"ok": False, "log": "Shortcuts instructions are manual"}
-    if os.environ.get("BRIEFING_TEST_NORUN"):
+    if os.environ.get("BRIEFING_TEST_NORUN") or os.environ.get("BRIEFING_NO_DESKTOP") == "1":
         r = subprocess.CompletedProcess(cmd, 0, "test: not executed", "")
     else:
         r = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
@@ -2987,9 +3003,9 @@ def perform_action(cfg, a):
     if not is_mac():
         return f"(non-mac) would {ty} {tg}"
     if ty == "open_app":
-        subprocess.run(["osascript", "-e", f'tell application "{osa_escape(tg)}" to activate'], capture_output=True, timeout=20)
+        run_on_mac(["osascript", "-e", f'tell application "{osa_escape(tg)}" to activate'], capture_output=True, timeout=20)
     else:
-        subprocess.run(["open", os.path.expanduser(tg)], capture_output=True, timeout=20)
+        run_on_mac(["open", os.path.expanduser(tg)], capture_output=True, timeout=20)
     return f"{ty} {tg}"
 
 def nm_feedback(cfg, pid, outcome, action_index=None):

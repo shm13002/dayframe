@@ -115,16 +115,16 @@ class TestSecurity(HBase):
         evil = 'x" & do shell script "rm -rf ~" & "'
         esc = b.osa_escape(evil)
         self.assertNotIn('" &', esc.replace('\\"', ""))  # every quote is escaped
-        calls = []
-        orig_run, orig_pop, orig_mac = b.subprocess.run, b.subprocess.Popen, b.is_mac
-        b.subprocess.run = lambda args, **kw: calls.append(args) or type("R", (), {"returncode": 0, "stdout": "", "stderr": ""})()
-        b.subprocess.Popen = lambda args, **kw: calls.append(args)
+        b.DESKTOP_CALLS.clear()  # run_on_mac records these instead of running them in tests
+        orig_mac = b.is_mac
         b.is_mac = lambda: True
         try:
             b.speak("-o /tmp/pwn.aiff hello", dict(self.cfg, speak=True))
             b.notify(evil, evil)
         finally:
-            b.subprocess.run, b.subprocess.Popen, b.is_mac = orig_run, orig_pop, orig_mac
+            b.is_mac = orig_mac
+        calls = b.DESKTOP_CALLS
+        self.assertEqual(len(calls), 2)
         for c in calls:
             self.assertIsInstance(c, list)  # argv lists, never a shell string
         say = next(c for c in calls if c[0] == "say")

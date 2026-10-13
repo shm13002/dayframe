@@ -1,7 +1,9 @@
 #!/bin/bash
 # The clean-code gate. Every change must pass it before it is committed.
 #   ./check.sh            Swift style, web typecheck/format/tests, Briefing tests
-#   ./check.sh --staged   only what is staged (the pre-commit hook runs this)
+#   ./check.sh --staged   only what is staged (the pre-commit hook runs this). The web and Briefing
+#                         tests run on an exact copy of the staged files, so what gets committed is
+#                         what got tested, even when other edits are still unstaged.
 #   ./check.sh --app      everything above, plus build the app and run its unit tests (slow)
 #
 # Swift style rule: no file may have more swift-format warnings than Dayflow's original
@@ -14,6 +16,25 @@ cd "$(dirname "$0")"
 UPSTREAM=1df9be4 # the untouched Dayflow v2.6.0 import
 MODE=${1:-all}
 failed=()
+
+# While a commit runs, git exports variables such as GIT_INDEX_FILE that point at this repo. This
+# script's own git calls need them (they read the staged files), but test suites create their own
+# repos (Briefing's self-improvement tests do), so test runners start without them.
+without_git_env() {
+  env -u GIT_DIR -u GIT_INDEX_FILE -u GIT_WORK_TREE -u GIT_COMMON_DIR -u GIT_PREFIX \
+    -u GIT_OBJECT_DIRECTORY -u GIT_ALTERNATE_OBJECT_DIRECTORIES "$@"
+}
+
+# Where the web and Briefing checks run: this folder, or in --staged mode a temporary copy of the
+# staged Web/ and Briefing/ files (plus the Swift palette file the web parity test reads).
+ROOT=.
+if [[ $MODE == --staged ]]; then
+  ROOT=$(mktemp -d "${TMPDIR:-/tmp}/dayframe-staged.XXXXXX")
+  trap 'rm -rf "$ROOT"' EXIT
+  git ls-files -z -- Web Briefing App/Dayflow/Utilities/DayframePalette.swift |
+    xargs -0 git checkout-index --prefix="$ROOT/" --
+  [[ -d Web/node_modules ]] && ln -s "$PWD/Web/node_modules" "$ROOT/Web/node_modules"
+fi
 
 section() { printf '\n== %s\n' "$1"; }
 fail() {
@@ -99,14 +120,14 @@ check_web() {
     return
   fi
   [[ -d Web/node_modules ]] || npm --prefix Web ci --no-audit --no-fund >/dev/null 2>&1
-  npm --prefix Web run --silent typecheck || fail "Web typecheck"
+  without_git_env npm --prefix "$ROOT/Web" run --silent typecheck || fail "Web typecheck"
   local formatted
   formatted=$(grep -E '^Web/src/.*\.(ts|tsx|css)$|^Web/[^/]*\.ts$' <<<"$web" | sed 's#^Web/##')
   if [[ -n $formatted ]]; then
-    (cd Web && xargs npx --no-install prettier --check --log-level warn <<<"$formatted") ||
+    (cd "$ROOT/Web" && without_git_env xargs npx --no-install prettier --check --log-level warn <<<"$formatted") ||
       fail "Web formatting (run: npm --prefix Web run format)"
   fi
-  npm --prefix Web run --silent test || fail "Web tests"
+  without_git_env npm --prefix "$ROOT/Web" run --silent test || fail "Web tests"
 }
 
 check_briefing() {
@@ -116,10 +137,11 @@ check_briefing() {
     return
   fi
   local out
-  out=$(cd Briefing && python3 -m unittest discover -s tests 2>&1)
+  out=$(cd "$ROOT/Briefing" && without_git_env python3 -m unittest discover -s tests 2>&1)
   grep -E '^Ran [0-9]+ tests' <<<"$out"
   if ! grep -q '^OK' <<<"$out"; then
     grep -E '^(FAIL|ERROR): ' <<<"$out" | sed 's/^/    /'
+    grep -qE '^(FAIL|ERROR): ' <<<"$out" || tail -15 <<<"$out" | sed 's/^/    /'
     fail "Briefing tests"
   fi
 }
@@ -133,7 +155,7 @@ check_app() {
     return
   fi
   mkdir -p build
-  if xcodebuild test -project App/Dayflow.xcodeproj -scheme Dayflow -configuration Debug \
+  if without_git_env xcodebuild test -project App/Dayflow.xcodeproj -scheme Dayflow -configuration Debug \
     -derivedDataPath build -destination 'platform=macOS' -only-testing:DayflowTests \
     -parallel-testing-enabled NO -skipPackagePluginValidation -skipMacroValidation \
     >build/last-test.log 2>&1; then

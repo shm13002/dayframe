@@ -24,6 +24,32 @@ Entry template:
 
 ## 2026-10-13 (Tue)
 
+### 11:08: Tests stop acting on the real Mac, and the known test failures are fixed
+- **What:**
+  - **Briefing's tests acted on the real Mac** (the user saw this on every test run):
+    - `test_cli_smoke` runs Briefing's real commands on fake data. `brief` showed the real "Where you left off" dialog and blocked until OK was clicked. `resume` (with `BRIEFING_TEST_RESUME=yes`) activated Cursor, Figma and Zoom and opened the fixture link `github.com/me/site/pull/12` in Chrome, which is where the row of GitHub "Page not found" tabs came from.
+    - Other tests posted real notifications ("Gentle nudge", "Your weekly report is ready").
+    - Nothing stopped tests from recording the microphone (`record_whisper`), sending an iMessage (`push`) or adding Things to-dos either.
+    - Cause: every function that acts on the Mac called `osascript`, `open`, `say` or `ffmpeg` directly, guarded only by a patchwork of test variables.
+  - **Fix:** one entry point, `run_on_mac()` in `briefing.py`. All 14 call sites go through it: dialogs, notifications, speech, the microphone, Messages, Things, and opening apps, files and links. With `BRIEFING_NO_DESKTOP=1` it records the command in `DESKTOP_CALLS` instead of running it. Approved automations also don't execute under that switch.
+  - **Tripwire:** `tests/mocks.py` (imported by every test file) sets `BRIEFING_NO_DESKTOP=1`, and makes `subprocess.Popen` raise if a test reaches `osascript`, `open`, `say`, `afplay`, `ffmpeg`, `screencapture` or `shortcuts` any other way. Its first run caught the two notification paths.
+  - **Briefing gate bug:** the self-improvement gate ran a candidate's new test by dotted name (`tests.improve_cases.test_x`). A `tests` package in the user's Python site-packages (`~/Library/Python/3.9/lib/python/site-packages/tests`) shadowed Briefing's folder, so every new test failed to import. The "fails before the fix" check passed for the wrong reason, the "passes after" check never could, and no code improvement could ever be accepted. New `run_new_tests()` runs each file by path, and rejects a test that doesn't import ("new test doesn't run").
+  - **Git variables leaking into tests:** while a commit runs, git exports `GIT_INDEX_FILE` and similar variables. Briefing's self-improvement tests (throwaway repos and worktrees) inherited them and failed only inside the hook.
+    - `improve.py`: every git call and every test run it starts now uses `clean_env()`, which drops those variables, so the loop only ever touches the repo it names.
+    - `check.sh`: runs test suites through `without_git_env`. Its own git calls still use the variables, since they read the staged files.
+  - **`check.sh --staged`** now runs the web and Briefing tests on an exact copy of the staged files (`git checkout-index` into a temp folder, about 1.3 MB). What is committed is what was tested, even with other edits still unstaged.
+  - `cli_chat` and `cli_bin` (they launch the AI CLIs) are added to the self-improvement loop's `PROTECTED_FUNCS`.
+  - **App:** `testCardRetryRetainsFullContextAndReturnsDetailedCards` looked for a `Previous cards:` label that Dayflow's card prompt no longer uses (it wraps them in `<previous_cards>`). The test was stale; it now checks the tag.
+- **Files:** `Briefing/briefing.py` (only the `run_on_mac` change; the Grok backend is the next entry), `Briefing/improve.py`, `Briefing/tests/{mocks,test_briefing,test_hardening,test_improve}.py`, `check.sh`, `App/DayflowTests/OpenAICompatibleProviderTests.swift`, `.scratch/clean-code/issues/{06,07}-*.md`
+- **Why:** The user asked for the popups on every test run to stop, for the cause to be found, and for the code to be clean. Tickets clean-code/06 and 07.
+- **Checked:**
+  - Red first for each new test: `test_commands_never_touch_the_real_mac` (no `DESKTOP_CALLS`), `test_new_test_must_run_to_count_as_failing`, `test_git_only_touches_the_repo_it_names` ("not a git repository"), and the extended protection test. Before the fix the tripwire raised on the two notifications.
+  - After: Briefing 95 pass in about 34 s with nothing on screen (the run that showed the dialog took 89 s, because it waited for the click).
+  - The hook-only failure reproduced with a throwaway `GIT_INDEX_FILE` (3 improve tests failed) and passes after the fix.
+  - Dayframe's own index and branches were checked and are intact.
+  - App: `OpenAICompatibleProviderTests` (3) and `WelcomeEventGateTests` (14) pass.
+- **Commit:** this entry's title is the commit subject.
+
 ### 00:11: Swift: Dayframe's own files formatted to zero swift-format warnings
 - **What:**
   - `xcrun swift-format format -i` on all 35 Swift files Dayframe created (Welcome, Island, native Briefing, settings sections, chat on Qwen, the recording watchdog, tests). Only formatting, except two `forEach` loops rewritten as `for` loops.

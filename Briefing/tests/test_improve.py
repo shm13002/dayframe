@@ -220,7 +220,7 @@ class TestPatchSafety(ImproveBase):
 
     def test_privacy_and_approval_code_is_off_limits(self):
         for f in ("blocked", "automation_run", "automation_decide", "anticipate", "cmd_forget", "make_handler", "telemetry",
-                  "things_sync", "vault_sync", "do_resume", "load_config"):
+                  "things_sync", "vault_sync", "do_resume", "load_config", "cli_chat", "cli_bin"):
             ok, why = improve.check_patch(self.cfg, self.hunk(f), self.repo)
             self.assertFalse(ok, f); self.assertIn("protected", why)
             self.assertIn(f, improve.PROTECTED_FUNCS)
@@ -267,6 +267,34 @@ class TestPatchSafety(ImproveBase):
         self.assertIsNone(prop)
         self.assertTrue("gain" in why or "still fails" in why, why)
         self.assertEqual(len(self.branches()), 1)  # only the first (kept) candidate's branch remains
+
+    def test_git_only_touches_the_repo_it_names(self):
+        # A git hook exports GIT_INDEX_FILE / GIT_DIR. Inherited, they would point the loop's git at
+        # another repository; every git call here must ignore them.
+        saved = {k: os.environ.get(k) for k in ("GIT_INDEX_FILE", "GIT_DIR")}
+        os.environ["GIT_INDEX_FILE"] = str(self.tmp / "someone-elses-index")
+        os.environ["GIT_DIR"] = str(self.tmp / "someone-elses-repo")
+        try:
+            self.assertEqual(improve.git(self.repo, "status", "--porcelain"), "")
+        finally:
+            for k, v in saved.items():
+                os.environ.pop(k, None) if v is None else os.environ.__setitem__(k, v)
+        self.assertFalse((self.tmp / "someone-elses-index").exists())
+
+    def test_new_test_must_run_to_count_as_failing(self):
+        # A test that can't even be imported "fails" before the fix for the wrong reason; it proves nothing.
+        src = (self.repo / "briefing.py").read_text().splitlines()
+        i = next(n for n, l in enumerate(src, 1) if "th = float(cfg.get(\"companion_threshold_base\"" in l)
+        new = src[i - 1].replace('0.75))', '0.75)) + 0.12')
+        fix = f"--- a/briefing.py\n+++ b/briefing.py\n@@ -{i - 1},3 +{i - 1},3 @@\n {src[i - 2]}\n-{src[i - 1]}\n+{new}\n {src[i]}\n"
+        test_src = ["import unittest", "import no_such_module", "class T(unittest.TestCase):",
+                    "    def test_x(self):", "        self.assertTrue(True)"]
+        tpatch = "--- /dev/null\n+++ b/tests/improve_cases/test_broken.py\n@@ -0,0 +1,%d @@\n" % len(test_src) + "".join("+" + l + "\n" for l in test_src)
+        cand = {"kind": "code", "problem": "companion_interrupts", "patch": tpatch + fix, "ok": True, "why": "", "summary": "x",
+                "deltas": {}, "root_cause": "ignored guesses fire on weak signals", "test_first": {}}
+        prop, why = improve.gate(self.cfg, cand)
+        self.assertIsNone(prop)
+        self.assertIn("doesn't run", why)
 
 
 class TestTelemetry(ImproveBase):
