@@ -24,6 +24,17 @@ Entry template:
 
 ## 2026-10-13 (Tue)
 
+### 11:42: Installed 5c2695b; the welcome measured 59–60 fps in the app
+- **What:** Installed the audit fixes and the `dayframe://` scheme (commit `5c2695b`). Then played both previews through `dayframe://welcome-preview` and read the frame rates the page reports.
+- **Files:** none (install and measurement only)
+- **Why:** In-app smoothness was the first "not yet tested" item from the Start of day work. There had been no frame-rate reading from the app.
+- **Checked:**
+  - `./logs.sh 2m welcome` shows `dailyWake show finished at 59 fps` and `firstLaunch show finished at 60 fps`, each `on 1 display(s)`.
+  - Confirmed first, through `NSWorkspace`, that macOS opens `dayframe://` with `/Applications/Dayframe.app`. `pgrep -lx Dayflow` was empty afterwards.
+  - After the install: newest frame 7 s old, 0 tccd "Failed to match" lines, and the new log line `login: skip: the welcome is off` (correct: the welcome is off until the user turns it on).
+  - Still the user's checks: a real logout/login, a 10+ minute lock, an external display, the Accessibility layout (ticket start-of-day-extras/04).
+- **Commit:** this entry's title is the commit subject.
+
 ### 11:41: Dayframe gets its own link scheme, dayframe:// (a dayflow:// link opened the original Dayflow app)
 - **What:**
   - **Incident (caused by this session):** testing the new preview link with `open "dayflow://welcome-preview"` launched the Homebrew **Dayflow.app** (`/Applications/Dayflow.app`, also v2.6.0) instead of Dayframe, because macOS binds the `dayflow:` scheme to Dayflow. The two apps must never run together (ADR 0007).
