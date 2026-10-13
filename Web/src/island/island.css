@@ -33,9 +33,13 @@ canvas {
   pointer-events: none;
 }
 
-/* The liquid canvases start 40px above the screen so the goo filter can't round off the top edge. */
+/* The liquid canvases start 40px above the screen so the goo blur can't round off the top edge. */
 canvas.liquid {
   top: -40px;
+}
+
+/* Only when WebGL is unavailable (or ?goo=svg): the original SVG filter, slow in WebKit. */
+canvas.liquid.svg-goo {
   filter: url(#goo);
 }
 

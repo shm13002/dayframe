@@ -1,10 +1,12 @@
 // The liquid notch island: a port of the liquid-island-motion prototypes, driven
 // by Dayframe data. Three stacked canvases:
-//   goo   black liquid (island, drips), through an SVG blur+threshold filter
+//   goo   black liquid (island, drips), through a blur+threshold "goo" pass (liquid.ts)
 //   fx    starfield, warp, streams, eyes, crescents, rings
-//   white white liquid (blob, splats, eyes forming), through the same filter
+//   white white liquid (blob, splats, eyes forming), through the same pass
 // Text stays real DOM (see main.ts) so it's crisp and readable by VoiceOver.
+import { type CanvasRegion, clear, setupCanvas } from "./canvas";
 import { computeLayout, type Layout, PILL_TEXT_GAP } from "./layout";
+import { LiquidLayer } from "./liquid";
 import {
   bezier,
   buildPath,
@@ -117,6 +119,8 @@ export class IslandEngine {
   readonly layout: Layout;
   private readonly payload: IslandPayload;
   private readonly cb: EngineCallbacks;
+  private readonly gooLayer: LiquidLayer;
+  private readonly whiteLayer: LiquidLayer;
   private readonly goo: CanvasRenderingContext2D;
   private readonly fx: CanvasRenderingContext2D;
   private readonly white: CanvasRenderingContext2D;
@@ -149,12 +153,14 @@ export class IslandEngine {
     this.timeline = TIMELINES[payload.variant];
     this.layout = computeLayout(payload, this.timeline.banner);
     const { pillRect, cx, eyes } = this.layout;
-    // The canvases cover only the island's area, not the whole screen: the goo filter's blur is
-    // the most expensive step, and its cost grows with the canvas size.
+    // The canvases cover only the island's area, not the whole screen: the goo blur is the
+    // most expensive step, and its cost grows with the canvas size.
     const region = canvasRegion(this.layout);
-    this.goo = setupCanvas(canvases.goo, region, GOO_PAD);
+    this.gooLayer = LiquidLayer.for(canvases.goo, [0, 0, 0]);
+    this.whiteLayer = LiquidLayer.for(canvases.white, [1, 1, 1]);
+    this.goo = this.gooLayer.setup(region, GOO_PAD);
     this.fx = setupCanvas(canvases.fx, region, 0);
-    this.white = setupCanvas(canvases.white, region, GOO_PAD);
+    this.white = this.whiteLayer.setup(region, GOO_PAD);
     this.pointer = [cx, eyes[1] + 120];
 
     // The show starts from the resting pill that was on screen.
@@ -290,8 +296,9 @@ export class IslandEngine {
     const R = Math.max(4, b.r);
 
     this.drawGoo(T, W, H, R);
+    this.gooLayer.present();
     this.drawFx(T, t, now, dt, W, H, R);
-    this.drawWhite(T, t, dt);
+    this.whiteLayer.present(!this.drawWhite(T, t, dt));
     this.cb.tick(T, tl);
 
     if (!this.collapsed && T >= tl.collapseAt) {
@@ -674,11 +681,12 @@ export class IslandEngine {
   }
 
   // ---------- White liquid ----------
-  private drawWhite(T: number, t: number, dt: number): void {
+  /** Returns false when there's nothing to draw this frame. */
+  private drawWhite(T: number, t: number, dt: number): boolean {
     const g = this.white;
     const tl = this.timeline;
     clear(g);
-    if (T < tl.blobAt || T >= tl.eyesAt + 0.05) return;
+    if (T < tl.blobAt || T >= tl.eyesAt + 0.05) return false;
     const [ex, ey0] = this.layout.eyes;
     const ey = ey0 + GOO_PAD;
     g.fillStyle = "#ffffff";
@@ -694,7 +702,7 @@ export class IslandEngine {
         g.arc(ex + Math.cos(a) * R * 0.6, ey + Math.sin(a) * R * 0.6, R * 0.5, 0, TAU);
         g.fill();
       }
-      return;
+      return true;
     }
 
     if (!this.splats) {
@@ -739,45 +747,14 @@ export class IslandEngine {
         g.fill();
       }
     }
+    return true;
   }
-}
-
-/** The part of the screen the island can ever cover, in screen points. */
-export interface CanvasRegion {
-  x: number;
-  w: number;
-  h: number;
 }
 
 export function canvasRegion(layout: Layout): CanvasRegion {
   const w = Math.min(layout.screenW, Math.ceil(layout.banner.w + 160));
   const x = Math.max(0, Math.min(layout.screenW - w, Math.floor(layout.cx - w / 2)));
   return { x, w, h: Math.ceil(layout.banner.h + BELOW_BANNER) };
-}
-
-/**
- * Sizes a canvas to the region (Retina-sharp) and maps its drawing space to screen points,
- * so all drawing code can use screen coordinates. `padTop` extends it above the screen edge.
- */
-export function setupCanvas(canvas: HTMLCanvasElement, region: CanvasRegion, padTop: number): CanvasRenderingContext2D {
-  const dpr = Math.min(2, window.devicePixelRatio || 1);
-  const h = region.h + padTop;
-  canvas.width = Math.round(region.w * dpr);
-  canvas.height = Math.round(h * dpr);
-  canvas.style.width = `${region.w}px`;
-  canvas.style.height = `${h}px`;
-  canvas.style.left = `${region.x}px`;
-  const ctx = canvas.getContext("2d");
-  if (!ctx) throw new Error("2D canvas unavailable");
-  ctx.setTransform(dpr, 0, 0, dpr, -region.x * dpr, 0);
-  return ctx;
-}
-
-function clear(ctx: CanvasRenderingContext2D): void {
-  ctx.save();
-  ctx.setTransform(1, 0, 0, 1, 0, 0);
-  ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-  ctx.restore();
 }
 
 /** Same drawing as the native pill's FocusRing: track, accent arc from 12 o'clock, dark disc, dot. */

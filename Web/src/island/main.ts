@@ -3,8 +3,10 @@
 //                   "collapse"/"done" back through webkit.messageHandlers.island.
 // In a browser:     a demo bar plays each show with sample data and Web Audio sound.
 import "./island.css";
-import { canvasRegion, IslandEngine, setupCanvas } from "./engine";
+import { setupCanvas } from "./canvas";
+import { canvasRegion, IslandEngine } from "./engine";
 import { computeLayout, type Layout } from "./layout";
+import { LiquidLayer } from "./liquid";
 import { clamp, smooth } from "./math";
 import { WebAudioCues } from "./sound";
 import { type Timeline, TIMELINES } from "./timelines";
@@ -136,11 +138,8 @@ function playReduced(payload: IslandPayload): void {
   const FADE = 0.3;
   const layout = computeLayout(payload, TIMELINES[payload.variant].banner);
   const { cx, banner } = layout;
-  for (const canvas of [canvases.goo, canvases.white]) {
-    const c = canvas.getContext("2d");
-    c?.setTransform(1, 0, 0, 1, 0, 0);
-    c?.clearRect(0, 0, canvas.width, canvas.height);
-  }
+  LiquidLayer.clear(canvases.goo);
+  LiquidLayer.clear(canvases.white);
   const region = canvasRegion(layout);
   const ctx = setupCanvas(canvases.fx, region, 0);
   const state = layoutText(layout, payload);

@@ -24,6 +24,26 @@ Entry template:
 
 ## 2026-10-12 (Mon)
 
+### 21:56: Island goo on the GPU (14 → 58 fps)
+- **What:**
+  - **New `Web/src/island/liquid.ts`:**
+    - The black and white liquid layers keep their Canvas 2D drawing, now into an offscreen canvas at 1 px per point.
+    - WebGL then runs the same math the SVG filter used: Gaussian blur σ 7 (separable, paired bilinear taps) and alpha × 22 − 9. Only that last threshold pass runs at Retina size, so edges stay crisp.
+    - An idle white layer costs nothing.
+    - Falls back to the old `filter: url(#goo)` if WebGL is missing or a shader fails (it swaps in a fresh canvas). `?goo=svg` forces the fallback, for side-by-side comparison in the dev page.
+  - **New `Web/src/island/canvas.ts`:** `CanvasRegion`, `setupCanvas`, `sizeCanvas` and `clear` moved here from `engine.ts`, so both the engine and the liquid layers use them.
+  - **`engine.ts`:** uses `LiquidLayer` for goo and white. `drawWhite` returns whether it drew anything.
+  - **`main.ts`:** Reduce Motion clears the liquid layers through `LiquidLayer.clear`.
+  - **`island.css`:** the SVG filter applies only to `.svg-goo`.
+- **Files:** `Web/src/island/{liquid.ts,canvas.ts,engine.ts,main.ts,island.css}`, `App/Dayflow/Island/Resources/island.html` (rebuilt)
+- **Why:** WebKit runs SVG reference filters on the CPU at device resolution every frame, which held the startup show to 14 fps. Chrome uses the GPU for them, which is why the prototype looked smooth in a browser.
+- **Checked:**
+  - Typecheck is clean.
+  - Dev page with a frozen clock and seeded randomness: the WebGL and `?goo=svg` frames at 0.3 s (drip), 0.58 s (burst and drips), 1.25 s (white splats), 1.6 s and 6.4 s (collapse) look the same. No console warnings.
+  - In the app, Play now gives `startup show finished at 58 fps` (was 14). The show panel is up for ~7 s, then the pill returns.
+  - Recording: new segment 3 s after install; 0 tccd "Failed to match".
+- **Commit:** see `git log`
+
 ### 21:40: Installed the island fixes; show frame rate measured (14 fps)
 - **What:**
   - Freed disk so the build could run. At the user's request, 38 stale Chrome `code_sign_clone` copies were deleted, keeping the one the running Chrome uses. Only about 3 GB came back (13 → 16 GB free): `du` said 86 GB, but the clones were APFS copy-on-write and shared blocks with Chrome.
