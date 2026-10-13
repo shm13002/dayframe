@@ -24,6 +24,12 @@ Entry template:
 
 ## 2026-10-13 (Tue)
 
+### 16:30: Companion orb removed (owner request)
+- **What:** Deleted the Briefing companion orb (the cursor-trailing bubble with suggested questions). Stopped and removed its launch agent. The rest of Briefing (briefing, dashboard, distill, nightly, etc.) is untouched.
+- **Files:** Deleted `Briefing/Companion.swift`, `Briefing/companion-mock.html`; outside the repo: `~/Briefing/app/BriefingCompanion`, `~/Briefing/app/Companion.swift`, `~/Briefing/app/companion-Info.plist`, `~/Briefing/companion.log`, `~/Library/LaunchAgents/com.dayflowbriefing.companion.plist`.
+- **Why:** Owner no longer wants the orb on screen.
+- **Checked:** Process gone, launch agent no longer listed. Left in place: `/api/answer` and companion code in `briefing.py`/`dashboard.html`, plus the companion steps in `install.sh` and README (rerunning install.sh now just prints a compile WARN for the companion).
+
 ### 14:51: START-HERE brought up to date, one to-do list, version v1.0 saved
 - **What:**
   - **START-HERE.md** now covers everything up to today:
