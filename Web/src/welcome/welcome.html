@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dayframe welcome</title>
+  </head>
+  <body>
+    <div id="stage" aria-hidden="true">
+      <canvas id="stars"></canvas>
+      <canvas id="bloom"></canvas>
+      <canvas id="fx"></canvas>
+      <section id="mark">
+        <h1 id="wordmark">Dayframe</h1>
+        <p id="tagline">Your day, in frame</p>
+      </section>
+    </div>
+    <div id="demo" hidden>
+      <button type="button" data-variant="firstLaunch">First launch</button>
+      <button type="button" data-variant="dailyWake">Daily wake</button>
+      <select id="demo-palette" aria-label="Palette"></select>
+      <label><input type="checkbox" id="demo-reduced" /> Reduce motion</label>
+    </div>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>

@@ -1,0 +1,106 @@
+@font-face {
+  font-family: "Instrument Serif";
+  src: url("../theme/fonts/InstrumentSerif-Regular.ttf") format("truetype");
+  font-display: block;
+}
+@font-face {
+  font-family: "Figtree";
+  src: url("../theme/fonts/Figtree-VariableFont_wght.ttf") format("truetype");
+  font-weight: 300 900;
+  font-display: block;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: transparent;
+  cursor: default;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* Dev preview: a stand-in desktop so the closing dissolve has something to reveal. */
+html.demo body {
+  background: #20202a;
+}
+
+/* The deep palette sky. Its gradient is set from the palette in main.ts. */
+#stage {
+  position: fixed;
+  inset: 0;
+  opacity: 0;
+  will-change: opacity;
+}
+
+canvas {
+  position: absolute;
+  left: 0;
+  top: 0;
+  pointer-events: none;
+}
+
+/* Low-resolution copy of the light, blurred by the compositor (CSS filters run on
+   the GPU in WebKit; SVG reference filters don't, see island/liquid.ts). */
+#bloom {
+  filter: blur(14px);
+  mix-blend-mode: screen;
+  opacity: 0.9;
+}
+
+#mark {
+  position: absolute;
+  left: 0;
+  right: 0;
+  text-align: center;
+  pointer-events: none;
+}
+
+#wordmark {
+  margin: 0;
+  font-family: "Instrument Serif", serif;
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  opacity: 0;
+  will-change: opacity, filter, transform;
+}
+
+#tagline {
+  margin: 0;
+  font-family: "Figtree", sans-serif;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.42em;
+  opacity: 0;
+}
+
+#demo {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 8px 12px;
+  border-radius: 14px;
+  background: rgba(0, 0, 0, 0.55);
+  color: #ddd;
+  font: 12px/1 "Figtree", sans-serif;
+  z-index: 10;
+}
+
+#demo button,
+#demo select {
+  font: inherit;
+  color: inherit;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  padding: 6px 10px;
+}
+
+#demo[hidden] {
+  display: none;
+}

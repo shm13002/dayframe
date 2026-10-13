@@ -24,6 +24,48 @@ Entry template:
 
 ## 2026-10-12 (Mon)
 
+### 23:34: Start of day: on-brand Aether opening, Dayframe wallpaper, Dayframe as the hub
+- **What:**
+  - **Opening animation, rebuilt natively** from the Aether Pulse "System Awakening" cut, in the active palette (`Web/src/welcome/`, bundled as `App/Dayflow/Welcome/Resources/welcome.html`).
+    - Same beats as the reference and its cue sheet: the spark falls (0.2–1.6 s), the orbit draws, the vortex spins up (1.8 s), ignition (2.6 s), the eclipse ring and three locks (3.42 / 3.55 / 3.68 s), then the logo tile and the **Dayframe** wordmark with "Your day, in frame" (3.8–4.3 s), and a dissolve to the desktop (5.0–5.4 s).
+    - Two cues: **first launch** (5.4 s, after login) and **daily wake** (2 s, ring only, after an unlock).
+    - All colors come from `paletteStops()` (new in `Web/src/theme/palettes.ts`, mirrored by `DayframePalette.stops`).
+    - Canvas 2D with glow sprites; the bloom is a quarter-size copy blurred by a CSS filter on the compositor. No SVG filters (see 21:56).
+    - Pure function of time, so `window.welcome.render(payload, t)` draws any frozen frame.
+  - **Sound:** the four Aether masters (48 kHz WAV) converted to AAC with `afconvert`. Settings offers Off, Mac speakers (laptop mix, default) or Headphones (cinematic mix). Playback starts on the page's first frame.
+  - **`WelcomeShowPanel`** (new): every display gets a cover in the palette's deep sky, shown immediately so nothing flashes behind the page while it loads. The page runs on the main display. Click or any key skips. The panels are registered with `IslandCaptureExclusion`, so the show never appears in recordings.
+  - **`WelcomeController`** (rewritten from Codex's):
+    - Login is detected per **login session** (`CGSSessionUniqueSessionUUID`, plus the Dock's age under 4 min). The keep-alive agent's launch at login now plays too, and a relaunch in the same session never does.
+    - Unlock away-time uses the wall clock, so sleep counts. The threshold is a setting (default 10 min).
+    - Enabling the welcome marks the current session as seen, so a rebuild doesn't play a "login" show mid-day.
+  - **`WallpaperManager`** (new): a textless wallpaper (palette sky, low horizon glow, a faint ring, three dunes), rendered at each display's native pixels. It is applied to every display and re-rendered when the palette, the appearance or the displays change. It shows behind the lock screen. Your previous wallpaper is remembered and restored when it's turned off (a dynamic wallpaper can't be read back, so then Wallpaper settings opens).
+  - **`StartOfDay`** (new), after the login welcome:
+    - Dayframe opens on **Briefing** (new `.navigateToBriefing`).
+    - Your day's apps open in the background.
+    - Other apps are hidden (not quit).
+    - Windows go to their slots (Layout style). Dayframe's own window needs no permission; other apps need Accessibility, which the user grants.
+    - Stage Manager style skips the layout.
+  - **Settings → Start of day** (new tab): Opening, Wallpaper (live preview), Your day (apps, slots, Run now), Window style.
+- **Removed:** Codex's SwiftUI fire ring (`WelcomeView.swift`), `WelcomeSettingsSection.swift`, `welcome-fire.m4a` (audio from an unrelated video with no license) and its provenance note. `DayflowWindowBackground` is private again.
+- **Files:** `App/Dayflow/Welcome/{WelcomeController,WelcomeShowPanel,WallpaperManager,StartOfDay,StartOfDaySettingsView}.swift`, `App/Dayflow/Welcome/Resources/*`, `App/Dayflow/Utilities/DayframePalette.swift`, `App/Dayflow/Views/UI/{SettingsView,MainView/MainView}.swift`, `App/Dayflow/Views/UI/Settings/SettingsOtherTabView.swift`, `App/DayflowTests/WelcomeEventGateTests.swift`, `Web/src/welcome/*`, `Web/vite.welcome.config.ts`, `Web/{package.json,tsconfig.json}`, `Web/src/theme/palettes.ts`, `START-HERE.md`
+- **Why:** The user wants opening the Mac to feel like one product: a branded background behind the password, the Aether animation right after it, then Dayframe as the hub with everything else organized. Everything is on brand and in the palette, and the lock screen must not say Dayframe.
+- **Checked:**
+  - Typecheck is clean. Frozen frames at 0.6, 1.2, 1.8, 2.62, 3.0, 3.6 and 4.5 s were compared with the reference cut: beats, sizes and positions match. Checked in Original, Lagoon, Lavender and Ember, and the daily wake in Ember.
+  - `WelcomeEventGateTests`: 14 pass. They cover unlock gating, keep-alive login launch, same-session relaunch, late launch, slot frames, wallpaper rendering in 6 palettes × light/dark at 2560×1664, and the bundled assets. The wallpapers were inspected by eye.
+  - Build and install pass; signing is unchanged. A recording frame arrived 4 s after the relaunch, and there were 0 tccd "Failed to match" lines since the install (the 2 earlier ones were the Debug test host, Documents folder).
+  - **Not yet checked:**
+    - In-app Preview and its fps log. The user declined computer control, so they run it themselves.
+    - A real logout/login, a 10+ min lock, an external display, and the Accessibility layout.
+  - The welcome stays **off** until turned on in Settings → Start of day.
+- **Commit:** see `git log`
+
+### 22:45: Dayframe Welcome fire ring (Codex; never committed, superseded by 23:34)
+- **What:** Added an integrated, palette-aware fire-ring welcome, reference audio, preview-first settings, login/unlock event handling, skip controls and reduced-motion fade. Reuses the app background and suppresses the notch’s automatic unlock welcome when enabled.
+- **Files:** `App/Dayflow/Welcome/`, app lifecycle/background, Other settings, island controller and `WelcomeEventGateTests.swift`.
+- **Why:** Make signing in feel like opening one cohesive Dayframe workspace.
+- **Checked:** Native build, four event-gate tests and a rendered design snapshot passed. Installed-app preview completed and returned to Dayframe. Real login/unlock, multi-display and system-mute checks remain manual. Automatic playback defaults off until previewed and enabled. Audio provenance recorded for the personal build.
+
+
 ### 21:56: Island goo on the GPU (14 → 58 fps)
 - **What:**
   - **New `Web/src/island/liquid.ts`:**

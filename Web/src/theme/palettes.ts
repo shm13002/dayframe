@@ -233,6 +233,29 @@ export function paletteTokens(name: PaletteName, mode: Mode): PaletteTokens {
   };
 }
 
+/** Raw background stops and accents, for surfaces that draw their own light (the welcome show). */
+export interface PaletteStops {
+  dark: [string, string, string];
+  light: [string, string, string];
+  accent: string;
+  accentLight: string;
+  accentDark: string;
+}
+
+export function paletteStops(name: PaletteName): PaletteStops {
+  if (name === "original") {
+    return {
+      dark: ["303C5B", "313348", "3B294B"],
+      light: ["FFE6CF", "FFE6E0", "DAEAFC"],
+      accent: "F3854B",
+      accentLight: "FFA376",
+      accentDark: "F77952",
+    };
+  }
+  const s = SPECS[name];
+  return { dark: s.darkBG, light: s.lightBG, accent: s.accent, accentLight: s.accentTextLight, accentDark: s.accentTextDark };
+}
+
 export function isPaletteName(value: string | null | undefined): value is PaletteName {
   return value != null && (PALETTES as readonly string[]).includes(value);
 }

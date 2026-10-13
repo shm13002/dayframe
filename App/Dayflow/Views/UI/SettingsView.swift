@@ -16,12 +16,13 @@ struct SettingsView: View {
     case providers
     case aiTools
     case data
+    case startOfDay
     case other
 
     var id: String { rawValue }
 
     /// Dayframe: no Account tab (it only held Dayflow Pro sign-in and upgrade).
-    static let visible: [SettingsTab] = [.providers, .storage, .privacy, .aiTools, .data, .other]
+    static let visible: [SettingsTab] = [.providers, .storage, .privacy, .aiTools, .data, .startOfDay, .other]
 
     var title: String {
       switch self {
@@ -31,6 +32,7 @@ struct SettingsView: View {
       case .providers: return String(localized: "Providers")
       case .aiTools: return String(localized: "MCP / CLI")
       case .data: return String(localized: "Export")
+      case .startOfDay: return "Start of day"
       case .other: return String(localized: "Other")
       }
     }
@@ -268,6 +270,8 @@ struct SettingsView: View {
         SettingsAgentAccessTabView(viewModel: agentAccessViewModel)
       case .data:
         SettingsDataTabView(viewModel: otherViewModel)
+      case .startOfDay:
+        StartOfDaySettingsView()
       case .other:
         SettingsOtherTabView(viewModel: otherViewModel, launchAtLoginManager: launchAtLoginManager)
       }

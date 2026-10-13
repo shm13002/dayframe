@@ -3,14 +3,16 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "Dayframe's web surfaces: the Briefing tab (React) and the notch-island show (canvas).",
+  "description": "Dayframe's web surfaces: the Briefing tab (React), the notch-island show and the welcome show (canvas).",
   "scripts": {
     "dev": "vite",
     "dev:island": "vite --config vite.island.config.ts",
+    "dev:welcome": "vite --config vite.welcome.config.ts",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "build:briefing": "vite build",
     "build:island": "vite build --config vite.island.config.ts",
-    "build": "npm run typecheck && npm run build:briefing && npm run build:island"
+    "build:welcome": "vite build --config vite.welcome.config.ts",
+    "build": "npm run typecheck && npm run build:briefing && npm run build:island && npm run build:welcome"
   },
   "dependencies": {
     "class-variance-authority": "0.7.1",

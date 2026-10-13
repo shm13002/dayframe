@@ -78,6 +78,17 @@ All paths below are relative to this folder. After editing anything in `App/`, r
 | The **Original** colors themselves | `App/Dayflow/Utilities/DayflowTheme.swift` | `lightPalette` and the dark palette (e.g. `accent: Color(hex: "F3854B")`, line ~286) |
 | Light/Dark mode | In the app: Settings → Other → Light/Dark mode | none |
 
+### Start of day (opening animation, wallpaper, your day's apps)
+Everything is in the app under **Settings → Start of day**. Code lives in `App/Dayflow/Welcome/`.
+| Change | File | Where |
+|---|---|---|
+| The **opening animation** (spark, orbit, vortex, ignition, locks, logo, wordmark) | `Web/src/welcome/scene.ts` | `firstLaunch(T)` / `dailyWake(T)` say what is on screen at each second; `WelcomeScene` draws it. Preview: run the `dayframe-welcome` dev server, open `/welcome.html?variant=firstLaunch&palette=ember&t=2.6` for one frozen frame. Rebuild with `npm --prefix Web run build:welcome` (the build script does it too) |
+| The **wordmark / tagline** text | `Web/src/welcome/welcome.html` | `#wordmark`, `#tagline` |
+| The **sounds** (Aether Pulse masters, AAC) | `App/Dayflow/Welcome/Resources/welcome-*.m4a` | `first-launch` / `daily-wake`, `laptop` / `cinematic` mixes |
+| **When** it plays (login once per session; unlock after N min away) | `App/Dayflow/Welcome/WelcomeController.swift` | `WelcomeLoginGate`, `WelcomeEventGate` (unit-tested in `WelcomeEventGateTests`) |
+| The **wallpaper** look (sky, glow, dunes; no text) | `App/Dayflow/Welcome/WallpaperManager.swift` | `WallpaperArt`. Files go to `~/Library/Application Support/Dayframe/Wallpaper/` |
+| What happens **after login** (Briefing, apps, layout, hide others) | `App/Dayflow/Welcome/StartOfDay.swift` | `run(reason:)`. Moving other apps' windows needs Accessibility, which you allow in System Settings |
+
 ### Tabs and screens
 | Change | File | Where |
 |---|---|---|
@@ -180,7 +191,7 @@ The first commit is the untouched Dayflow v2.6.0, so you can always compare agai
 - [x] Window title and permission prompts say Dayframe.
 - [ ] Merge the **Clicky orb** (`Briefing/Companion.swift`) into the app, so it's one app with one permission.
 - [x] Briefing tab rebuilt natively in Dayflow's style (advanced pages still use `Briefing/dashboard.html`).
-- [ ] New **app icon** and intro animation (the intro video still says "Dayflow").
+- [ ] New **app icon** (the intro video still says "Dayflow"). The opening animation is done (Start of day, Oct 12); the icon should reuse its ring mark.
 - [x] "How did you hear about us?" step skipped in first-run setup.
 - [x] Stable signing, so rebuilds keep the Screen Recording permission (section 7).
 - [x] Chat uses Qwen on this Mac by default (Claude and Codex optional).

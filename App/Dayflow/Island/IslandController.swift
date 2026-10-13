@@ -245,6 +245,7 @@ final class IslandController {
   func playStartup(force: Bool, away: TimeInterval = 0) {
     guard started else { return }
     if !force {
+      guard !WelcomeController.ownsUnlockWelcome else { return }
       guard bool(Keys.startupEnabled) else { return }
       if let last = lastStartupAt, Date().timeIntervalSince(last) < 120 { return }
     }

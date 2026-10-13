@@ -86,6 +86,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     UserDefaults.standard.set(build, forKey: "lastRunBuild")
     statusBar = StatusBarController()
     LaunchAtLoginManager.shared.bootstrapDefaultPreference()
+    WelcomeController.shared.start()
     deepLinkRouter = AppDeepLinkRouter()
 
     // Check if we've passed the screen recording permission step

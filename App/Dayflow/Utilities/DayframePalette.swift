@@ -99,6 +99,16 @@ enum DayframePalette: String, CaseIterable, Identifiable {
   /// The palette's accent as "#RRGGBB" (Original uses Dayflow's own orange).
   var accentHex: String { "#" + (spec?.accent ?? "F3854B") }
 
+  /// Raw background stops and accents (hex without "#"), for surfaces that draw their own
+  /// light: the welcome show's cover and the Dayframe wallpaper. Mirrors paletteStops() in
+  /// Web/src/theme/palettes.ts.
+  var stops: (dark: [String], light: [String], accent: String, accentLight: String) {
+    guard let s = spec else {
+      return (["303C5B", "313348", "3B294B"], ["FFE6CF", "FFE6E0", "DAEAFC"], "F3854B", "FFA376")
+    }
+    return (s.darkBG, s.lightBG, s.accent, s.accentTextLight)
+  }
+
   /// Applies this palette to a resolved upstream theme.
   func apply(to base: DayflowTheme) -> DayflowTheme {
     guard let s = spec else { return base }

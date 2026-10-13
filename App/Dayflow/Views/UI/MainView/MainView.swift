@@ -124,6 +124,11 @@ struct MainView: View {
           selectedIcon = .daily
         }
       }
+      .onReceive(NotificationCenter.default.publisher(for: .navigateToBriefing)) { _ in
+        withAnimation(.spring(response: 0.35, dampingFraction: 0.9)) {
+          selectedIcon = .briefing
+        }
+      }
       .onReceive(NotificationCenter.default.publisher(for: .navigateToTimeline)) { _ in
         withAnimation(.spring(response: 0.35, dampingFraction: 0.9)) {
           selectedIcon = .timeline
