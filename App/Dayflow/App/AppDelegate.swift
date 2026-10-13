@@ -189,6 +189,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     // Dayframe: Flow was removed, so the overlay never has a session to show.
     if DayframeFlags.flow { FlowOverlayController.shared.start() }
 
+    // Dayframe: the notch island (resting pill, startup show after time away, small moments).
+    IslandController.shared.start()
+
     // Observe recording state
     analyticsSub = AppState.shared.$isRecording
       .removeDuplicates()

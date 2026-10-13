@@ -124,6 +124,11 @@ struct MainView: View {
           selectedIcon = .daily
         }
       }
+      .onReceive(NotificationCenter.default.publisher(for: .navigateToTimeline)) { _ in
+        withAnimation(.spring(response: 0.35, dampingFraction: 0.9)) {
+          selectedIcon = .timeline
+        }
+      }
       .onReceive(NotificationCenter.default.publisher(for: .navigateToFlow)) { _ in
         withAnimation(.spring(response: 0.35, dampingFraction: 0.9)) {
           selectedIcon = .flow

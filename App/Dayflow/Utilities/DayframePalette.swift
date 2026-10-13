@@ -96,6 +96,9 @@ enum DayframePalette: String, CaseIterable, Identifiable {
     }
   }
 
+  /// The palette's accent as "#RRGGBB" (Original uses Dayflow's own orange).
+  var accentHex: String { "#" + (spec?.accent ?? "F3854B") }
+
   /// Applies this palette to a resolved upstream theme.
   func apply(to base: DayflowTheme) -> DayflowTheme {
     guard let s = spec else { return base }

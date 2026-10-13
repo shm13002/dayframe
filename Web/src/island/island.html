@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dayframe island</title>
+  </head>
+  <body>
+    <svg aria-hidden="true" width="0" height="0" style="position: absolute">
+      <defs>
+        <filter id="goo" x="-10%" y="-10%" width="120%" height="120%">
+          <feGaussianBlur in="SourceGraphic" stdDeviation="7" result="b" />
+          <feColorMatrix in="b" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 22 -9" />
+        </filter>
+      </defs>
+    </svg>
+    <canvas id="layer-goo" class="liquid" aria-hidden="true"></canvas>
+    <canvas id="layer-fx" aria-hidden="true"></canvas>
+    <canvas id="layer-white" class="liquid" aria-hidden="true"></canvas>
+    <section id="copy" aria-live="polite">
+      <h1 id="greeting"></h1>
+      <p id="subtitle"></p>
+      <ul id="lines"></ul>
+    </section>
+    <div id="demo" hidden>
+      <button type="button" data-variant="startup">Startup</button>
+      <button type="button" data-variant="goal">Goal reached</button>
+      <button type="button" data-variant="recap">Recap</button>
+      <label><input type="checkbox" id="demo-sound" checked /> Sound</label>
+      <label><input type="checkbox" id="demo-reduced" /> Reduce motion</label>
+    </div>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>

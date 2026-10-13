@@ -11,6 +11,7 @@ struct SettingsOtherTabView: View {
     VStack(alignment: .leading, spacing: SettingsStyle.sectionSpacing) {
       colorsSection
       appPreferencesSection
+      NotchIslandSettingsSection()
       outputLanguageSection
     }
   }

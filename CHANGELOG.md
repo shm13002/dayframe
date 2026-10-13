@@ -24,6 +24,46 @@ Entry template:
 
 ## 2026-10-12 (Mon)
 
+### 21:14: React Briefing, liquid notch island ("Jarvis"), Web design system
+- **What:**
+  - **`Web/` (new):** Vite 8 + React 19 + TypeScript + Tailwind 4 + Motion 14 + shadcn/Magic UI (number-ticker, blur-fade).
+    - `src/theme/palettes.ts` + `tokens.css` mirror `DayflowTheme.swift` / `DayframePalette.swift` (all 6 palettes, light/dark) with the app's Figtree + Instrument Serif fonts.
+    - `src/components/dayframe/` is the Dayframe UI kit: GlassCard, PillButton, InkText (words settle in like ink), TodoRow (strike-through then fold), Menu, Stat, ActivityChip, skeleton sheen.
+    - `kit.html` is a gallery of every token and component, made for `/design-sync`.
+  - **Briefing tab in React** (`Web/src/briefing/`):
+    - Same sections and layout as the native screen. One orchestrated entrance; the briefing text settles in word by word when a new briefing arrives; a skeleton shows while the model writes (button disabled, so no double runs); hours count up; check-offs fold away; errors are shown with Try again; Reduce Motion is respected.
+    - Ask stays on `/api/ask`. `/api/answer` is the on-screen companion, which answers from screen text, not memory.
+    - Swift side: `BriefingReactView` loads `http://127.0.0.1:8765/app/` and pushes palette, dark mode and category colors through `window.dayframe.setContext` (no reload). It falls back to the native `BriefingView` if `/app/` is missing or the page doesn't report ready within 4 s. "More" pages still open the old dashboard sheet. New `.navigateToTimeline` notification.
+  - **briefing.py serves the build** at `/app/` from `dist/`:
+    - Paths are unquoted, resolved and must stay inside `dist/`; `%2e%2e` traversal returns 400.
+    - Explicit MIME map; charset only on text types; extension-less routes get the app shell.
+    - `install.sh` copies `dist/` and git-ignores it in `~/Briefing/app`.
+  - **Notch island** (`App/Dayflow/Island/` + `Web/src/island/`), built from the user's liquid-island-motion skill:
+    - **Always-on pill** around the hardware notch: focus ring and percent on the left; Jarvis's eyes plus today's tracked time on the right. Eyes close while recording is paused, blink on their own and follow the pointer slightly. Hover shows a one-line summary; click opens a card with the next thing, Pause 30 min / Resume, Open Dayframe and Replay.
+    - **Startup show** on unlock after 10+ min away (setting): dimmed glass, liquid drip and burst out of the notch, warp into a white blob that splats into eyes (blink, wink, ^^), then "Good evening, <name>" plus left off / next / today. Streams count up the focus ring and tracked time, the eyes dissolve into crescents, and it collapses into the pill. Any key or click skips.
+    - **Moments:** new card (drip + blink), focus goal reached (short show, once a day), pause/resume (eyes close/open), end-of-day recap (category rings), each with a toggle.
+    - **Sound:** `IslandSound` renders the skill's tone/tink/whoosh recipes with AVAudioEngine (no files; follows system volume; on/off and volume settings). The page only names cues, since WebKit won't start Web Audio without a click.
+    - **Stats:** computed with `DaySummaryStats` exactly like Today's targets. The show is one bundled single-file `island.html`.
+    - **Settings › Other › Notch island:** all toggles, the minutes-away threshold, your name, and Play now.
+  - **Kept out of recordings:** `ScreenRecorder` skips frames while a show is on screen, and excludes the pill window (this app is excluded, all its other windows kept, so blocked apps still work). The window list is refreshed when island windows appear.
+  - **Build:** `build-and-install.sh` runs `npm ci` + `npm run build` before xcodebuild. Signing is untouched. `node_modules` and `Briefing/dist` are git-ignored; `island.html` is committed.
+- **Files:**
+  - New: `Web/**`, `App/Dayflow/Island/*`, `App/Dayflow/Views/UI/Briefing/BriefingReactView.swift`, `App/Dayflow/Views/UI/Settings/NotchIslandSettingsSection.swift`, `App/Dayflow/Utilities/WeakScriptMessageHandler.swift`, `App/DayflowTests/NotchIslandTests.swift`
+  - Changed: `AppDelegate.swift`, `DayflowApp.swift`, `MainView.swift`, `Layout+Panels.swift`, `BriefingView.swift` (BriefingMoreSheet internal), `SettingsOtherTabView.swift`, `ScreenRecorder.swift`, `RecordingWatchdog.swift` (lock check internal), `DailyRecapScheduler.swift` (recap hook), `DayframePalette.swift` (accentHex), `Briefing/briefing.py`, `Briefing/install.sh`, `Briefing/tests/test_hardening.py`, `build-and-install.sh`, `.gitignore`
+- **Why:** The user asked for motion/UX improvements using React components, a Jarvis-style startup when they open the laptop, and their liquid-island skill (motion + sound) applied to Dayframe, with the design system ready for Claude Design.
+- **Checked:**
+  - Web typecheck clean.
+  - Briefing tests: 88 run, only the known `test_code_candidate_from_model_goes_through_gate` fails; 2 new static-serving tests pass, including 6 encoded-traversal probes.
+  - App tests: 212 run, only the known upstream `testCardRetryRetainsFullContextAndReturnsDetailedCards` fails; 10 new `NotchIslandTests` pass.
+  - Live server: `/app/` 200, JS `text/javascript`, font `font/ttf`, `%2e%2e` 400, cross-origin 403.
+  - In the app: the pill shows focus 74% (matches Today's targets 3.3/4.5 h) and 3h 19m tracked. Play now ran the startup show with real data ("Good evening, Shahzeb", left off, next).
+  - Recording after each install: new frames within seconds, 0 tccd ScreenCapture "Failed to match". The 2 Documents-folder lines at 21:05 came from the unit-test host.
+  - **Open:**
+    - Demo-bar CSS fix and smaller canvases are built but not installed yet: the disk is at 2 GB free and the build needs 3 GB. 88 GB is in Chrome's `code_sign_clone` temp folder; the user needs to clear it.
+    - The React Briefing cards' entrance only runs while the window is visible (WebKit pauses hidden pages).
+    - Still to check: the real unlock trigger and the recorded-frame exclusion.
+- **Commit:** see `git log`
+
 ### 17:50: Chat runs on Qwen; "Installed Dayflow!" card renamed
 - **What:**
   - **Qwen in Chat.** A new chat provider, `local`, runs the same `fetchTimeline` / `fetchObservations` tool loop as Gemini, against Ollama's OpenAI-style endpoint (streaming, `tool_calls`, `reasoning_effort: "none"`).

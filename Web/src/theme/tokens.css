@@ -1,0 +1,178 @@
+/* Dayframe design tokens.
+ * Colors come from --df-* custom properties that applyTheme() (palettes.ts)
+ * writes for the active palette + light/dark mode. Defaults below are the
+ * Original light theme so the page never renders unstyled. */
+@import "tailwindcss";
+
+@font-face {
+  font-family: "Figtree";
+  src: url("./fonts/Figtree-VariableFont_wght.ttf") format("truetype");
+  font-weight: 300 900;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Figtree";
+  src: url("./fonts/Figtree-Italic-VariableFont_wght.ttf") format("truetype");
+  font-weight: 300 900;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Instrument Serif";
+  src: url("./fonts/InstrumentSerif-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Instrument Serif";
+  src: url("./fonts/InstrumentSerif-Italic.ttf") format("truetype");
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+
+:root {
+  --df-window-background: radial-gradient(1250px circle at 59% 100%, #ffe6cf 0%, #ffe6e0 37%, #daeafc 99%);
+  --df-accent: #f3854b;
+  --df-accent-text: #ffa376;
+  --df-control-fill: #ffd2b9;
+  --df-control-border: #ead5cd;
+  --df-control-glow: #ffece6;
+  --df-button-fill: #ff9f6f;
+  --df-button-border: #f4c8b1;
+  --df-button-glow: rgba(255, 220, 203, 0.9);
+  --df-soft-fill: #fff4e9;
+  --df-soft-border: rgba(249, 110, 0, 0.25);
+  --df-text-primary: #333333;
+  --df-text-secondary: #707070;
+  --df-text-tertiary: #787878;
+  --df-text-muted: #979797;
+  --df-control-text: #606060;
+  --df-button-text: #ffffff;
+  --df-card-fill: rgba(255, 255, 255, 0.9);
+  --df-card-border: #d0d0d0;
+  --df-card-title: #333333;
+  --df-card-time: #979797;
+  --df-shell-gradient: linear-gradient(90deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0.2));
+  --df-shell-border: #dadada;
+  --df-shell-heading: #90837a;
+  --df-shell-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  --df-shell-glow: inset 0 0 6px #ffffff;
+  --df-input-fill: rgba(255, 255, 255, 0.9);
+  --df-input-border: #e1e1e1;
+  --df-stat-fill: rgba(255, 255, 255, 0.75);
+  --df-stat-border: #f2eeec;
+  --df-popover-fill: rgba(250, 245, 242, 0.97);
+  --df-popover-border: #e8e0de;
+  --df-danger: #e5484d;
+}
+
+@theme inline {
+  --font-sans: "Figtree", -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
+  --font-serif: "Instrument Serif", "New York", Georgia, serif;
+
+  --color-accent: var(--df-accent);
+  --color-accent-text: var(--df-accent-text);
+  --color-control: var(--df-control-fill);
+  --color-control-border: var(--df-control-border);
+  --color-control-glow: var(--df-control-glow);
+  --color-control-text: var(--df-control-text);
+  --color-button: var(--df-button-fill);
+  --color-button-border: var(--df-button-border);
+  --color-button-glow: var(--df-button-glow);
+  --color-button-text: var(--df-button-text);
+  --color-soft: var(--df-soft-fill);
+  --color-soft-border: var(--df-soft-border);
+  --color-ink: var(--df-text-primary);
+  --color-ink-2: var(--df-text-secondary);
+  --color-ink-3: var(--df-text-tertiary);
+  --color-ink-muted: var(--df-text-muted);
+  --color-card: var(--df-card-fill);
+  --color-card-border: var(--df-card-border);
+  --color-card-title: var(--df-card-title);
+  --color-card-time: var(--df-card-time);
+  --color-shell-border: var(--df-shell-border);
+  --color-shell-heading: var(--df-shell-heading);
+  --color-input: var(--df-input-fill);
+  --color-input-border: var(--df-input-border);
+  --color-stat: var(--df-stat-fill);
+  --color-stat-border: var(--df-stat-border);
+  --color-popover: var(--df-popover-fill);
+  --color-popover-border: var(--df-popover-border);
+  --color-danger: var(--df-danger);
+
+  --radius-chip: 10px;
+  --radius-card: 14px;
+
+  /* Motion: one vocabulary for the whole app (see src/lib/motion.ts). */
+  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+  --ease-settle: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  color: var(--df-text-primary);
+  background: var(--df-window-background);
+  -webkit-font-smoothing: antialiased;
+  -webkit-user-select: none;
+  user-select: none;
+  cursor: default;
+}
+
+/* Inside Dayframe the native panel paints the background. */
+html[data-embed] body {
+  background: transparent;
+}
+
+::selection {
+  background: var(--df-soft-fill);
+  color: var(--df-text-primary);
+}
+
+.selectable {
+  -webkit-user-select: text;
+  user-select: text;
+  cursor: text;
+}
+
+:focus-visible {
+  outline: 2px solid var(--df-accent);
+  outline-offset: 2px;
+}
+
+/* Slow sheen across skeleton lines while the model writes. */
+.df-sheen {
+  background: linear-gradient(100deg, transparent 20%, rgba(255, 255, 255, 0.55) 50%, transparent 80%);
+  transform: translateX(-100%);
+  animation: df-sheen 1.6s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+}
+html[data-theme="dark"] .df-sheen {
+  background: linear-gradient(100deg, transparent 20%, rgba(255, 255, 255, 0.12) 50%, transparent 80%);
+}
+@keyframes df-sheen {
+  to {
+    transform: translateX(100%);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .df-sheen {
+    animation: none;
+  }
+}
+
+/* Hide scrollbars like the native ScrollView(.never). */
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}

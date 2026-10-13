@@ -20,13 +20,13 @@ class HBase(unittest.TestCase):
         self.cfg = b.load_config(); b.mem_init()
 
 class TestSecurity(HBase):
-    def serve(self):
+    def serve(self, dist_dir=None):
         class S(socketserver.ThreadingMixIn, http.server.HTTPServer):
             daemon_threads = True
-        srv = S(("127.0.0.1", 0), b.make_handler({"cfg": self.cfg}))
+        srv = S(("127.0.0.1", 0), b.make_handler({"cfg": self.cfg}, dist_dir))
         port = srv.server_address[1]
         b.CONFIG_PATH.write_text(json.dumps(dict(json.loads(b.CONFIG_PATH.read_text()), dashboard_port=port)))
-        srv.RequestHandlerClass = b.make_handler({"cfg": b.load_config()})
+        srv.RequestHandlerClass = b.make_handler({"cfg": b.load_config()}, dist_dir)
         threading.Thread(target=srv.serve_forever, daemon=True).start()
         self.addCleanup(lambda: (srv.shutdown(), srv.server_close()))
         return port
@@ -53,6 +53,46 @@ class TestSecurity(HBase):
         self.assertEqual(self.req(port, "/api/doctor"), 200)
         self.assertEqual(self.req(port, "/api/day/..%2F..%2Fetc"), 400)
         self.assertEqual(self.req(port, "/../../etc/passwd"), 400)
+
+    def fetch(self, port, path, headers=None):
+        r = urllib.request.Request(f"http://127.0.0.1:{port}{path}", headers=headers or {})
+        try:
+            with urllib.request.urlopen(r, timeout=10) as resp:
+                return resp.status, resp.headers.get("Content-Type"), resp.read()
+        except urllib.error.HTTPError as e:
+            return e.code, e.headers.get("Content-Type"), b""
+
+    def test_react_app_is_served_from_dist_only(self):
+        dist = self.tmp / "dist"
+        (dist / "assets").mkdir(parents=True)
+        (dist / "index.html").write_text("<!doctype html><div id=root></div>")
+        (dist / "assets" / "app.js").write_text("console.log(1)")
+        (dist / "assets" / "app.css").write_text("body{}")
+        (dist / "assets" / "font.ttf").write_bytes(b"\x00\x01")
+        (dist / "notes.txt").write_text("not a web type")
+        (self.tmp / "secret.txt").write_text("outside dist")
+        port = self.serve(dist)
+
+        status, ctype, body = self.fetch(port, "/app/")
+        self.assertEqual((status, ctype), (200, "text/html; charset=utf-8"))
+        self.assertIn(b"id=root", body)
+        self.assertEqual(self.fetch(port, "/app/assets/app.js")[:2], (200, "text/javascript; charset=utf-8"))
+        self.assertEqual(self.fetch(port, "/app/assets/app.css")[:2], (200, "text/css; charset=utf-8"))
+        self.assertEqual(self.fetch(port, "/app/assets/font.ttf")[:2], (200, "font/ttf"))  # no charset on binary types
+        self.assertEqual(self.fetch(port, "/app/memory")[0], 200)  # app routes fall back to the shell
+        self.assertEqual(self.fetch(port, "/app/assets/missing.js")[0], 404)
+        self.assertEqual(self.fetch(port, "/app/notes.txt")[0], 404)  # only known web types
+        # encoded traversal must never leave dist/
+        for evil in ("/app/%2e%2e/secret.txt", "/app/%2E%2E%2Fsecret.txt", "/app/assets/%2e%2e/%2e%2e/secret.txt",
+                     "/app/..%2fsecret.txt", "/app/%00index.html", "/app/%5c..%5csecret.txt"):
+            self.assertIn(self.fetch(port, evil)[0], (400, 404), evil)
+        # the same origin checks as the API
+        self.assertEqual(self.fetch(port, "/app/", {"Host": "evil.com"})[0], 403)
+        self.assertEqual(self.fetch(port, "/app/", {"Sec-Fetch-Site": "cross-site"})[0], 403)
+
+    def test_react_app_missing_build_is_404(self):
+        port = self.serve(self.tmp / "no-dist")
+        self.assertEqual(self.fetch(port, "/app/")[0], 404)
 
     def test_dashboard_binds_loopback_only(self):
         src = Path(b.__file__).read_text()

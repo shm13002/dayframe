@@ -53,10 +53,12 @@ PY="$(command -v python3 || true)"
 [[ -n "$PY" ]] || { echo "python3 not found. Run: xcode-select --install   then rerun."; exit 1; }
 cp "$SRC/briefing.py" "$SRC/improve.py" "$SRC/dashboard.html" "$SRC/swiftbar-briefing.5m.sh" "$SRC/Companion.swift" "$APP/"; chmod +x "$APP/briefing.py" "$APP/swiftbar-briefing.5m.sh"
 rm -rf "$APP/tests"; cp -R "$SRC/tests" "$APP/tests"   # the self-improvement gate runs the full suite on every candidate
+# The React Briefing screen (built from ../Web by `npm --prefix Web run build`), served at /app/.
+rm -rf "$APP/dist"; if [[ -f "$SRC/dist/index.html" ]]; then cp -R "$SRC/dist" "$APP/dist"; else echo "WARN: Briefing/dist not built; Dayframe falls back to its native Briefing screen."; fi
 for f in tunables.json prompts.json; do [[ -f "$APP/$f" ]] || cp "$SRC/$f" "$APP/$f"; done   # keep approved tuning on re-install
 # The app dir is a git repo so every self-improvement is a reviewable branch, and approve/undo is merge/revert.
 if command -v git >/dev/null 2>&1 && git --version >/dev/null 2>&1; then
-  printf 'BriefingCompanion\ncompanion-Info.plist\n__pycache__/\n*.pyc\n' > "$APP/.gitignore"
+  printf 'BriefingCompanion\ncompanion-Info.plist\ndist/\n__pycache__/\n*.pyc\n' > "$APP/.gitignore"
   [[ -d "$APP/.git" ]] || git -C "$APP" init -q
   git -C "$APP" add -A
   git -C "$APP" -c user.name=Briefing -c user.email=briefing@localhost commit -q -m "install $(date +%F)" || true

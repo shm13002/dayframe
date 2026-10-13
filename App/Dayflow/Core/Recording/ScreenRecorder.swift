@@ -355,6 +355,11 @@ final class ScreenRecorder: NSObject, @unchecked Sendable {
       handleMissingScreenRecordingPermission(reason: "captureScreenshot")
       return
     }
+    // Dayframe: the notch island's full-screen show is never recorded.
+    guard !IslandCaptureExclusion.showOnScreen else {
+      dbg("captureScreenshot skipped - island show on screen")
+      return
+    }
 
     let captureTime = Date()
     let idleSecondsAtCapture = InputIdleSnapshot.currentIdleSeconds()
@@ -382,18 +387,13 @@ final class ScreenRecorder: NSObject, @unchecked Sendable {
       }
 
       // 1. Create content filter for the display
+      await refreshContentForIslandIfNeeded()
       let excludedApplications =
         cachedContent.map {
           RecordingPrivacyPreferences.blockedScreenCaptureApplications(in: $0)
         } ?? []
-      let filter =
-        excludedApplications.isEmpty
-        ? SCContentFilter(display: display, excludingWindows: [])
-        : SCContentFilter(
-          display: display,
-          excludingApplications: excludedApplications,
-          exceptingWindows: []
-        )
+      let filter = Self.contentFilter(
+        display: display, content: cachedContent, excludedApplications: excludedApplications)
 
       // 2. Configure screenshot
       let config = SCStreamConfiguration()
@@ -451,6 +451,39 @@ final class ScreenRecorder: NSObject, @unchecked Sendable {
     var height = Int(targetHeight)
     if height % 2 != 0 { height += 1 }
     return (width, height)
+  }
+
+  /// Builds the capture filter. Dayframe: the notch island's windows are left out of every
+  /// frame by excluding this app and keeping all of its other windows (the main window).
+  /// This composes with the user's blocked apps, which stay excluded as before.
+  private static func contentFilter(
+    display: SCDisplay, content: SCShareableContent?, excludedApplications: [SCRunningApplication]
+  ) -> SCContentFilter {
+    let islandIDs = IslandCaptureExclusion.windowIDs
+    let pid = getpid()
+    if !islandIDs.isEmpty, let content,
+      let dayframe = content.applications.first(where: { $0.processID == pid })
+    {
+      let keep = content.windows.filter {
+        $0.owningApplication?.processID == pid && !islandIDs.contains($0.windowID)
+      }
+      return SCContentFilter(
+        display: display, excludingApplications: excludedApplications + [dayframe], exceptingWindows: keep)
+    }
+    return excludedApplications.isEmpty
+      ? SCContentFilter(display: display, excludingWindows: [])
+      : SCContentFilter(display: display, excludingApplications: excludedApplications, exceptingWindows: [])
+  }
+
+  /// The island's windows can appear after the window list was cached; refresh it once when they do.
+  private func refreshContentForIslandIfNeeded() async {
+    let islandIDs = IslandCaptureExclusion.windowIDs
+    guard !islandIDs.isEmpty else { return }
+    let known = Set(cachedContent?.windows.map(\.windowID) ?? [])
+    guard !islandIDs.isSubset(of: known) else { return }
+    if let fresh = try? await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: true) {
+      cachedContent = fresh
+    }
   }
 
   private func refreshDisplay() async {

@@ -65,7 +65,7 @@ extension MainView {
     ZStack {
       switch selectedIcon {
       case .briefing:
-        BriefingView()
+        BriefingReactView()
       case .settings:
         SettingsView()
           .padding(15)

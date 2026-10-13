@@ -38,3 +38,7 @@ build/
 __pycache__/
 *.pyc
 .DS_Store
+
+# Web (React) build inputs and outputs
+Web/node_modules/
+Briefing/dist/

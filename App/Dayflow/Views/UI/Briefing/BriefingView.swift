@@ -612,7 +612,7 @@ enum BriefingMorePage: String, CaseIterable, Identifiable {
   }
 }
 
-private struct BriefingMoreSheet: View {
+struct BriefingMoreSheet: View {
   @Environment(\.dismiss) private var dismiss
   @Environment(\.dayflowTheme) private var theme
   let page: BriefingMorePage

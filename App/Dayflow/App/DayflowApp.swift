@@ -492,6 +492,7 @@ extension Notification.Name {
   static let analyticsPreferenceChanged = Notification.Name("analyticsPreferenceChanged")
   static let showWhatsNew = Notification.Name("showWhatsNew")
   static let navigateToDaily = Notification.Name("navigateToDaily")
+  static let navigateToTimeline = Notification.Name("navigateToTimeline")
   static let navigateToSupport = Notification.Name("navigateToSupport")
   static let navigateToWeekly = Notification.Name("navigateToWeekly")
   static let timelineDataUpdated = Notification.Name("timelineDataUpdated")

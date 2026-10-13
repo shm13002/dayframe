@@ -12,6 +12,20 @@ if [[ ${FREE_GB:-0} -lt 3 ]]; then
   echo "Only ${FREE_GB} GB free; the build needs about 3 GB. Free some space first."; exit 1
 fi
 
+mkdir -p build
+
+# Web surfaces: the React Briefing screen (-> Briefing/dist, deployed by Briefing/install.sh)
+# and the notch-island show (-> App/Dayflow/Island/Resources/island.html, bundled in the app).
+if command -v npm >/dev/null 2>&1; then
+  echo "Building web surfaces..."
+  [[ -d Web/node_modules ]] || npm --prefix Web ci --no-audit --no-fund > build/web-install.log 2>&1
+  if ! npm --prefix Web run build > build/web-build.log 2>&1; then
+    tail -20 build/web-build.log; echo "Web build FAILED (full log: build/web-build.log)"; exit 1
+  fi
+else
+  echo "npm not found: skipping the web build (the app uses the last committed island.html)."
+fi
+
 echo "Building Dayframe..."
 if ! xcodebuild -project App/Dayflow.xcodeproj -scheme Dayflow -configuration Debug \
   -derivedDataPath build -destination 'platform=macOS' \

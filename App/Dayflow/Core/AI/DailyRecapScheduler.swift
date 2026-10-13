@@ -277,6 +277,7 @@ final class DailyRecapScheduler: @unchecked Sendable {
 
       await MainActor.run {
         NotificationService.shared.scheduleDailyRecapReadyNotification(forDay: targetDay)
+        IslandController.shared.dailyRecapReady()
       }
     } catch {
       let nsError = error as NSError

@@ -2417,8 +2417,15 @@ def dashboard_state(cfg):
             "settings": {k: cfg.get(k) for k in sorted(SETTABLE)},
             "watermark": st.get("wm_card_id", 0), "cleanup": read(MEM / "cleanup-report.md", 3000)}
 
-def make_handler(cfg_box):
+# Files the React Briefing build (dist/, served under /app/) may contain. Anything else is a 404.
+STATIC_TYPES = {".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".json": "application/json",
+                ".svg": "image/svg+xml", ".png": "image/png", ".ico": "image/x-icon",
+                ".ttf": "font/ttf", ".woff": "font/woff", ".woff2": "font/woff2"}
+TEXT_TYPES = ("text/", "application/json", "image/svg+xml")
+
+def make_handler(cfg_box, dist_dir=None):
     html_path = Path(__file__).with_name("dashboard.html")
+    dist_dir = Path(dist_dir) if dist_dir else Path(__file__).with_name("dist")
     port = cfg_box["cfg"]["dashboard_port"]
     allowed_hosts = {f"127.0.0.1:{port}", f"localhost:{port}"}
 
@@ -2438,7 +2445,7 @@ def make_handler(cfg_box):
         def _send(self, code, body, ctype="application/json"):
             b = body if isinstance(body, bytes) else (json.dumps(body) if ctype == "application/json" else body).encode()
             self.send_response(code)
-            self.send_header("Content-Type", ctype + "; charset=utf-8")
+            self.send_header("Content-Type", ctype + "; charset=utf-8" if ctype.startswith(TEXT_TYPES) else ctype)
             self.send_header("Cache-Control", "no-store")
             self.send_header("X-Content-Type-Options", "nosniff")
             self.send_header("Content-Security-Policy", "default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; img-src 'self' data:")
@@ -2461,6 +2468,27 @@ def make_handler(cfg_box):
             except (BrokenPipeError, ConnectionResetError):
                 pass
 
+        def _static(self, path):
+            """The React Briefing build under /app/. Routes without a file extension get the app shell."""
+            root = dist_dir.resolve()
+            rel = urllib.parse.unquote(path[len("/app/"):]) or "index.html"
+            if "\x00" in rel or "\\" in rel:
+                return self._send(400, {"error": "bad path"})
+            target = (root / rel).resolve()
+            # unquote can turn %2e%2e into "..": only files inside dist/ are ever served
+            if not target.is_relative_to(root):
+                return self._send(400, {"error": "bad path"})
+            if not target.is_file():
+                if Path(rel).suffix:
+                    return self._send(404, {"error": "not found"})
+                target = root / "index.html"
+                if not target.is_file():
+                    return self._send(404, {"error": "app not installed"})
+            ctype = STATIC_TYPES.get(target.suffix.lower())
+            if ctype is None:
+                return self._send(404, {"error": "not found"})
+            return self._send(200, target.read_bytes(), ctype)
+
         def do_GET(self):
             if not self._ok_origin():
                 return self._send(403, {"error": "forbidden"})
@@ -2471,6 +2499,13 @@ def make_handler(cfg_box):
             try:
                 if path in ("/", "/index.html"):
                     return self._send(200, html_path.read_bytes(), "text/html")
+                if path == "/app":
+                    self.send_response(301)
+                    self.send_header("Location", "/app/")
+                    self.end_headers()
+                    return
+                if path.startswith("/app/"):
+                    return self._static(path)
                 if path == "/api/state":
                     return self._send(200, dashboard_state(cfg))
                 if path == "/api/context":

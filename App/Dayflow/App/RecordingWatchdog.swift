@@ -93,7 +93,7 @@ final class RecordingWatchdog {
     }
   }
 
-  private static var isScreenLockedOrAsleep: Bool {
+  static var isScreenLockedOrAsleep: Bool {
     if CGDisplayIsAsleep(CGMainDisplayID()) != 0 { return true }
     guard let session = CGSessionCopyCurrentDictionary() as? [String: Any] else { return false }
     return (session["CGSSessionScreenIsLocked"] as? Bool) == true
