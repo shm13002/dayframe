@@ -30,7 +30,9 @@ final class NotchPillPanel {
     panel.backgroundColor = .clear
     panel.hasShadow = false
     panel.level = .statusBar
-    panel.collectionBehavior = [.canJoinAllSpaces, .stationary, .fullScreenAuxiliary, .ignoresCycle]
+    panel.collectionBehavior = [
+      .canJoinAllSpaces, .stationary, .fullScreenAuxiliary, .ignoresCycle,
+    ]
     panel.hidesOnDeactivate = false
     panel.isReleasedWhenClosed = false
     panel.animationBehavior = .none

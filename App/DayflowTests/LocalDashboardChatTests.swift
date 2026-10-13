@@ -33,7 +33,8 @@ final class LocalDashboardChatTests: XCTestCase {
         line: #"data: {"choices":[{"index":0,"delta":{"role":"assistant","content":"You "}}]}"#),
       "You ")
     XCTAssertEqual(
-      try accumulator.consume(line: #"data: {"choices":[{"index":0,"delta":{"content":"coded."}}]}"#),
+      try accumulator.consume(
+        line: #"data: {"choices":[{"index":0,"delta":{"content":"coded."}}]}"#),
       "coded.")
     XCTAssertNil(try accumulator.consume(line: ""))
     XCTAssertNil(try accumulator.consume(line: "data: [DONE]"))
@@ -140,13 +141,16 @@ final class LocalDashboardChatTests: XCTestCase {
       "- You coded most of the morning.")
     XCTAssertNotNil(extracted?.1.data(using: .utf8))
     XCTAssertNil(ChatMetadataParser.extractTrailingBareSuggestions(from: "Totals: [1, 2, 3]"))
-    XCTAssertNil(ChatMetadataParser.extractTrailingBareSuggestions(from: "See the list:\n[\"only one\"]"))
+    XCTAssertNil(
+      ChatMetadataParser.extractTrailingBareSuggestions(from: "See the list:\n[\"only one\"]"))
   }
 
   func testCompactResultReportsToolError() {
     let text = DashboardChatTools.compactResult(
       name: "fetchTimeline",
-      result: ["summary": "bad", "error": ["code": "validation_error", "message": "Use YYYY-MM-DD."]])
+      result: [
+        "summary": "bad", "error": ["code": "validation_error", "message": "Use YYYY-MM-DD."],
+      ])
     XCTAssertEqual(text, "Error: Use YYYY-MM-DD.")
   }
 
@@ -156,7 +160,8 @@ final class LocalDashboardChatTests: XCTestCase {
     guard await LocalChatAvailability.isReady() else {
       throw XCTSkip("Local model not reachable")
     }
-    let endpoint = UserDefaults.standard.string(forKey: "llmLocalBaseURL") ?? "http://localhost:11434"
+    let endpoint =
+      UserDefaults.standard.string(forKey: "llmLocalBaseURL") ?? "http://localhost:11434"
     let stream = OllamaProvider(endpoint: endpoint).generateDashboardChatStreaming(
       systemInstruction: ChatPromptBuilder.localSystemPrompt(),
       history: [.user("What did I work on today? Two short bullets.")]
@@ -175,7 +180,8 @@ final class LocalDashboardChatTests: XCTestCase {
       }
     }
     print("LIVE QWEN tools=\(tools) outputs=\(toolOutputs)\nLIVE QWEN answer:\n\(answer)")
-    XCTAssertTrue(tools.contains { $0.hasPrefix("fetchTimeline") }, "Qwen should fetch the timeline")
+    XCTAssertTrue(
+      tools.contains { $0.hasPrefix("fetchTimeline") }, "Qwen should fetch the timeline")
     XCTAssertFalse(answer.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
   }
 }

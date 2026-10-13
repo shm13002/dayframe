@@ -11,8 +11,8 @@
 //  hands over to the page's identical sky), "skip" when clicked, and "done" at the end.
 //
 
-import AppKit
 import AVFoundation
+import AppKit
 import OSLog
 import WebKit
 
@@ -79,12 +79,15 @@ final class WelcomeShowPanel: NSObject, WKScriptMessageHandler {
 
     for screen in NSScreen.screens {
       let panel = WelcomeKeyPanel(
-        contentRect: screen.frame, styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
+        contentRect: screen.frame, styleMask: [.borderless, .nonactivatingPanel],
+        backing: .buffered, defer: false)
       panel.isOpaque = false
       panel.backgroundColor = .clear
       panel.hasShadow = false
       panel.level = .screenSaver
-      panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary, .ignoresCycle]
+      panel.collectionBehavior = [
+        .canJoinAllSpaces, .fullScreenAuxiliary, .stationary, .ignoresCycle,
+      ]
       panel.hidesOnDeactivate = false
       panel.isReleasedWhenClosed = false
       panel.animationBehavior = .none
@@ -130,7 +133,9 @@ final class WelcomeShowPanel: NSObject, WKScriptMessageHandler {
   /// Ends the show at once (the screen locked again, or the feature was turned off).
   func cancel() { finish() }
 
-  func userContentController(_ controller: WKUserContentController, didReceive message: WKScriptMessage) {
+  func userContentController(
+    _ controller: WKUserContentController, didReceive message: WKScriptMessage
+  ) {
     guard message.name == "welcome", let body = message.body as? [String: Any] else { return }
     switch body["type"] as? String {
     case "ready":
@@ -145,7 +150,8 @@ final class WelcomeShowPanel: NSObject, WKScriptMessageHandler {
     case "done":
       if let fps = (body["fps"] as? NSNumber)?.doubleValue {
         welcomeLog.notice(
-          "[Welcome] \(self.variant.rawValue, privacy: .public) show finished at \(Int(fps.rounded()), privacy: .public) fps")
+          "[Welcome] \(self.variant.rawValue, privacy: .public) show finished at \(Int(fps.rounded()), privacy: .public) fps"
+        )
       }
       finish()
     default:
@@ -158,14 +164,18 @@ final class WelcomeShowPanel: NSObject, WKScriptMessageHandler {
   }
 
   private func start() {
-    guard let webView, let panel = panels.first(where: { $0.contentView?.subviews.contains(webView) == true }) else {
+    guard let webView,
+      let panel = panels.first(where: { $0.contentView?.subviews.contains(webView) == true })
+    else {
       finish()
       return
     }
     let payload = Payload(
       variant: variant, palette: palette.rawValue,
       reducedMotion: NSWorkspace.shared.accessibilityDisplayShouldReduceMotion)
-    guard let data = try? JSONEncoder().encode(payload), let json = String(data: data, encoding: .utf8) else {
+    guard let data = try? JSONEncoder().encode(payload),
+      let json = String(data: data, encoding: .utf8)
+    else {
       finish()
       return
     }
@@ -179,7 +189,8 @@ final class WelcomeShowPanel: NSObject, WKScriptMessageHandler {
       panel.makeKey()
       panel.makeFirstResponder(webView)
       // Extra displays follow the page's closing dissolve.
-      let total: TimeInterval = payload.reducedMotion ? 0.8 : (self.variant == .firstLaunch ? 5.45 : 2.0)
+      let total: TimeInterval =
+        payload.reducedMotion ? 0.8 : (self.variant == .firstLaunch ? 5.45 : 2.0)
       Task { @MainActor [weak self] in
         try? await Task.sleep(for: .seconds(max(0, total - 0.45)))
         self?.fadePanels(to: 0, duration: 0.4, extraScreensOnly: true)
@@ -189,14 +200,20 @@ final class WelcomeShowPanel: NSObject, WKScriptMessageHandler {
 
   private func loadSound() {
     guard mix != .off,
-      let url = Bundle.main.url(forResource: "welcome-\(variant.soundName)_\(mix.rawValue)", withExtension: "m4a")
+      let url = Bundle.main.url(
+        forResource: "welcome-\(variant.soundName)_\(mix.rawValue)", withExtension: "m4a")
     else { return }
     player = try? AVAudioPlayer(contentsOf: url)
     player?.prepareToPlay()
   }
 
-  private func fadePanels(to alpha: CGFloat, duration: TimeInterval, extraScreensOnly: Bool = false) {
-    for panel in panels where !(extraScreensOnly && panel.contentView?.subviews.contains(where: { $0 is WKWebView }) == true) {
+  private func fadePanels(to alpha: CGFloat, duration: TimeInterval, extraScreensOnly: Bool = false)
+  {
+    for panel in panels
+    where
+      !(extraScreensOnly
+      && panel.contentView?.subviews.contains(where: { $0 is WKWebView }) == true)
+    {
       NSAnimationContext.runAnimationGroup { ctx in
         ctx.duration = duration
         ctx.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
@@ -270,6 +287,7 @@ extension NSColor {
   func scaled(_ k: CGFloat) -> NSColor {
     let c = usingColorSpace(.sRGB) ?? self
     return NSColor(
-      srgbRed: c.redComponent * k, green: c.greenComponent * k, blue: c.blueComponent * k, alpha: c.alphaComponent)
+      srgbRed: c.redComponent * k, green: c.greenComponent * k, blue: c.blueComponent * k,
+      alpha: c.alphaComponent)
   }
 }

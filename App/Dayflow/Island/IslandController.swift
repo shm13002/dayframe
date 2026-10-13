@@ -51,11 +51,14 @@ final class IslandController {
   }
 
   var isEnabled: Bool { bool(Keys.enabled) }
-  var minAway: TimeInterval { TimeInterval(defaults.object(forKey: Keys.minAwayMinutes) as? Int ?? 10) * 60 }
+  var minAway: TimeInterval {
+    TimeInterval(defaults.object(forKey: Keys.minAwayMinutes) as? Int ?? 10) * 60
+  }
 
   /// "Shahzi": the settings override, else the first word of the Mac account's full name.
   var displayName: String {
-    let custom = (defaults.string(forKey: Keys.displayName) ?? "").trimmingCharacters(in: .whitespaces)
+    let custom = (defaults.string(forKey: Keys.displayName) ?? "").trimmingCharacters(
+      in: .whitespaces)
     if !custom.isEmpty { return custom }
     return NSFullUserName().split(separator: " ").first.map(String.init) ?? NSUserName()
   }
@@ -111,7 +114,9 @@ final class IslandController {
 
   // MARK: - Observing
 
-  private func observe(_ center: NotificationCenter, _ name: Notification.Name, _ block: @escaping () -> Void) {
+  private func observe(
+    _ center: NotificationCenter, _ name: Notification.Name, _ block: @escaping () -> Void
+  ) {
     let token = center.addObserver(forName: name, object: nil, queue: .main) { _ in
       MainActor.assumeIsolated { block() }
     }
@@ -128,10 +133,14 @@ final class IslandController {
     ] {
       observe(ws, name) { [weak self] in self?.markAway() }
     }
-    observe(distributed, Notification.Name("com.apple.screenIsLocked")) { [weak self] in self?.markAway() }
+    observe(distributed, Notification.Name("com.apple.screenIsLocked")) { [weak self] in
+      self?.markAway()
+    }
 
     // Coming back. Unlock is the main signal; the others cover a wake without a password.
-    observe(distributed, Notification.Name("com.apple.screenIsUnlocked")) { [weak self] in self?.cameBack() }
+    observe(distributed, Notification.Name("com.apple.screenIsUnlocked")) { [weak self] in
+      self?.cameBack()
+    }
     for name in [
       NSWorkspace.didWakeNotification, NSWorkspace.screensDidWakeNotification,
       NSWorkspace.sessionDidBecomeActiveNotification,
@@ -139,7 +148,8 @@ final class IslandController {
       observe(ws, name) { [weak self] in self?.cameBack() }
     }
 
-    observe(NotificationCenter.default, NSApplication.didChangeScreenParametersNotification) { [weak self] in
+    observe(NotificationCenter.default, NSApplication.didChangeScreenParametersNotification) {
+      [weak self] in
       guard let self, let geometry = NotchGeometry.current() else { return }
       self.pill?.update(geometry: geometry)
     }
@@ -207,7 +217,9 @@ final class IslandController {
 
   private func refreshStats() async {
     let categories = CategoryStore.shared.categories
-    let next = await Task.detached(priority: .utility) { IslandStats.compute(categories: categories) }.value
+    let next = await Task.detached(priority: .utility) {
+      IslandStats.compute(categories: categories)
+    }.value
     let previous = stats
     stats = next
     pill?.model.stats = next
@@ -297,7 +309,9 @@ final class IslandController {
     }
   }
 
-  private func lines(for variant: IslandPayload.Variant, away: TimeInterval) async -> [IslandPayload.Line] {
+  private func lines(for variant: IslandPayload.Variant, away: TimeInterval) async -> [IslandPayload
+    .Line]
+  {
     let s = stats
     let focus =
       s.focusGoalMinutes > 0
@@ -307,7 +321,13 @@ final class IslandController {
       return [.init(label: "", text: "\(s.focusMinutes.islandDuration) of focus today")]
     case .recap:
       let n = s.categories.count
-      return [.init(label: "", text: "\(s.trackedMinutes.islandDuration) tracked across \(n) \(n == 1 ? "category" : "categories")")]
+      return [
+        .init(
+          label: "",
+          text:
+            "\(s.trackedMinutes.islandDuration) tracked across \(n) \(n == 1 ? "category" : "categories")"
+        )
+      ]
     case .startup:
       var out: [IslandPayload.Line] = []
       let sections = await briefingSections()
@@ -320,7 +340,10 @@ final class IslandController {
         out.append(.init(label: "Next", text: next))
       }
       out.append(
-        .init(label: "Today", text: [s.trackedMinutes.islandDuration + " tracked", focus].compactMap { $0 }.joined(separator: ", ")))
+        .init(
+          label: "Today",
+          text: [s.trackedMinutes.islandDuration + " tracked", focus].compactMap { $0 }.joined(
+            separator: ", ")))
       return out
     }
   }

@@ -687,7 +687,8 @@ final class ProvidersSettingsViewModel: ObservableObject {
       providerRoutingErrorMessage =
         String(
           localized:
-            "Dayframe couldn't save your provider routing. Your previous selection is still active.")
+            "Dayframe couldn't save your provider routing. Your previous selection is still active."
+        )
       return false
     }
   }

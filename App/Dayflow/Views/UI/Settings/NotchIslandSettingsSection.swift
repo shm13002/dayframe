@@ -22,10 +22,13 @@ struct NotchIslandSettingsSection: View {
   var body: some View {
     SettingsSection(
       title: "Notch island",
-      subtitle: "A small pill beside the notch with today's focus and time. Its eyes close while recording is paused."
+      subtitle:
+        "A small pill beside the notch with today's focus and time. Its eyes close while recording is paused."
     ) {
       VStack(alignment: .leading, spacing: 0) {
-        SettingsRow(label: "Show the notch island", subtitle: "Hidden from Dayframe's own recordings.") {
+        SettingsRow(
+          label: "Show the notch island", subtitle: "Hidden from Dayframe's own recordings."
+        ) {
           SettingsToggle(isOn: $enabled)
             .onChange(of: enabled) { IslandController.shared.applySettings() }
         }
@@ -33,7 +36,8 @@ struct NotchIslandSettingsSection: View {
         if enabled {
           SettingsRow(
             label: "Welcome back",
-            subtitle: "Plays when you unlock after time away: your greeting, where you left off and what's next."
+            subtitle:
+              "Plays when you unlock after time away: your greeting, where you left off and what's next."
           ) {
             HStack(spacing: 10) {
               Picker("After", selection: $minAwayMinutes) {
@@ -49,13 +53,19 @@ struct NotchIslandSettingsSection: View {
             }
           }
 
-          SettingsRow(label: "Your name", subtitle: "Used in the greeting. Leave empty to use your Mac account name.") {
+          SettingsRow(
+            label: "Your name",
+            subtitle: "Used in the greeting. Leave empty to use your Mac account name."
+          ) {
             TextField(IslandController.shared.displayName, text: $displayName)
               .textFieldStyle(.roundedBorder)
               .frame(width: 170)
           }
 
-          SettingsRow(label: "Sounds", subtitle: "Short, soft chimes made on this Mac. They follow your Mac's volume.") {
+          SettingsRow(
+            label: "Sounds",
+            subtitle: "Short, soft chimes made on this Mac. They follow your Mac's volume."
+          ) {
             HStack(spacing: 10) {
               Slider(value: $soundVolume, in: 0...1)
                 .frame(width: 120)
@@ -65,20 +75,32 @@ struct NotchIslandSettingsSection: View {
             }
           }
 
-          SettingsRow(label: "When a new card arrives", subtitle: "A drip from the notch and a blink.") {
+          SettingsRow(
+            label: "When a new card arrives", subtitle: "A drip from the notch and a blink."
+          ) {
             SettingsToggle(isOn: $momentCardBorn)
           }
-          SettingsRow(label: "When you reach your focus goal", subtitle: "A short celebration, once a day.") {
+          SettingsRow(
+            label: "When you reach your focus goal", subtitle: "A short celebration, once a day."
+          ) {
             SettingsToggle(isOn: $momentGoal)
           }
-          SettingsRow(label: "When recording pauses or resumes", subtitle: "A soft sound as the eyes close or open.") {
+          SettingsRow(
+            label: "When recording pauses or resumes",
+            subtitle: "A soft sound as the eyes close or open."
+          ) {
             SettingsToggle(isOn: $momentRecording)
           }
-          SettingsRow(label: "When your daily recap is ready", subtitle: "Each category streams into its own ring.") {
+          SettingsRow(
+            label: "When your daily recap is ready",
+            subtitle: "Each category streams into its own ring."
+          ) {
             SettingsToggle(isOn: $momentRecap)
           }
 
-          SettingsRow(label: "Preview", subtitle: "Play the welcome back show now.", showsDivider: false) {
+          SettingsRow(
+            label: "Preview", subtitle: "Play the welcome back show now.", showsDivider: false
+          ) {
             SettingsSecondaryButton(title: "Play now", systemImage: "play.fill") {
               IslandController.shared.playStartup(force: true)
             }

@@ -18,7 +18,9 @@ struct AIUsageSection: View {
   @State private var loaded = false
 
   enum UsageRange: Int, CaseIterable, Identifiable {
-    case today = 1, week = 7, month = 30
+    case today = 1
+    case week = 7
+    case month = 30
     var id: Int { rawValue }
     var title: String {
       switch self {
@@ -87,7 +89,9 @@ struct AIUsageSection: View {
               .padding(12)
               .frame(maxWidth: .infinity, alignment: .leading)
               .background(RoundedRectangle(cornerRadius: 10).fill(theme.summaryCardFill))
-              .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(theme.summaryCardBorder, lineWidth: 1))
+              .overlay(
+                RoundedRectangle(cornerRadius: 10).strokeBorder(
+                  theme.summaryCardBorder, lineWidth: 1))
             }
           }
 
@@ -114,7 +118,9 @@ struct AIUsageSection: View {
             .foregroundColor(SettingsStyle.secondary)
           Link("Claude usage", destination: URL(string: "https://claude.ai/settings/usage")!)
           Text("·").foregroundColor(SettingsStyle.secondary)
-          Link("ChatGPT / Codex usage", destination: URL(string: "https://chatgpt.com/codex/settings/usage")!)
+          Link(
+            "ChatGPT / Codex usage",
+            destination: URL(string: "https://chatgpt.com/codex/settings/usage")!)
         }
         .font(.custom("Figtree", size: 12))
       }
@@ -185,7 +191,8 @@ struct AIUsageSection: View {
         GROUP BY provider, day
         """
       return try Row.fetchAll(db, sql: sql).compactMap { row in
-        guard let dayString: String = row["day"], let day = dayFormatter.date(from: dayString) else { return nil }
+        guard let dayString: String = row["day"], let day = dayFormatter.date(from: dayString)
+        else { return nil }
         return UsageRow(
           provider: normalize(row["provider"] ?? "local"), day: day,
           calls: row["calls"] ?? 0, failures: row["failures"] ?? 0,
@@ -200,7 +207,8 @@ struct AIUsageSection: View {
     var out: [String: UsageRow] = [:]
     let cutoff = Date().addingTimeInterval(-31 * 86400).timeIntervalSince1970
     for name in ["telemetry.jsonl.1", "telemetry.jsonl"] {
-      guard let text = try? String(contentsOf: home.appendingPathComponent(name), encoding: .utf8) else { continue }
+      guard let text = try? String(contentsOf: home.appendingPathComponent(name), encoding: .utf8)
+      else { continue }
       for line in text.split(separator: "\n") {
         guard let data = line.data(using: .utf8),
           let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
@@ -210,7 +218,10 @@ struct AIUsageSection: View {
         let provider = normalize((obj["backend"] as? String) ?? "ollama")
         let day = Calendar.current.startOfDay(for: Date(timeIntervalSince1970: ts))
         let key = "\(provider)-\(day)"
-        var r = out[key] ?? UsageRow(provider: provider, day: day, calls: 0, failures: 0, tokensIn: 0, tokensOut: 0)
+        var r =
+          out[key]
+          ?? UsageRow(
+            provider: provider, day: day, calls: 0, failures: 0, tokensIn: 0, tokensOut: 0)
         r.calls += 1
         if obj["ok"] as? Bool == false { r.failures += 1 }
         r.tokensIn += (obj["tokens_in"] as? Int) ?? 0
@@ -256,7 +267,8 @@ struct AIUsageSection: View {
   }
 
   private static func compact(_ n: Int) -> String {
-    n >= 1_000_000 ? String(format: "%.1fM", Double(n) / 1e6)
+    n >= 1_000_000
+      ? String(format: "%.1fM", Double(n) / 1e6)
       : n >= 1000 ? String(format: "%.1fk", Double(n) / 1e3) : "\(n)"
   }
 }

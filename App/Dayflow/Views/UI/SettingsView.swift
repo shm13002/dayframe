@@ -22,7 +22,9 @@ struct SettingsView: View {
     var id: String { rawValue }
 
     /// Dayframe: no Account tab (it only held Dayflow Pro sign-in and upgrade).
-    static let visible: [SettingsTab] = [.providers, .storage, .privacy, .aiTools, .data, .startOfDay, .other]
+    static let visible: [SettingsTab] = [
+      .providers, .storage, .privacy, .aiTools, .data, .startOfDay, .other,
+    ]
 
     var title: String {
       switch self {

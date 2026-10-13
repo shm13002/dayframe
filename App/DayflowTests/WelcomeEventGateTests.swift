@@ -1,5 +1,6 @@
 import AppKit
 import XCTest
+
 @testable import Dayflow
 
 final class WelcomeEventGateTests: XCTestCase {
@@ -99,7 +100,8 @@ final class WelcomeEventGateTests: XCTestCase {
     let pixels = CGSize(width: 2560, height: 1664)
     for palette in DayframePalette.allCases {
       for dark in [true, false] {
-        let data = try XCTUnwrap(WallpaperManager.render(palette: palette, dark: dark, pixels: pixels))
+        let data = try XCTUnwrap(
+          WallpaperManager.render(palette: palette, dark: dark, pixels: pixels))
         let image = try XCTUnwrap(NSBitmapImageRep(data: data))
         XCTAssertEqual(image.pixelsWide, 2560)
         XCTAssertEqual(image.pixelsHigh, 1664)
@@ -115,7 +117,8 @@ final class WelcomeEventGateTests: XCTestCase {
     XCTAssertNotNil(bundle.url(forResource: "welcome", withExtension: "html"))
     for name in ["first-launch", "daily-wake"] {
       for mix in ["laptop", "cinematic"] {
-        XCTAssertNotNil(bundle.url(forResource: "welcome-\(name)_\(mix)", withExtension: "m4a"), "\(name) \(mix)")
+        XCTAssertNotNil(
+          bundle.url(forResource: "welcome-\(name)_\(mix)", withExtension: "m4a"), "\(name) \(mix)")
       }
     }
   }

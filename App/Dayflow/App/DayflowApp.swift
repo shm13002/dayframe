@@ -310,7 +310,7 @@ struct DayflowApp: App {
             }
         }
 
-        if DayframeFlags.upstreamPrompts && didOnboard && !showVideoLaunch && isShowingGitHubStarPrompt {
+        if DayframeFlags.upstreamPrompts, didOnboard, !showVideoLaunch, isShowingGitHubStarPrompt {
           GitHubStarPromptCard(
             starCount: gitHubStarCount,
             usesBrowser: gitHubStarPromptUsesBrowser,
@@ -324,7 +324,9 @@ struct DayflowApp: App {
           .zIndex(10)
         }
 
-        if DayframeFlags.upstreamPrompts, didOnboard, !showVideoLaunch, let survey = surveyCenter.activeSurvey {
+        if DayframeFlags.upstreamPrompts, didOnboard, !showVideoLaunch,
+          let survey = surveyCenter.activeSurvey
+        {
           SurveyPromptCard(survey: survey, center: surveyCenter)
             .id(survey.id)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)

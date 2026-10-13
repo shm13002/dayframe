@@ -433,7 +433,9 @@ extension DashboardChatTools {
   static func openAIToolDeclarations() -> [[String: Any]] {
     let dateProperties: [String: Any] = [
       "date": ["type": "string", "description": "One day, YYYY-MM-DD."],
-      "startDate": ["type": "string", "description": "Range start, YYYY-MM-DD (use with endDate)."],
+      "startDate": [
+        "type": "string", "description": "Range start, YYYY-MM-DD (use with endDate).",
+      ],
       "endDate": ["type": "string", "description": "Range end, YYYY-MM-DD (use with startDate)."],
     ]
     return [

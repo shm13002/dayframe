@@ -468,11 +468,13 @@ final class ScreenRecorder: NSObject, @unchecked Sendable {
         $0.owningApplication?.processID == pid && !islandIDs.contains($0.windowID)
       }
       return SCContentFilter(
-        display: display, excludingApplications: excludedApplications + [dayframe], exceptingWindows: keep)
+        display: display, excludingApplications: excludedApplications + [dayframe],
+        exceptingWindows: keep)
     }
     return excludedApplications.isEmpty
       ? SCContentFilter(display: display, excludingWindows: [])
-      : SCContentFilter(display: display, excludingApplications: excludedApplications, exceptingWindows: [])
+      : SCContentFilter(
+        display: display, excludingApplications: excludedApplications, exceptingWindows: [])
   }
 
   /// The island's windows can appear after the window list was cached; refresh it once when they do.
@@ -481,7 +483,9 @@ final class ScreenRecorder: NSObject, @unchecked Sendable {
     guard !islandIDs.isEmpty else { return }
     let known = Set(cachedContent?.windows.map(\.windowID) ?? [])
     guard !islandIDs.isSubset(of: known) else { return }
-    if let fresh = try? await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: true) {
+    if let fresh = try? await SCShareableContent.excludingDesktopWindows(
+      false, onScreenWindowsOnly: true)
+    {
       cachedContent = fresh
     }
   }

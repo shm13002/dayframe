@@ -90,7 +90,7 @@ final class IslandSound {
     idleStop?.cancel()
     let work = DispatchWorkItem { [weak self] in
       guard let self else { return }
-      self.players.forEach { $0.stop() }
+      for player in self.players { player.stop() }
       self.engine.stop()
     }
     idleStop = work
@@ -134,7 +134,9 @@ final class IslandSound {
       s.tone(2400, dur: 0.8, gain: 0.06, delay: 0.05)
     case .blink: s.tone(3100, dur: 0.1, gain: 0.04)
     case .closeEyes:
-      for i in 0..<3 { s.tone(3000 - Double(i) * 260, dur: 0.1, gain: 0.04, delay: Double(i) * 0.07) }
+      for i in 0..<3 {
+        s.tone(3000 - Double(i) * 260, dur: 0.1, gain: 0.04, delay: Double(i) * 0.07)
+      }
     case .openEyes: s.tone(1600, to: 2600, dur: 0.16, gain: 0.06)
     case .hover: s.tone(2600, dur: 0.08, gain: 0.035)
     case .open:
@@ -142,7 +144,9 @@ final class IslandSound {
       s.tink(1050, gain: 0.18, delay: 0.12)
     case .close:
       s.tink(950, gain: 0.14)
-      for i in 0..<4 { s.tone(3300 - Double(i) * 180, dur: 0.1, gain: 0.04, delay: 0.08 + Double(i) * 0.07) }
+      for i in 0..<4 {
+        s.tone(3300 - Double(i) * 180, dur: 0.1, gain: 0.04, delay: 0.08 + Double(i) * 0.07)
+      }
     }
     let buffer = s.render(format: format)
     if !varies, let buffer { cache[cue] = buffer }
@@ -160,7 +164,9 @@ private struct Synth {
   }
 
   private mutating func ensure(_ count: Int) {
-    if samples.count < count { samples.append(contentsOf: repeatElement(0, count: count - samples.count)) }
+    if samples.count < count {
+      samples.append(contentsOf: repeatElement(0, count: count - samples.count))
+    }
   }
 
   /// Exponential attack from silence to `gain`, then exponential decay to silence at `dur`.
@@ -172,7 +178,8 @@ private struct Synth {
 
   /// Sine with an optional exponential pitch glide.
   mutating func tone(
-    _ freq: Double, to: Double? = nil, dur: Double = 0.35, gain: Double = 0.2, attack: Double = 0.005,
+    _ freq: Double, to: Double? = nil, dur: Double = 0.35, gain: Double = 0.2,
+    attack: Double = 0.005,
     delay: Double = 0
   ) {
     let start = Int(delay * sampleRate)
@@ -200,7 +207,10 @@ private struct Synth {
     let n = Int(dur * sampleRate)
     ensure(start + n)
     let q = 1.2
-    var x1 = 0.0, x2 = 0.0, y1 = 0.0, y2 = 0.0
+    var x1 = 0.0
+    var x2 = 0.0
+    var y1 = 0.0
+    var y2 = 0.0
     for i in 0..<n {
       let t = Double(i) / sampleRate
       let f = from * pow(to / from, t / dur)
@@ -208,11 +218,16 @@ private struct Synth {
       let w0 = 2 * .pi * f / sampleRate
       let alpha = sin(w0) / (2 * q)
       let a0 = 1 + alpha
-      let b0 = alpha / a0, b2 = -alpha / a0
-      let a1 = -2 * cos(w0) / a0, a2 = (1 - alpha) / a0
+      let b0 = alpha / a0
+      let b2 = -alpha / a0
+      let a1 = -2 * cos(w0) / a0
+      let a2 = (1 - alpha) / a0
       let x0 = Double.random(in: -1...1)
       let y0 = b0 * x0 + b2 * x2 - a1 * y1 - a2 * y2
-      x2 = x1; x1 = x0; y2 = y1; y1 = y0
+      x2 = x1
+      x1 = x0
+      y2 = y1
+      y1 = y0
       samples[start + i] += Float(y0 * envelope(t, dur: dur, gain: gain, attack: dur * 0.4))
     }
   }
@@ -221,7 +236,8 @@ private struct Synth {
   func render(format: AVAudioFormat) -> AVAudioPCMBuffer? {
     let tail = Int(0.05 * sampleRate)
     let count = samples.count + tail
-    guard count > 0, let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: AVAudioFrameCount(count)),
+    guard count > 0,
+      let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: AVAudioFrameCount(count)),
       let out = buffer.floatChannelData?[0]
     else { return nil }
     buffer.frameLength = AVAudioFrameCount(count)

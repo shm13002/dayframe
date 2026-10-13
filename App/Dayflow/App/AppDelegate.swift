@@ -171,7 +171,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     if !UserDefaults.standard.bool(forKey: "dayframeChatDefaultsToLocalV1") {
       UserDefaults.standard.set(true, forKey: "dayframeChatDefaultsToLocalV1")
       if UserDefaults.standard.string(forKey: "dashboardChatProvider") == "claude" {
-        UserDefaults.standard.set(DashboardChatProvider.local.rawValue, forKey: "dashboardChatProvider")
+        UserDefaults.standard.set(
+          DashboardChatProvider.local.rawValue, forKey: "dashboardChatProvider")
       }
     }
 

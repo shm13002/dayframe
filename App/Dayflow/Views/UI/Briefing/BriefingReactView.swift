@@ -177,8 +177,12 @@ private struct BriefingWebHost: NSViewRepresentable {
       webView.evaluateJavaScript("window.dayframe && window.dayframe.setContext(\(json))")
     }
 
-    func userContentController(_ controller: WKUserContentController, didReceive message: WKScriptMessage) {
-      guard message.name == "dayframe", let parsed = BriefingPageMessage(body: message.body) else { return }
+    func userContentController(
+      _ controller: WKUserContentController, didReceive message: WKScriptMessage
+    ) {
+      guard message.name == "dayframe", let parsed = BriefingPageMessage(body: message.body) else {
+        return
+      }
       if parsed == .ready {
         pageIsListening = true
         pushContext()
@@ -191,7 +195,9 @@ private struct BriefingWebHost: NSViewRepresentable {
     }
 
     private func openExternally(_ url: URL) {
-      guard let scheme = url.scheme?.lowercased(), scheme == "http" || scheme == "https" else { return }
+      guard let scheme = url.scheme?.lowercased(), scheme == "http" || scheme == "https" else {
+        return
+      }
       NSWorkspace.shared.open(url)
     }
 
@@ -214,7 +220,10 @@ private struct BriefingWebHost: NSViewRepresentable {
       return nil
     }
 
-    func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
+    func webView(
+      _ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!,
+      withError error: Error
+    ) {
       onMessage(.failed)
     }
 

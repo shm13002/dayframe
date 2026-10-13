@@ -30,20 +30,26 @@ private struct OpeningSection: View {
   @AppStorage(WelcomeController.Keys.login) private var login = true
   @AppStorage(WelcomeController.Keys.unlock) private var unlock = true
   @AppStorage(WelcomeController.Keys.minAwayMinutes) private var minAwayMinutes = 10
-  @AppStorage(WelcomeController.Keys.soundMix) private var soundMix = WelcomeSoundMix.laptop.rawValue
+  @AppStorage(WelcomeController.Keys.soundMix) private var soundMix = WelcomeSoundMix.laptop
+    .rawValue
 
   var body: some View {
     SettingsSection(
       title: "Opening",
-      subtitle: "The System Awakening in your Dayframe colors: a spark, an orbit, ignition, then your day."
+      subtitle:
+        "The System Awakening in your Dayframe colors: a spark, an orbit, ignition, then your day."
     ) {
       VStack(alignment: .leading, spacing: 0) {
         SettingsRow(label: "Preview", subtitle: "Click or press any key to skip.") {
           HStack(spacing: 8) {
-            SettingsSecondaryButton(title: "First launch", systemImage: "play.fill", isDisabled: controller.isPlaying) {
+            SettingsSecondaryButton(
+              title: "First launch", systemImage: "play.fill", isDisabled: controller.isPlaying
+            ) {
               controller.preview(.firstLaunch)
             }
-            SettingsSecondaryButton(title: "Daily wake", systemImage: "play.fill", isDisabled: controller.isPlaying) {
+            SettingsSecondaryButton(
+              title: "Daily wake", systemImage: "play.fill", isDisabled: controller.isPlaying
+            ) {
               controller.preview(.dailyWake)
             }
           }
@@ -73,14 +79,17 @@ private struct OpeningSection: View {
               }
           }
           if login && !loginManager.isEnabled {
-            Text("Allow Dayframe in System Settings › General › Login Items so it can open at login.")
-              .font(.custom("Figtree", size: 11))
-              .foregroundColor(SettingsStyle.secondary)
-              .padding(.vertical, 8)
+            Text(
+              "Allow Dayframe in System Settings › General › Login Items so it can open at login."
+            )
+            .font(.custom("Figtree", size: 11))
+            .foregroundColor(SettingsStyle.secondary)
+            .padding(.vertical, 8)
           }
           SettingsRow(
             label: "After unlock",
-            subtitle: "A two-second daily wake when you've been away. Replaces the notch's welcome back."
+            subtitle:
+              "A two-second daily wake when you've been away. Replaces the notch's welcome back."
           ) {
             HStack(spacing: 10) {
               Picker("After", selection: $minAwayMinutes) {
@@ -100,7 +109,8 @@ private struct OpeningSection: View {
         }
         SettingsRow(
           label: "Sound",
-          subtitle: "Machine wakes, ignition, three locks, then \"online\". Follows your Mac's volume and mute.",
+          subtitle:
+            "Machine wakes, ignition, three locks, then \"online\". Follows your Mac's volume and mute.",
           showsDivider: false
         ) {
           Picker("Sound", selection: $soundMix) {
@@ -135,18 +145,26 @@ private struct WallpaperSection: View {
   var body: some View {
     SettingsSection(
       title: "Wallpaper",
-      subtitle: "Your palette's sky over a quiet horizon. It's also what you see behind the password screen. No text, no logo."
+      subtitle:
+        "Your palette's sky over a quiet horizon. It's also what you see behind the password screen. No text, no logo."
     ) {
       VStack(alignment: .leading, spacing: 0) {
         HStack(alignment: .center, spacing: 16) {
-          WallpaperArt(palette: palette.palette, dark: appearance.colorScheme(system: system.colorScheme) == .dark)
-            .frame(width: 192, height: 125)
-            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: 8, style: .continuous).stroke(SettingsStyle.divider, lineWidth: 1))
-          Text("Follows your palette and Light/Dark mode. Turning it off puts your previous wallpaper back.")
-            .font(.custom("Figtree", size: 12))
-            .foregroundColor(SettingsStyle.secondary)
-            .fixedSize(horizontal: false, vertical: true)
+          WallpaperArt(
+            palette: palette.palette,
+            dark: appearance.colorScheme(system: system.colorScheme) == .dark
+          )
+          .frame(width: 192, height: 125)
+          .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+          .overlay(
+            RoundedRectangle(cornerRadius: 8, style: .continuous).stroke(
+              SettingsStyle.divider, lineWidth: 1))
+          Text(
+            "Follows your palette and Light/Dark mode. Turning it off puts your previous wallpaper back."
+          )
+          .font(.custom("Figtree", size: 12))
+          .foregroundColor(SettingsStyle.secondary)
+          .fixedSize(horizontal: false, vertical: true)
         }
         .padding(.vertical, 10)
         SettingsRow(label: "Use the Dayframe wallpaper", showsDivider: false) {
@@ -181,10 +199,17 @@ private struct DayAppsSection: View {
       subtitle: "After the login welcome, Dayframe opens on Briefing and sets up the rest."
     ) {
       VStack(alignment: .leading, spacing: 0) {
-        SettingsRow(label: "Set up my day after login", subtitle: "Runs once, right after the opening animation.") {
+        SettingsRow(
+          label: "Set up my day after login",
+          subtitle: "Runs once, right after the opening animation."
+        ) {
           SettingsToggle(isOn: $enabled)
         }
-        SettingsRow(label: "Hide other apps", subtitle: "Apps that reopened at login are hidden, not quit. Click their Dock icon to bring them back.") {
+        SettingsRow(
+          label: "Hide other apps",
+          subtitle:
+            "Apps that reopened at login are hidden, not quit. Click their Dock icon to bring them back."
+        ) {
           SettingsToggle(isOn: $hideOthers)
         }
         if usesLayout {
@@ -237,7 +262,9 @@ private struct DayAppsSection: View {
 
         HStack(spacing: 8) {
           SettingsSecondaryButton(title: "Add app…", systemImage: "plus") { pickApps() }
-          SettingsSecondaryButton(title: "Run now", systemImage: "sunrise", isDisabled: startOfDay.isRunning) {
+          SettingsSecondaryButton(
+            title: "Run now", systemImage: "sunrise", isDisabled: startOfDay.isRunning
+          ) {
             startOfDay.run(reason: "settings", force: true)
           }
         }
@@ -249,10 +276,12 @@ private struct DayAppsSection: View {
             .foregroundColor(SettingsStyle.secondary)
             .padding(.top, 6)
         }
-        Text("Tip: in System Settings, uncheck \"Reopen windows when logging back in\" on the Shut Down dialog for the cleanest start.")
-          .font(.custom("Figtree", size: 11))
-          .foregroundColor(SettingsStyle.meta)
-          .padding(.top, 10)
+        Text(
+          "Tip: in System Settings, uncheck \"Reopen windows when logging back in\" on the Shut Down dialog for the cleanest start."
+        )
+        .font(.custom("Figtree", size: 11))
+        .foregroundColor(SettingsStyle.meta)
+        .padding(.top, 10)
       }
     }
   }
@@ -287,7 +316,8 @@ private struct WindowStyleSection: View {
   var body: some View {
     SettingsSection(
       title: "Window style",
-      subtitle: "Layout puts each window in its place. Stage Manager lets macOS keep recent apps at the side."
+      subtitle:
+        "Layout puts each window in its place. Stage Manager lets macOS keep recent apps at the side."
     ) {
       VStack(alignment: .leading, spacing: 0) {
         SettingsRow(label: "Style") {
@@ -317,11 +347,13 @@ private struct WindowStyleSection: View {
         } else {
           SettingsRow(
             label: "Stage Manager",
-            subtitle: "Turn it on in Desktop & Dock, with \"Recent applications\" shown. macOS picks which apps appear at the side.",
+            subtitle:
+              "Turn it on in Desktop & Dock, with \"Recent applications\" shown. macOS picks which apps appear at the side.",
             showsDivider: false
           ) {
             SettingsSecondaryButton(title: "Open settings", systemImage: "arrow.up.right") {
-              NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.Desktop-Settings.extension")!)
+              NSWorkspace.shared.open(
+                URL(string: "x-apple.systempreferences:com.apple.Desktop-Settings.extension")!)
             }
           }
         }

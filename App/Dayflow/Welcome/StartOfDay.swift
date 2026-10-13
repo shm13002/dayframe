@@ -49,7 +49,8 @@ enum WindowSlot: String, Codable, CaseIterable, Identifiable {
       let w = (area.width - gap) / 2
       return CGRect(x: area.maxX - w, y: area.minY, width: w, height: area.height)
     case .leftTwoThirds:
-      return CGRect(x: area.minX, y: area.minY, width: (area.width - gap) * 2 / 3, height: area.height)
+      return CGRect(
+        x: area.minX, y: area.minY, width: (area.width - gap) * 2 / 3, height: area.height)
     case .rightThird:
       let w = (area.width - gap) / 3
       return CGRect(x: area.maxX - w, y: area.minY, width: w, height: area.height)
@@ -154,7 +155,9 @@ final class StartOfDay: ObservableObject {
       // 2. Your day's apps, quietly, one after another.
       var launched: [NSRunningApplication] = []
       for app in apps {
-        if let running = NSRunningApplication.runningApplications(withBundleIdentifier: app.bundleID).first {
+        if let running = NSRunningApplication.runningApplications(
+          withBundleIdentifier: app.bundleID
+        ).first {
           running.unhide()
           launched.append(running)
           continue
@@ -165,7 +168,9 @@ final class StartOfDay: ObservableObject {
         let url =
           NSWorkspace.shared.urlForApplication(withBundleIdentifier: app.bundleID)
           ?? URL(fileURLWithPath: app.path)
-        if let running = try? await NSWorkspace.shared.openApplication(at: url, configuration: config) {
+        if let running = try? await NSWorkspace.shared.openApplication(
+          at: url, configuration: config)
+        {
           launched.append(running)
         }
         try? await Task.sleep(for: .milliseconds(500))
@@ -180,8 +185,11 @@ final class StartOfDay: ObservableObject {
         placeDayframe()
         if Self.accessibilityTrusted {
           for app in apps where app.slot != .keep {
-            guard let running = launched.first(where: { $0.bundleIdentifier == app.bundleID }) else { continue }
-            if await AXWindowPlacer.place(pid: running.processIdentifier, slot: app.slot) { placed += 1 }
+            guard let running = launched.first(where: { $0.bundleIdentifier == app.bundleID })
+            else { continue }
+            if await AXWindowPlacer.place(pid: running.processIdentifier, slot: app.slot) {
+              placed += 1
+            }
           }
         }
       }
@@ -205,7 +213,8 @@ final class StartOfDay: ObservableObject {
 
   /// Dayframe's own window needs no Accessibility permission.
   private func placeDayframe() {
-    guard let screen = NSScreen.main, let target = dayframeSlot.frame(in: screen.visibleFrame) else { return }
+    guard let screen = NSScreen.main, let target = dayframeSlot.frame(in: screen.visibleFrame)
+    else { return }
     let window = NSApp.windows.first { $0.isVisible && $0.canBecomeMain && !($0 is NSPanel) }
     window?.setFrame(target, display: true, animate: true)
   }
@@ -232,7 +241,9 @@ enum AXWindowPlacer {
 
   private static func firstWindow(of app: AXUIElement) -> AXUIElement? {
     var value: CFTypeRef?
-    if AXUIElementCopyAttributeValue(app, kAXMainWindowAttribute as CFString, &value) == .success, let value {
+    if AXUIElementCopyAttributeValue(app, kAXMainWindowAttribute as CFString, &value) == .success,
+      let value
+    {
       return (value as! AXUIElement)
     }
     guard AXUIElementCopyAttributeValue(app, kAXWindowsAttribute as CFString, &value) == .success,
@@ -249,7 +260,9 @@ enum AXWindowPlacer {
     // AX uses a top-left origin on the primary display.
     var origin = CGPoint(x: frame.minX, y: primary.frame.maxY - frame.maxY)
     var size = frame.size
-    guard let position = AXValueCreate(.cgPoint, &origin), let dimensions = AXValueCreate(.cgSize, &size) else {
+    guard let position = AXValueCreate(.cgPoint, &origin),
+      let dimensions = AXValueCreate(.cgSize, &size)
+    else {
       return false
     }
     // Size, move, then size again: some apps clamp the size to the old screen position.

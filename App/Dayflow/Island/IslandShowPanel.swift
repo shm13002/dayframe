@@ -22,7 +22,11 @@ struct IslandPayload: Encodable {
   struct Pill: Encodable { let leftWing, rightWing, height, radius: CGFloat }
   struct Line: Encodable { let label, text: String }
   struct Focus: Encodable { let minutes, goalMinutes: Int }
-  struct Category: Encodable { let name: String; let minutes: Int; let color: String }
+  struct Category: Encodable {
+    let name: String
+    let minutes: Int
+    let color: String
+  }
 
   let variant: Variant
   let screen: Screen
@@ -51,7 +55,9 @@ struct IslandPayload: Encodable {
     self.lines = lines
     focus = Focus(minutes: stats.focusMinutes, goalMinutes: stats.focusGoalMinutes)
     trackedMinutes = stats.trackedMinutes
-    categories = stats.categories.map { Category(name: $0.name, minutes: $0.minutes, color: $0.colorHex) }
+    categories = stats.categories.map {
+      Category(name: $0.name, minutes: $0.minutes, color: $0.colorHex)
+    }
     accent = accentHex
     self.recording = recording
     self.reducedMotion = reducedMotion
@@ -89,13 +95,16 @@ final class IslandShowPanel: NSObject, WKScriptMessageHandler {
     }
 
     let panel = IslandKeyPanel(
-      contentRect: geometry.screenFrame, styleMask: [.borderless, .nonactivatingPanel], backing: .buffered,
+      contentRect: geometry.screenFrame, styleMask: [.borderless, .nonactivatingPanel],
+      backing: .buffered,
       defer: false)
     panel.isOpaque = false
     panel.backgroundColor = .clear
     panel.hasShadow = false
     panel.level = .screenSaver
-    panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary, .ignoresCycle]
+    panel.collectionBehavior = [
+      .canJoinAllSpaces, .fullScreenAuxiliary, .stationary, .ignoresCycle,
+    ]
     panel.hidesOnDeactivate = false
     panel.isReleasedWhenClosed = false
     panel.animationBehavior = .none
@@ -147,14 +156,19 @@ final class IslandShowPanel: NSObject, WKScriptMessageHandler {
     finish()
   }
 
-  func userContentController(_ controller: WKUserContentController, didReceive message: WKScriptMessage) {
+  func userContentController(
+    _ controller: WKUserContentController, didReceive message: WKScriptMessage
+  ) {
     guard message.name == "island", let body = message.body as? [String: Any] else { return }
     // WebKit hands JS numbers over as NSNumber; read it that way so integer values aren't dropped.
     if body["type"] as? String == "done", let fps = (body["fps"] as? NSNumber)?.doubleValue {
       islandLog.notice(
-        "[Island] \(self.payload.variant.rawValue, privacy: .public) show finished at \(Int(fps.rounded()), privacy: .public) fps")
+        "[Island] \(self.payload.variant.rawValue, privacy: .public) show finished at \(Int(fps.rounded()), privacy: .public) fps"
+      )
     }
-    handle(type: body["type"] as? String, cueName: body["name"] as? String, value: body["value"] as? Double)
+    handle(
+      type: body["type"] as? String, cueName: body["name"] as? String,
+      value: body["value"] as? Double)
   }
 
   private func handle(type: String?, cueName: String?, value: Double?) {
@@ -162,7 +176,9 @@ final class IslandShowPanel: NSObject, WKScriptMessageHandler {
     case "ready":
       start()
     case "cue":
-      if let cueName, let cue = IslandCue(rawValue: cueName) { IslandSound.shared.play(cue, value: value ?? 0) }
+      if let cueName, let cue = IslandCue(rawValue: cueName) {
+        IslandSound.shared.play(cue, value: value ?? 0)
+      }
     case "collapse":
       fadeDim(to: 0, duration: 0.45)
     case "done":

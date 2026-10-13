@@ -29,13 +29,16 @@ struct NotchGeometry: Equatable {
   /// The resting pill, in screen-local top-left coordinates.
   var pillRect: CGRect {
     CGRect(
-      x: notchX - Self.leftWing, y: 0, width: notchWidth + Self.leftWing + Self.rightWing, height: height)
+      x: notchX - Self.leftWing, y: 0, width: notchWidth + Self.leftWing + Self.rightWing,
+      height: height)
   }
 
   /// The pill's frame in global AppKit coordinates, for positioning its window.
   var pillWindowFrame: CGRect {
     let p = pillRect
-    return CGRect(x: screenFrame.minX + p.minX, y: screenFrame.maxY - p.height, width: p.width, height: p.height)
+    return CGRect(
+      x: screenFrame.minX + p.minX, y: screenFrame.maxY - p.height, width: p.width, height: p.height
+    )
   }
 
   /// The screen the island lives on: the built-in display with a notch if there is one,

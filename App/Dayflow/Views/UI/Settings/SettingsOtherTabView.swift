@@ -89,7 +89,6 @@ struct SettingsOtherTabView: View {
           )
         }
 
-
         SettingsRow(
           label: String(localized: "Show Dock icon"),
           subtitle: String(localized: "When off, Dayframe runs as a menu bar-only app.")

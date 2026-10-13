@@ -15,7 +15,8 @@ extension OllamaProvider {
     var reasoning: Reasoning? = nil
     /// Ollama's OpenAI-compatible endpoint thinks by default on Qwen-style models, which makes
     /// every call slow and can break JSON output. "none" turns thinking off (Dayframe fix).
-    var reasoning_effort: String? = nil
+    // swift-format-ignore: AlwaysUseLowerCamelCase
+    var reasoning_effort: String? = nil  // Ollama's JSON field name
 
     struct Reasoning: Codable {
       let effort: String

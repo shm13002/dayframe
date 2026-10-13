@@ -8,7 +8,10 @@
 import Foundation
 
 final class SentryHelper {
-  static var isEnabled: Bool { get { false } set {} }
+  static var isEnabled: Bool {
+    get { false }
+    set {}
+  }
   static func setEnabled(_ enabled: Bool) {}
   static func startIfConfigured() {}
   static func addBreadcrumb(_ breadcrumb: Breadcrumb) {}

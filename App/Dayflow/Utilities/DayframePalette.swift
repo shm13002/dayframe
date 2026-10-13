@@ -178,7 +178,8 @@ final class DayframePaletteStore: ObservableObject {
 
   private init() {
     palette =
-      DayframePalette(rawValue: UserDefaults.standard.string(forKey: DayframePalette.storageKey) ?? "")
+      DayframePalette(
+        rawValue: UserDefaults.standard.string(forKey: DayframePalette.storageKey) ?? "")
       ?? .original
   }
 

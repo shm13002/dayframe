@@ -35,8 +35,13 @@ contents() {
   if [[ $MODE == --staged ]]; then git show ":$1"; else cat "$1"; fi
 }
 
+# swift-format lint of stdin, reported as if it were file $1.
+sf_lint() {
+  xcrun swift-format lint --configuration .swift-format --assume-filename "$1" - 2>&1 >/dev/null
+}
+
 swift_warnings() {
-  xcrun swift-format lint --configuration .swift-format --assume-filename "$1" 2>&1 >/dev/null | grep -c warning
+  sf_lint "$1" | grep -c 'warning: \['
 }
 
 upstream_warnings() {
@@ -79,8 +84,7 @@ check_swift() {
     before=$(upstream_warnings "$file")
     if ((now > before)); then
       fail "$file has $now swift-format warnings (Dayflow's version had $before)."
-      contents "$file" | xcrun swift-format lint --configuration .swift-format --assume-filename "$file" 2>&1 >/dev/null |
-        head -5 | sed 's/^/    /'
+      contents "$file" | sf_lint "$file" | grep 'warning: \[' | head -5 | sed 's/^/    /'
     fi
   done < <(files 'App/*.swift')
   echo "$count Swift file(s) checked."

@@ -35,21 +35,27 @@ struct IslandStats: Equatable, Sendable {
 
   /// Synchronous database reads: call off the main thread.
   static func compute(
-    categories: [TimelineCategory], storage: StorageManaging = StorageManager.shared, now: Date = Date()
+    categories: [TimelineCategory], storage: StorageManaging = StorageManager.shared,
+    now: Date = Date()
   ) -> IslandStats {
     let dayInfo = now.getDayInfoFor4AMBoundary()
     let plan = DaySummaryStats.carriedForwardGoalPlan(
       day: dayInfo.dayString, storageManager: storage, categories: categories)
     let cards = storage.fetchTimelineCards(forDay: dayInfo.dayString)
     let precomputed = DaySummaryStats.precomputeCardDurations(cards)
-    let tracked = DaySummaryStats.computeTotalCapturedTime(from: precomputed, categories: categories)
+    let tracked = DaySummaryStats.computeTotalCapturedTime(
+      from: precomputed, categories: categories)
     let focus = DaySummaryStats.computeTotalFocusTime(
       from: precomputed, snapshots: plan.focusCategories, categories: categories)
     let systemNames = Set(categories.filter(\.isSystem).map { $0.name.lowercased() })
-    let byCategory = DaySummaryStats.computeCategoryDurations(from: precomputed, categories: categories)
-      .filter { !systemNames.contains($0.name.lowercased()) && $0.duration >= 60 }
-      .sorted { $0.duration > $1.duration }
-      .map { Category(name: $0.name, minutes: Int(($0.duration / 60).rounded()), colorHex: $0.colorHex) }
+    let byCategory = DaySummaryStats.computeCategoryDurations(
+      from: precomputed, categories: categories
+    )
+    .filter { !systemNames.contains($0.name.lowercased()) && $0.duration >= 60 }
+    .sorted { $0.duration > $1.duration }
+    .map {
+      Category(name: $0.name, minutes: Int(($0.duration / 60).rounded()), colorHex: $0.colorHex)
+    }
 
     return IslandStats(
       day: dayInfo.dayString,

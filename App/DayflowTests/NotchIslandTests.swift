@@ -6,7 +6,8 @@ import XCTest
 final class NotchIslandTests: XCTestCase {
 
   private let notched = NotchGeometry(
-    screenFrame: CGRect(x: 0, y: 0, width: 1470, height: 956), notchX: 637, notchWidth: 196, height: 32,
+    screenFrame: CGRect(x: 0, y: 0, width: 1470, height: 956), notchX: 637, notchWidth: 196,
+    height: 32,
     hasNotch: true)
 
   // MARK: - Geometry
@@ -28,7 +29,8 @@ final class NotchIslandTests: XCTestCase {
   func testPillRadiusNeverExceedsHalfTheHeight() {
     XCTAssertLessThanOrEqual(notched.pillRadius, notched.height / 2)
     let thin = NotchGeometry(
-      screenFrame: .init(x: 0, y: 0, width: 800, height: 600), notchX: 400, notchWidth: 0, height: 20, hasNotch: false)
+      screenFrame: .init(x: 0, y: 0, width: 800, height: 600), notchX: 400, notchWidth: 0,
+      height: 20, hasNotch: false)
     XCTAssertEqual(thin.pillRadius, 8)
     XCTAssertEqual(thin.pillRect.width, NotchGeometry.leftWing + NotchGeometry.rightWing)
   }
@@ -37,11 +39,13 @@ final class NotchIslandTests: XCTestCase {
 
   func testPayloadEncodesTheKeysThePageReads() throws {
     let stats = IslandStats(
-      day: "2026-10-12", cardCount: 3, trackedMinutes: 187, focusMinutes: 108, focusGoalMinutes: 270,
+      day: "2026-10-12", cardCount: 3, trackedMinutes: 187, focusMinutes: 108,
+      focusGoalMinutes: 270,
       categories: [.init(name: "Studying", minutes: 118, colorHex: "#7B83FF")])
     let payload = IslandPayload(
       variant: .startup, geometry: notched, greeting: "Good evening, Shahzi",
-      lines: [.init(label: "Next", text: "Ship it")], stats: stats, accentHex: "#F3854B", recording: true,
+      lines: [.init(label: "Next", text: "Ship it")], stats: stats, accentHex: "#F3854B",
+      recording: true,
       reducedMotion: false)
     let json = try XCTUnwrap(
       JSONSerialization.jsonObject(with: JSONEncoder().encode(payload)) as? [String: Any])
@@ -49,7 +53,8 @@ final class NotchIslandTests: XCTestCase {
     XCTAssertEqual(
       Set(json.keys),
       [
-        "variant", "screen", "notch", "pill", "greeting", "lines", "focus", "trackedMinutes", "categories",
+        "variant", "screen", "notch", "pill", "greeting", "lines", "focus", "trackedMinutes",
+        "categories",
         "accent", "recording", "reducedMotion",
       ])
     XCTAssertEqual(json["variant"] as? String, "startup")
@@ -60,13 +65,15 @@ final class NotchIslandTests: XCTestCase {
     XCTAssertEqual(json["focus"] as? [String: Int], ["minutes": 108, "goalMinutes": 270])
     let category = try XCTUnwrap((json["categories"] as? [[String: Any]])?.first)
     XCTAssertEqual(category["color"] as? String, "#7B83FF")
-    XCTAssertEqual((json["lines"] as? [[String: String]])?.first, ["label": "Next", "text": "Ship it"])
+    XCTAssertEqual(
+      (json["lines"] as? [[String: String]])?.first, ["label": "Next", "text": "Ship it"])
   }
 
   func testEveryCueThePageCanSendHasASound() {
     // Web/src/island/types.ts `Cue`
     let pageCues = [
-      "drip", "pop", "grain", "bloop", "eyes", "ping1", "ping2", "ping3", "streamStart", "count", "swoosh",
+      "drip", "pop", "grain", "bloop", "eyes", "ping1", "ping2", "ping3", "streamStart", "count",
+      "swoosh",
       "finale", "settle",
     ]
     for cue in pageCues { XCTAssertNotNil(IslandCue(rawValue: cue), cue) }
@@ -99,7 +106,8 @@ final class NotchIslandTests: XCTestCase {
   func testBriefingPageMessages() {
     XCTAssertEqual(BriefingPageMessage(body: ["type": "ready"]), .ready)
     XCTAssertEqual(BriefingPageMessage(body: ["type": "showTimeline"]), .showTimeline)
-    XCTAssertEqual(BriefingPageMessage(body: ["type": "openMore", "page": "memory"]), .openMore("memory"))
+    XCTAssertEqual(
+      BriefingPageMessage(body: ["type": "openMore", "page": "memory"]), .openMore("memory"))
     XCTAssertNil(BriefingPageMessage(body: ["type": "openMore"]))
     XCTAssertNil(BriefingPageMessage(body: ["type": "rm -rf"]))
     XCTAssertNil(BriefingPageMessage(body: "ready"))

@@ -53,7 +53,9 @@ final class NotchPillModel: ObservableObject {
     switch mode {
     case .rest: return CGSize(width: pill.width, height: pill.height + (isDripping ? 18 : 0))
     case .hover: return CGSize(width: max(pill.width, 360), height: pill.height + 44)
-    case .open: return CGSize(width: max(pill.width, NotchPillLayout.cardWidth), height: NotchPillLayout.cardHeight)
+    case .open:
+      return CGSize(
+        width: max(pill.width, NotchPillLayout.cardWidth), height: NotchPillLayout.cardHeight)
     }
   }
 }
@@ -98,13 +100,17 @@ struct NotchPillView: View {
         .offset(y: pill.height - 6 + dripOffset)
         .opacity(dripOffset > 0.5 ? 1 : 0)
 
-      UnevenRoundedRectangle(bottomLeadingRadius: s.r, bottomTrailingRadius: s.r, style: .continuous)
-        .fill(.black)
-        .frame(width: s.w, height: s.h)
+      UnevenRoundedRectangle(
+        bottomLeadingRadius: s.r, bottomTrailingRadius: s.r, style: .continuous
+      )
+      .fill(.black)
+      .frame(width: s.w, height: s.h)
 
       if model.mode == .open {
         card
-          .frame(width: NotchPillLayout.cardWidth, height: NotchPillLayout.cardHeight, alignment: .top)
+          .frame(
+            width: NotchPillLayout.cardWidth, height: NotchPillLayout.cardHeight, alignment: .top
+          )
           .transition(.opacity.combined(with: .scale(scale: 0.98, anchor: .top)))
       } else {
         restContent
@@ -171,7 +177,8 @@ struct NotchPillView: View {
     let s = model.stats
     var parts = ["\(s.trackedMinutes.islandDuration) tracked today"]
     if s.focusGoalMinutes > 0 {
-      parts.insert("\(s.focusMinutes.islandDuration) of \(s.focusGoalMinutes.islandDuration) focus", at: 0)
+      parts.insert(
+        "\(s.focusMinutes.islandDuration) of \(s.focusGoalMinutes.islandDuration) focus", at: 0)
     }
     parts.append(model.recording ? "recording" : "paused")
     return parts.joined(separator: ", ")
@@ -181,14 +188,19 @@ struct NotchPillView: View {
   private var tooltipText: String {
     let s = model.stats
     let tracked = "\(s.trackedMinutes.islandDuration) tracked"
-    guard s.focusGoalMinutes > 0 else { return tracked.prefix(1).uppercased() + tracked.dropFirst() }
-    return "Focus \(s.focusMinutes.islandDuration) of \(s.focusGoalMinutes.islandDuration), \(tracked)"
+    guard s.focusGoalMinutes > 0 else {
+      return tracked.prefix(1).uppercased() + tracked.dropFirst()
+    }
+    return
+      "Focus \(s.focusMinutes.islandDuration) of \(s.focusGoalMinutes.islandDuration), \(tracked)"
   }
 
   private var tooltip: some View {
     HStack(spacing: 6) {
-      Circle().fill(model.recording ? Color(hex: "#34D399") : Color(hex: "#8A8A8E")).frame(width: 6, height: 6)
-        .accessibilityLabel(model.recording ? "Recording" : "Paused")
+      Circle().fill(model.recording ? Color(hex: "#34D399") : Color(hex: "#8A8A8E")).frame(
+        width: 6, height: 6
+      )
+      .accessibilityLabel(model.recording ? "Recording" : "Paused")
       Text(tooltipText)
         .lineLimit(1)
     }
@@ -225,7 +237,8 @@ struct NotchPillView: View {
           GeometryReader { proxy in
             ZStack(alignment: .leading) {
               Capsule().fill(Color(hex: "#2A2A2E"))
-              Capsule().fill(accent).frame(width: max(6, proxy.size.width * min(s.focusFraction, 1)))
+              Capsule().fill(accent).frame(
+                width: max(6, proxy.size.width * min(s.focusFraction, 1)))
             }
           }
           .frame(height: 6)
@@ -376,7 +389,8 @@ private struct CardButton: View {
         .foregroundStyle(subtle ? Color(hex: "#8A8A8E") : .white)
         .padding(.horizontal, 12)
         .padding(.vertical, 6)
-        .background(Capsule().fill(Color(hex: subtle ? "#1C1C1E" : "#2A2A2E").opacity(hovering ? 1 : 0.85)))
+        .background(
+          Capsule().fill(Color(hex: subtle ? "#1C1C1E" : "#2A2A2E").opacity(hovering ? 1 : 0.85)))
     }
     .buttonStyle(.plain)
     .onHover { hovering = $0 }

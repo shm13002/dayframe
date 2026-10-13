@@ -79,9 +79,11 @@ enum ChatMetadataParser {
   /// 2–5 short strings counts, so ordinary answers ending in brackets are left alone.
   static func extractTrailingBareSuggestions(from text: String) -> (String, String)? {
     let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-    guard trimmed.hasSuffix("]"), let open = trimmed.range(of: "\n[", options: .backwards)
+    guard trimmed.hasSuffix("]") else { return nil }
+    let lastLineStart =
+      trimmed.range(of: "\n[", options: .backwards)
       ?? (trimmed.hasPrefix("[") ? trimmed.range(of: "[") : nil)
-    else { return nil }
+    guard let open = lastLineStart else { return nil }
     let candidate = trimmed[open.lowerBound...].trimmingCharacters(in: .whitespacesAndNewlines)
     guard let data = candidate.data(using: .utf8),
       let items = try? JSONSerialization.jsonObject(with: data) as? [String],

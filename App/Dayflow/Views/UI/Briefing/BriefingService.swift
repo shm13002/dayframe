@@ -96,14 +96,22 @@ struct BriefingState: Decodable, Equatable {
 
 /// Minimal JSON value so unknown settings decode without failing.
 enum JSONValue: Decodable, Equatable {
-  case string(String), number(Double), bool(Bool), other
+  case string(String)
+  case number(Double)
+  case bool(Bool)
+  case other
 
   init(from decoder: Decoder) throws {
     let c = try decoder.singleValueContainer()
-    if let b = try? c.decode(Bool.self) { self = .bool(b) }
-    else if let n = try? c.decode(Double.self) { self = .number(n) }
-    else if let s = try? c.decode(String.self) { self = .string(s) }
-    else { self = .other }
+    if let b = try? c.decode(Bool.self) {
+      self = .bool(b)
+    } else if let n = try? c.decode(Double.self) {
+      self = .number(n)
+    } else if let s = try? c.decode(String.self) {
+      self = .string(s)
+    } else {
+      self = .other
+    }
   }
 
   var stringValue: String? {
@@ -125,10 +133,26 @@ struct BriefingSections: Equatable {
     for line in raw.components(separatedBy: "\n") {
       let t = line.trimmingCharacters(in: .whitespaces)
       let upper = t.uppercased()
-      if let r = Self.header(upper, t, "WHERE YOU LEFT OFF") { current = "left"; buffers[current, default: []].append(r); continue }
-      if let r = Self.header(upper, t, "YOUR GOAL") { current = "goal"; buffers[current, default: []].append(r); continue }
-      if let r = Self.header(upper, t, "NEXT STEPS") { current = "next"; buffers[current, default: []].append(r); continue }
-      if upper.hasPrefix("REFS:") { current = "refs"; buffers[current, default: []].append(String(t.dropFirst(5))); continue }
+      if let r = Self.header(upper, t, "WHERE YOU LEFT OFF") {
+        current = "left"
+        buffers[current, default: []].append(r)
+        continue
+      }
+      if let r = Self.header(upper, t, "YOUR GOAL") {
+        current = "goal"
+        buffers[current, default: []].append(r)
+        continue
+      }
+      if let r = Self.header(upper, t, "NEXT STEPS") {
+        current = "next"
+        buffers[current, default: []].append(r)
+        continue
+      }
+      if upper.hasPrefix("REFS:") {
+        current = "refs"
+        buffers[current, default: []].append(String(t.dropFirst(5)))
+        continue
+      }
       buffers[current, default: []].append(t)
     }
     func joined(_ k: String) -> String {
@@ -139,7 +163,10 @@ struct BriefingSections: Equatable {
     goal = Self.stripCitations(joined("goal"))
     refs = joined("refs")
     nextSteps = (buffers["next"] ?? [])
-      .map { $0.replacingOccurrences(of: #"^\s*(\d+[.)]|[-•*])\s*"#, with: "", options: .regularExpression) }
+      .map {
+        $0.replacingOccurrences(
+          of: #"^\s*(\d+[.)]|[-•*])\s*"#, with: "", options: .regularExpression)
+      }
       .map(Self.stripCitations)
       .filter { !$0.isEmpty }
   }
@@ -153,9 +180,13 @@ struct BriefingSections: Equatable {
 
   /// "(2026-10-12#2)" / "[2026-10-12#3]" / "(projects/x.md)" are for the model, not for reading.
   static func stripCitations(_ s: String) -> String {
-    s.replacingOccurrences(of: #"\s*[\(\[]\d{4}-\d\d-\d\d#\d+[\)\]]"#, with: "", options: .regularExpression)
-      .replacingOccurrences(of: #"\s*\((?:memory/|projects/)[^)]*\)"#, with: "", options: .regularExpression)
-      .trimmingCharacters(in: .whitespaces)
+    s.replacingOccurrences(
+      of: #"\s*[\(\[]\d{4}-\d\d-\d\d#\d+[\)\]]"#, with: "", options: .regularExpression
+    )
+    .replacingOccurrences(
+      of: #"\s*\((?:memory/|projects/)[^)]*\)"#, with: "", options: .regularExpression
+    )
+    .trimmingCharacters(in: .whitespaces)
   }
 
   var isEmpty: Bool { leftOff.isEmpty && goal.isEmpty && nextSteps.isEmpty }
@@ -279,12 +310,16 @@ final class BriefingService: ObservableObject {
     var req = URLRequest(url: Self.baseURL.appendingPathComponent(path))
     req.timeoutInterval = 5
     let (data, resp) = try await URLSession.shared.data(for: req)
-    guard ((resp as? HTTPURLResponse)?.statusCode ?? 500) < 400 else { throw URLError(.badServerResponse) }
+    guard ((resp as? HTTPURLResponse)?.statusCode ?? 500) < 400 else {
+      throw URLError(.badServerResponse)
+    }
     return data
   }
 
   @discardableResult
-  private func post(_ path: String, _ body: [String: Any], timeout: TimeInterval = 15) async throws -> Data {
+  private func post(_ path: String, _ body: [String: Any], timeout: TimeInterval = 15) async throws
+    -> Data
+  {
     var req = URLRequest(url: Self.baseURL.appendingPathComponent(path))
     req.httpMethod = "POST"
     req.setValue("application/json", forHTTPHeaderField: "Content-Type")

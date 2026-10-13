@@ -42,7 +42,8 @@ struct WelcomeLoginGate {
   static let window: TimeInterval = 240
 
   static func shouldPlay(
-    sessionID: String?, lastWelcomedSessionID: String?, launchedAsLoginItem: Bool, sessionAge: TimeInterval?
+    sessionID: String?, lastWelcomedSessionID: String?, launchedAsLoginItem: Bool,
+    sessionAge: TimeInterval?
   ) -> Bool {
     guard let sessionID, sessionID != lastWelcomedSessionID else { return false }
     if launchedAsLoginItem { return true }
@@ -89,12 +90,14 @@ final class WelcomeController: ObservableObject {
 
   func start() {
     defaults.register(defaults: [
-      Keys.login: true, Keys.unlock: true, Keys.soundMix: WelcomeSoundMix.laptop.rawValue, Keys.minAwayMinutes: 10,
+      Keys.login: true, Keys.unlock: true, Keys.soundMix: WelcomeSoundMix.laptop.rawValue,
+      Keys.minAwayMinutes: 10,
     ])
     let event = NSAppleEventManager.shared().currentAppleEvent
     launchedAsLoginItem =
       event?.eventID == kAEOpenApplication
-      && event?.paramDescriptor(forKeyword: keyAEPropData)?.enumCodeValue == keyAELaunchedAsLogInItem
+      && event?.paramDescriptor(forKeyword: keyAEPropData)?.enumCodeValue
+        == keyAELaunchedAsLogInItem
     applySettings()
     WallpaperManager.shared.start()
 
@@ -118,7 +121,7 @@ final class WelcomeController: ObservableObject {
   }
 
   func applySettings() {
-    observers.forEach { $0.0.removeObserver($0.1) }
+    for (center, token) in observers { center.removeObserver(token) }
     observers.removeAll()
     gate.minAway = TimeInterval(defaults.integer(forKey: Keys.minAwayMinutes)) * 60
     guard Self.enabled else {
@@ -140,8 +143,12 @@ final class WelcomeController: ObservableObject {
     }
     // The same distributed notifications Dayframe's recorder and island use. They are
     // implementation-dependent, so the session dictionary is checked before playing.
-    observe(DistributedNotificationCenter.default(), .init("com.apple.screenIsLocked")) { $0.markAway() }
-    observe(DistributedNotificationCenter.default(), .init("com.apple.screenIsUnlocked")) { $0.returned() }
+    observe(DistributedNotificationCenter.default(), .init("com.apple.screenIsLocked")) {
+      $0.markAway()
+    }
+    observe(DistributedNotificationCenter.default(), .init("com.apple.screenIsUnlocked")) {
+      $0.returned()
+    }
     observe(workspace, NSWorkspace.sessionDidBecomeActiveNotification) { $0.returned() }
     observe(workspace, NSWorkspace.screensDidWakeNotification) { $0.returned() }
   }
@@ -192,7 +199,8 @@ final class WelcomeController: ObservableObject {
   /// Seconds since the Dock started: it launches once the user's session is up.
   static var sessionAge: TimeInterval? {
     guard
-      let pid = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.dock").first?
+      let pid = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.dock")
+        .first?
         .processIdentifier
     else { return nil }
     var info = kinfo_proc()

@@ -509,9 +509,9 @@ private struct ScreenRecordingPermissionNoticeView: View {
           Text(
             "Dayframe can't record until macOS allows it. Turn Dayframe on under Screen Recording, then restart Dayframe."
           )
-            .font(.custom("Figtree", size: 12))
-            .foregroundColor(theme.textSecondary)
-            .fixedSize(horizontal: false, vertical: true)
+          .font(.custom("Figtree", size: 12))
+          .foregroundColor(theme.textSecondary)
+          .fixedSize(horizontal: false, vertical: true)
         }
 
         Button(action: onDismiss) {

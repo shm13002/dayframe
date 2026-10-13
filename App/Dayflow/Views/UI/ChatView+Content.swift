@@ -542,9 +542,9 @@ extension ChatView {
                 ? String(localized: "Qwen on this Mac is ready")
                 : String(localized: "Claude Code or Codex CLI detected")
             )
-              .font(.custom("Figtree-SemiBold", size: 15))
-              .foregroundColor(Color(hex: "34C759"))
-              .transition(.opacity.combined(with: .scale(scale: 0.95)))
+            .font(.custom("Figtree-SemiBold", size: 15))
+            .foregroundColor(Color(hex: "34C759"))
+            .transition(.opacity.combined(with: .scale(scale: 0.95)))
           } else {
             Text("Qwen isn't running")
               .font(.custom("Figtree-SemiBold", size: 15))

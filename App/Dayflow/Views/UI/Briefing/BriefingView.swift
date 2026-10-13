@@ -108,7 +108,9 @@ struct BriefingView: View {
     let greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening"
     var parts = [greeting]
     if let at = service.state?.briefingAt {
-      parts.append("briefing from " + Date(timeIntervalSince1970: at).formatted(date: .omitted, time: .shortened))
+      parts.append(
+        "briefing from "
+          + Date(timeIntervalSince1970: at).formatted(date: .omitted, time: .shortened))
     }
     parts.append("written by " + writerName(service.writer))
     return parts.joined(separator: " · ")
@@ -127,7 +129,11 @@ struct BriefingView: View {
     Menu {
       Section("Open") {
         ForEach(BriefingMorePage.allCases) { page in
-          Button { morePage = page } label: { Label(page.title, systemImage: page.icon) }
+          Button {
+            morePage = page
+          } label: {
+            Label(page.title, systemImage: page.icon)
+          }
         }
       }
       Section("Briefings are written by") {
@@ -165,9 +171,11 @@ struct BriefingView: View {
       VStack(alignment: .leading, spacing: 16) {
         BriefingCardTitle("Where you left off")
         if s.isEmpty {
-          Text("No briefing yet. Tap New briefing, or keep working and one appears when you come back.")
-            .font(.custom("Figtree", size: 15))
-            .foregroundStyle(theme.textSecondary)
+          Text(
+            "No briefing yet. Tap New briefing, or keep working and one appears when you come back."
+          )
+          .font(.custom("Figtree", size: 15))
+          .foregroundStyle(theme.textSecondary)
         } else {
           Text(s.leftOff)
             .font(.custom("Figtree", size: 17))
@@ -241,7 +249,9 @@ struct BriefingView: View {
           .foregroundStyle(theme.textPrimary)
           .fixedSize(horizontal: false, vertical: true)
           .textSelection(.enabled)
-        if let goal = (service.state?.sessionGoal).flatMap({ $0.isEmpty ? nil : $0 }) ?? (s.goal.isEmpty ? nil : s.goal) {
+        if let goal = (service.state?.sessionGoal).flatMap({ $0.isEmpty ? nil : $0 })
+          ?? (s.goal.isEmpty ? nil : s.goal)
+        {
           HStack(spacing: 8) {
             Image(systemName: "scope")
             Text(goal).lineLimit(2)
@@ -334,7 +344,9 @@ struct BriefingView: View {
 
   private func color(for category: String?) -> Color {
     guard let category,
-      let match = categoryStore.categories.first(where: { $0.name.caseInsensitiveCompare(category) == .orderedSame })
+      let match = categoryStore.categories.first(where: {
+        $0.name.caseInsensitiveCompare(category) == .orderedSame
+      })
     else { return theme.accent }
     return Color(hex: match.colorHex)
   }
@@ -396,12 +408,18 @@ struct BriefingView: View {
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
         .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(theme.inputFill))
-        .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous).strokeBorder(theme.inputBorder, lineWidth: 1))
+        .overlay(
+          RoundedRectangle(cornerRadius: 10, style: .continuous).strokeBorder(
+            theme.inputBorder, lineWidth: 1))
 
         if let answer = service.askAnswer {
           VStack(alignment: .leading, spacing: 8) {
             Markdown(BriefingSections.stripCitations(answer))
-              .markdownTextStyle { FontFamily(.custom("Figtree")); FontSize(14); ForegroundColor(theme.textPrimary) }
+              .markdownTextStyle {
+                FontFamily(.custom("Figtree"))
+                FontSize(14)
+                ForegroundColor(theme.textPrimary)
+              }
               .textSelection(.enabled)
             Button("Clear") { service.clearAnswer() }
               .buttonStyle(.plain)
@@ -410,8 +428,13 @@ struct BriefingView: View {
           }
           .padding(14)
           .frame(maxWidth: .infinity, alignment: .leading)
-          .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(theme.chatSoftAccentFill))
-          .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous).strokeBorder(theme.chatSoftAccentBorder, lineWidth: 1))
+          .background(
+            RoundedRectangle(cornerRadius: 10, style: .continuous).fill(theme.chatSoftAccentFill)
+          )
+          .overlay(
+            RoundedRectangle(cornerRadius: 10, style: .continuous).strokeBorder(
+              theme.chatSoftAccentBorder, lineWidth: 1)
+          )
           .transition(.opacity.combined(with: .move(edge: .top)))
         }
       }
@@ -439,9 +462,16 @@ struct BriefingCardShell<Content: View>: View {
       .frame(maxWidth: .infinity, alignment: .leading)
       .background(shape.fill(theme.standupCardGradient))
       .background(shape.fill(tint ? theme.chatSoftAccentFill : .clear))
-      .overlay(shape.strokeBorder(theme.isDark ? theme.standupCardBorder : StandupStyle.strokeColor, lineWidth: 1))
-      .overlay(InnerGlow(shape: shape, color: theme.isDark ? .clear : theme.cardInnerGlow, radius: 3))
-      .shadow(color: theme.isDark ? .black.opacity(0.12) : StandupStyle.shadowColor, radius: 8, x: 0, y: 4)
+      .overlay(
+        shape.strokeBorder(
+          theme.isDark ? theme.standupCardBorder : StandupStyle.strokeColor, lineWidth: 1)
+      )
+      .overlay(
+        InnerGlow(shape: shape, color: theme.isDark ? .clear : theme.cardInnerGlow, radius: 3)
+      )
+      .shadow(
+        color: theme.isDark ? .black.opacity(0.12) : StandupStyle.shadowColor, radius: 8, x: 0, y: 4
+      )
   }
 }
 
@@ -480,9 +510,14 @@ struct BriefingPill: View {
       .padding(.horizontal, 14)
       .padding(.vertical, 8)
       .background(Capsule().fill(prominent ? theme.primaryButtonFill : theme.controlFill))
-      .overlay(Capsule().strokeBorder(prominent ? theme.primaryButtonBorder : theme.controlBorder, lineWidth: 1))
       .overlay(
-        InnerGlow(shape: Capsule(), color: prominent ? theme.primaryButtonInnerGlow : theme.controlInnerGlow, radius: 2)
+        Capsule().strokeBorder(
+          prominent ? theme.primaryButtonBorder : theme.controlBorder, lineWidth: 1)
+      )
+      .overlay(
+        InnerGlow(
+          shape: Capsule(),
+          color: prominent ? theme.primaryButtonInnerGlow : theme.controlInnerGlow, radius: 2)
       )
       .scaleEffect(hovering ? 1.03 : 1)
       .animation(.spring(response: 0.25, dampingFraction: 0.7), value: hovering)
@@ -583,7 +618,9 @@ private struct BriefingStat: View {
     .padding(12)
     .frame(maxWidth: .infinity, alignment: .leading)
     .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(theme.summaryCardFill))
-    .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous).strokeBorder(theme.summaryCardBorder, lineWidth: 1))
+    .overlay(
+      RoundedRectangle(cornerRadius: 10, style: .continuous).strokeBorder(
+        theme.summaryCardBorder, lineWidth: 1))
   }
 }
 

@@ -98,18 +98,26 @@ final class WallpaperManager: ObservableObject {
       var written: [URL] = []
       for (index, screen) in NSScreen.screens.enumerated() {
         let size = CGSize(
-          width: screen.frame.width * screen.backingScaleFactor, height: screen.frame.height * screen.backingScaleFactor)
+          width: screen.frame.width * screen.backingScaleFactor,
+          height: screen.frame.height * screen.backingScaleFactor)
         // A new name every time: macOS caches desktop pictures by path.
-        let url = Self.folder.appendingPathComponent("\(palette.rawValue)-\(dark ? "dark" : "light")-\(index)-\(stamp).png")
+        let url = Self.folder.appendingPathComponent(
+          "\(palette.rawValue)-\(dark ? "dark" : "light")-\(index)-\(stamp).png")
         guard let png = Self.render(palette: palette, dark: dark, pixels: size) else { continue }
         try png.write(to: url, options: .atomic)
         try NSWorkspace.shared.setDesktopImageURL(
-          url, for: screen, options: [.imageScaling: NSImageScaling.scaleProportionallyUpOrDown.rawValue, .allowClipping: true])
+          url, for: screen,
+          options: [
+            .imageScaling: NSImageScaling.scaleProportionallyUpOrDown.rawValue,
+            .allowClipping: true,
+          ])
         written.append(url)
       }
       cleanUp(keeping: Set(written))
       lastError = nil
-      wallpaperLog.notice("[Wallpaper] set \(palette.rawValue, privacy: .public) \(dark ? "dark" : "light", privacy: .public) on \(written.count) display(s)")
+      wallpaperLog.notice(
+        "[Wallpaper] set \(palette.rawValue, privacy: .public) \(dark ? "dark" : "light", privacy: .public) on \(written.count) display(s)"
+      )
     } catch {
       lastError = error.localizedDescription
       wallpaperLog.error("[Wallpaper] failed: \(error.localizedDescription, privacy: .public)")
@@ -117,13 +125,17 @@ final class WallpaperManager: ObservableObject {
   }
 
   private var isDark: Bool {
-    let pref = DayflowAppearance(rawValue: defaults.string(forKey: DayflowAppearance.storageKey) ?? "") ?? .system
+    let pref =
+      DayflowAppearance(rawValue: defaults.string(forKey: DayflowAppearance.storageKey) ?? "")
+      ?? .system
     return pref.colorScheme(system: SystemAppearanceObserver.currentColorScheme) == .dark
   }
 
   /// PNG data for the wallpaper at a pixel size.
   static func render(palette: DayframePalette, dark: Bool, pixels: CGSize) -> Data? {
-    let renderer = ImageRenderer(content: WallpaperArt(palette: palette, dark: dark).frame(width: pixels.width, height: pixels.height))
+    let renderer = ImageRenderer(
+      content: WallpaperArt(palette: palette, dark: dark).frame(
+        width: pixels.width, height: pixels.height))
     renderer.scale = 1
     guard let image = renderer.cgImage else { return nil }
     return NSBitmapImageRep(cgImage: image).representation(using: .png, properties: [:])
@@ -147,19 +159,25 @@ final class WallpaperManager: ObservableObject {
     let previous = defaults.dictionary(forKey: Keys.previous) as? [String: String] ?? [:]
     var restored = 0
     for screen in NSScreen.screens {
-      guard let id = screen.displayID, let string = previous[String(id)], let url = URL(string: string),
+      guard let id = screen.displayID, let string = previous[String(id)],
+        let url = URL(string: string),
         FileManager.default.fileExists(atPath: url.path)
       else { continue }
-      if (try? NSWorkspace.shared.setDesktopImageURL(url, for: screen, options: [:])) != nil { restored += 1 }
+      if (try? NSWorkspace.shared.setDesktopImageURL(url, for: screen, options: [:])) != nil {
+        restored += 1
+      }
     }
     if restored == 0 {
       // A dynamic or system wallpaper can't be read back; let the user pick one.
-      NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.Wallpaper-Settings.extension")!)
+      NSWorkspace.shared.open(
+        URL(string: "x-apple.systempreferences:com.apple.Wallpaper-Settings.extension")!)
     }
   }
 
   private func cleanUp(keeping: Set<URL>) {
-    let files = (try? FileManager.default.contentsOfDirectory(at: Self.folder, includingPropertiesForKeys: nil)) ?? []
+    let files =
+      (try? FileManager.default.contentsOfDirectory(
+        at: Self.folder, includingPropertiesForKeys: nil)) ?? []
     for file in files where file.pathExtension == "png" && !keeping.contains(file) {
       try? FileManager.default.removeItem(at: file)
     }
@@ -168,7 +186,9 @@ final class WallpaperManager: ObservableObject {
 
 extension NSScreen {
   var displayID: CGDirectDisplayID? {
-    (deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber).map { CGDirectDisplayID($0.uint32Value) }
+    (deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber).map {
+      CGDirectDisplayID($0.uint32Value)
+    }
   }
 }
 
@@ -186,7 +206,9 @@ struct WallpaperArt: View {
       // Light mode: dunes are the warm horizon color, deepening toward the accent up front.
       let sand = NSColor(hex: s.light[0]) ?? .white
       let deep = NSColor(hex: s.accent) ?? .black
-      func lightDune(_ t: CGFloat) -> Color { Color(nsColor: sand.blended(withFraction: t, of: deep) ?? sand) }
+      func lightDune(_ t: CGFloat) -> Color {
+        Color(nsColor: sand.blended(withFraction: t, of: deep) ?? sand)
+      }
       let full = CGRect(origin: .zero, size: size)
       let horizon = size.height * 0.68
 
@@ -197,7 +219,10 @@ struct WallpaperArt: View {
       context.fill(
         Path(full),
         with: .linearGradient(
-          Gradient(stops: [.init(color: skyTop, location: 0), .init(color: skyMid, location: 0.55), .init(color: skyLow, location: 0.7)]),
+          Gradient(stops: [
+            .init(color: skyTop, location: 0), .init(color: skyMid, location: 0.55),
+            .init(color: skyLow, location: 0.7),
+          ]),
           startPoint: .zero, endPoint: CGPoint(x: 0, y: size.height)))
 
       // Where the light set: a wide, low glow on the horizon, fading out on every side.
@@ -209,18 +234,32 @@ struct WallpaperArt: View {
             .init(color: accent.opacity(dark ? 0.09 : 0.12), location: 0.45),
             .init(color: .clear, location: 1),
           ]),
-          center: CGPoint(x: size.width / 2, y: horizon), startRadius: 0, endRadius: size.width * 0.5))
+          center: CGPoint(x: size.width / 2, y: horizon), startRadius: 0,
+          endRadius: size.width * 0.5))
 
       // A faint ring sinking behind the dunes: the eclipse from the welcome, at rest.
       let r = size.height * 0.07
-      let ring = Path(ellipseIn: CGRect(x: size.width / 2 - r, y: horizon - r * 0.55, width: r * 2, height: r * 2))
-      context.stroke(ring, with: .color(glow.opacity(dark ? 0.22 : 0.3)), lineWidth: max(1, size.height * 0.0012))
+      let ring = Path(
+        ellipseIn: CGRect(x: size.width / 2 - r, y: horizon - r * 0.55, width: r * 2, height: r * 2)
+      )
+      context.stroke(
+        ring, with: .color(glow.opacity(dark ? 0.22 : 0.3)), lineWidth: max(1, size.height * 0.0012)
+      )
 
       // Dunes, back to front.
       let layers: [(CGFloat, CGFloat, CGFloat, Color)] = [
-        (horizon - size.height * 0.015, 0.035, 0.0, dark ? scaledColor(s.dark[2], 0.5) : lightDune(0.10)),
-        (horizon + size.height * 0.06, 0.05, 1.7, dark ? scaledColor(s.dark[1], 0.36) : lightDune(0.17)),
-        (horizon + size.height * 0.17, 0.045, 3.1, dark ? scaledColor(s.dark[0], 0.24) : lightDune(0.25)),
+        (
+          horizon - size.height * 0.015, 0.035, 0.0,
+          dark ? scaledColor(s.dark[2], 0.5) : lightDune(0.10)
+        ),
+        (
+          horizon + size.height * 0.06, 0.05, 1.7,
+          dark ? scaledColor(s.dark[1], 0.36) : lightDune(0.17)
+        ),
+        (
+          horizon + size.height * 0.17, 0.045, 3.1,
+          dark ? scaledColor(s.dark[0], 0.24) : lightDune(0.25)
+        ),
       ]
       for (y, amp, phase, color) in layers {
         var dune = Path()

@@ -24,6 +24,24 @@ Entry template:
 
 ## 2026-10-13 (Tue)
 
+### 00:11: Swift: Dayframe's own files formatted to zero swift-format warnings
+- **What:**
+  - `xcrun swift-format format -i` on all 35 Swift files Dayframe created (Welcome, Island, native Briefing, settings sections, chat on Qwen, the recording watchdog, tests). Only formatting, except two `forEach` loops rewritten as `for` loops.
+  - In 12 Dayflow files, fixed by hand only the lines Dayframe had added: line breaks, indentation, and a trailing comma. Dayflow's own warnings in those files are left alone (ADR 0001).
+  - Small edits that go beyond whitespace:
+    - `LocalModelPreset.qwen35_4B` renamed `qwen35Model4B`. The stored raw value `"qwen35_4b"` is unchanged, so saved settings still load.
+    - `ChatMetadataParser.extractTrailingBareSuggestions`: the multi-line `guard` split into a named `lastLineStart` plus a short `guard`, with the same logic.
+    - `OllamaProvider`'s `reasoning_effort` keeps its JSON name, marked `// swift-format-ignore: AlwaysUseLowerCamelCase`, like Dayflow's own `max_tokens`.
+  - **check.sh fixes:** newer swift-format prints a "reading stdin without `-` is deprecated" notice, which was being counted as a warning (it inflated the 23:54 count). It now passes `-` and counts only real rule warnings.
+- **Files:** 35 files under `App/Dayflow` and `App/DayflowTests` (formatting), `check.sh`, `.scratch/clean-code/issues/02-format-dayframe-swift.md`
+- **Why:** Ticket clean-code/02. Dayframe's code had drifted from the style Dayflow uses (81 warnings in the Start of day files alone).
+- **Checked:**
+  - `./check.sh`: Swift clean (415 files).
+  - `./check.sh --app` built the app and ran 226 unit tests: all pass except the known upstream `testCardRetryRetainsFullContextAndReturnsDetailedCards`, which is fixed in the next entry.
+  - Briefing: 93 tests pass.
+  - Not installed yet: installing comes after the audit fixes.
+- **Commit:** this entry's title is the commit subject.
+
 ### 00:04: Web: Prettier everywhere, palette parity test, island tests
 - **What:**
   - Ran Prettier (print width 120) over all of `Web/src` and the Vite configs. Whitespace and line breaks only.
