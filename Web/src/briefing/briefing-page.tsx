@@ -23,6 +23,7 @@ const WRITERS: { id: string; label: string }[] = [
   { id: "ollama", label: "Qwen (on this Mac)" },
   { id: "claude_cli", label: "Claude" },
   { id: "codex_cli", label: "ChatGPT" },
+  { id: "grok_cli", label: "Grok" },
 ];
 
 const MORE_PAGES: { id: string; label: string }[] = [

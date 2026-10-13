@@ -46,8 +46,8 @@ RAM_TIERS = [  # (max_gb, model)
 DEFAULTS = {
     "model": None,  # filled from RAM tier
     "ollama_url": "http://localhost:11434",
-    "llm_backend": "ollama",         # ollama | openai (LM Studio) | claude_cli | codex_cli (your Claude / ChatGPT plan, no API key)
-    "cli_model": "",                 # optional model for claude_cli / codex_cli; blank = the CLI's default
+    "llm_backend": "ollama",         # ollama | openai (LM Studio) | claude_cli | codex_cli | grok_cli (your own plan, no API key)
+    "cli_model": "",                 # optional model for the *_cli backends; blank = the CLI's default
     "llm_url": "http://localhost:1234/v1",
     "cooldown_minutes": 30,
     "lookback_hours": 12,
@@ -484,27 +484,39 @@ def fmt_cards(cards, limit=60):
 def is_openai(cfg):
     return cfg.get("llm_backend") == "openai"
 
+# The command-line agents Briefing can write with, each signed in with the user's own plan.
+CLI_BACKENDS = {
+    "claude_cli": {"bin": "claude", "name": "Claude (your plan)", "sign_in": "run `claude` then /login"},
+    "codex_cli": {"bin": "codex", "name": "ChatGPT (your plan)", "sign_in": "run `codex login`"},
+    "grok_cli": {"bin": "grok", "name": "Grok (your plan)", "sign_in": "run `grok login`"},
+}
+
 def is_cli(cfg):
-    return cfg.get("llm_backend") in ("claude_cli", "codex_cli")
+    return cfg.get("llm_backend") in CLI_BACKENDS
 
 def llm_name(cfg):
-    return {"openai": "LM Studio", "claude_cli": "Claude (your plan)", "codex_cli": "ChatGPT (your plan)"}.get(
-        cfg.get("llm_backend"), "Ollama")
+    backend = cfg.get("llm_backend")
+    return "LM Studio" if backend == "openai" else CLI_BACKENDS.get(backend, {}).get("name", "Ollama")
 
-CLI_DIRS = [str(Path.home() / ".local/bin"), "/opt/homebrew/bin", "/usr/local/bin", str(Path.home() / ".npm-global/bin")]
+CLI_DIRS = [str(Path.home() / ".local/bin"), "/opt/homebrew/bin", "/usr/local/bin", str(Path.home() / ".npm-global/bin"),
+            str(Path.home() / ".grok/bin")]
 
 def cli_bin(cfg):
     import shutil
-    name = "claude" if cfg.get("llm_backend") == "claude_cli" else "codex"
+    name = CLI_BACKENDS[cfg.get("llm_backend")]["bin"]
     return shutil.which(name, path=os.pathsep.join(CLI_DIRS + [os.environ.get("PATH", "")]))
 
+# Grok gets no tools at all: it only writes text.
+GROK_DENIED_TOOLS = "run_terminal_cmd,search_replace,read_file,grep,list_dir,todo_write,task,web_search,web_fetch,Agent"
+
 def cli_chat(cfg, system, user):
-    """Run one prompt through the Claude Code or Codex CLI, signed in with the user's own plan.
+    """Run one prompt through the Claude Code, Codex or Grok CLI, signed in with the user's own plan.
     Returns (text, error). Tools, MCP servers and web search are off: it only writes text."""
-    exe = cli_bin(cfg)
     backend = cfg.get("llm_backend")
+    spec = CLI_BACKENDS[backend]
+    exe = cli_bin(cfg)
     if not exe:
-        return "", f"{'claude' if backend == 'claude_cli' else 'codex'} CLI not found (install it and sign in)"
+        return "", f"{spec['bin']} CLI not found (install it and sign in)"
     model = (cfg.get("cli_model") or "").strip()
     sandbox = HOME / ".cli-sandbox"   # empty working dir so no project context leaks in
     sandbox.mkdir(parents=True, exist_ok=True)
@@ -515,6 +527,18 @@ def cli_chat(cfg, system, user):
         if model:
             cmd += ["--model", model]
         stdin = user
+    elif backend == "grok_cli":
+        # Grok doesn't read stdin, and the prompt must stay off the command line (other processes can
+        # see it there), so it goes through a private file in the sandbox that is removed afterwards.
+        prompt_file = sandbox / f"prompt-{secrets.token_hex(6)}.txt"
+        prompt_file.write_text(user)
+        prompt_file.chmod(0o600)
+        cmd = [exe, "--prompt-file", str(prompt_file), "--system-prompt-override", system, "--output-format", "json",
+               "--max-turns", "1", "--disable-web-search", "--no-subagents", "--no-memory", "--no-plan", "--no-auto-update",
+               "--disallowed-tools", GROK_DENIED_TOOLS, "--cwd", str(sandbox)]
+        if model:
+            cmd += ["-m", model]
+        stdin = ""
     else:
         cmd = [exe, "exec", "--skip-git-repo-check", "--json", "-c", "web_search=disabled", "-c", "rmcp_client=false"]
         if model:
@@ -528,6 +552,9 @@ def cli_chat(cfg, system, user):
     except subprocess.TimeoutExpired:
         telemetry("llm", ms=int((time.time() - t0) * 1000), ok=False, backend=backend, error="timeout")
         return "", f"{llm_name(cfg)} timed out"
+    finally:
+        if backend == "grok_cli":
+            prompt_file.unlink(missing_ok=True)
     ms = int((time.time() - t0) * 1000)
     text, tin, tout, cli_err = "", 0, 0, ""
     if backend == "claude_cli":
@@ -539,6 +566,18 @@ def cli_chat(cfg, system, user):
             tout = int(u.get("output_tokens", 0))
             if j.get("is_error"):
                 text, cli_err = "", str(j.get("result") or "error")
+        except Exception:
+            text = ""
+    elif backend == "grok_cli":
+        try:
+            j = json.loads(r.stdout.strip().splitlines()[-1])
+            if j.get("type") == "error":
+                cli_err = str(j.get("message") or "error").splitlines()[0]
+            else:
+                text = j.get("text") or ""
+                u = j.get("usage") or {}
+                tin = int(u.get("input_tokens", 0)) + int(u.get("cache_read_input_tokens", 0))
+                tout = int(u.get("output_tokens", 0))
         except Exception:
             text = ""
     else:
@@ -557,8 +596,8 @@ def cli_chat(cfg, system, user):
     telemetry("llm", ms=ms, ok=ok, backend=backend, tokens_in=tin, tokens_out=tout)
     if not ok:
         err = cli_err or ((r.stderr or r.stdout or "").strip().splitlines()[-1:] or ["no output"])[0]
-        if "authenticat" in err.lower() or "login" in err.lower():
-            err += " (sign in: run `claude` then /login)" if backend == "claude_cli" else " (sign in: run `codex login`)"
+        if any(w in err.lower() for w in ("authenticat", "login", "signed in")):
+            err += f" (sign in: {spec['sign_in']})"
         return "", f"{llm_name(cfg)} failed: {err[:240]}"
     return strip_think(text), None
 

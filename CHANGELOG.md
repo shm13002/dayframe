@@ -24,6 +24,25 @@ Entry template:
 
 ## 2026-10-13 (Tue)
 
+### 11:11: Briefing can write with Grok (grok_cli)
+- **What:**
+  - `briefing.py`: a third CLI backend, `grok_cli`, next to `claude_cli` and `codex_cli`. It runs xAI's Grok CLI signed in with the user's own plan (no API key) and falls back to Qwen on any error, like the others.
+    - The three repeated `claude … else codex` choices are replaced by one table, `CLI_BACKENDS` (binary, display name, sign-in hint). Before this, adding a third CLI to `is_cli` alone would have run `codex`.
+    - `~/.grok/bin` is added to the CLI search folders.
+    - Grok can't read stdin, so the prompt goes in a private 0600 file in `~/Briefing/.cli-sandbox` (`--prompt-file`), deleted after the run, never on the command line. The system prompt goes through `--system-prompt-override`.
+    - Grok writes text only: one turn, no web search, subagents, memory or plan, and every tool denied (`GROK_DENIED_TOOLS`).
+    - Reads Grok's `json` output (`text`, `usage`: uncached plus cached input, output) and its error line. "Not signed in" gets the hint "run `grok login`".
+  - Writer picker on the React Briefing page: Grok added. `Briefing/dist` rebuilt.
+- **Files:** `Briefing/briefing.py`, `Briefing/tests/test_cli_backend.py`, `Web/src/briefing/briefing-page.tsx`, `.scratch/grok/issues/03-briefing-backend.md`
+- **Why:** The user asked to connect Grok "just like Claude". Ticket grok/03.
+- **Checked:**
+  - 4 new tests (text and usage; the prompt goes through a removed file and never the arguments; text-only flags; "Not signed in" plus Qwen fallback): red first, then green.
+  - Briefing 95 pass. Web typecheck, Prettier and tests pass.
+  - The real CLI was run once with a two-word prompt. It is **not signed in** (its sign-in lasts 7 days). The error JSON it printed is the one the tests use. **For the user:** run `~/.grok/bin/grok login`.
+  - Not yet: the native Briefing menu and Settings › AI usage entries for Grok (two small Swift edits) wait for the next app build. The disk has only about 2 GB free, below the build's 3 GB guard.
+  - Correction to 11:08: its commit's hook ran **91** Briefing tests on the staged snapshot. The 95 counted these Grok tests, which were still unstaged then.
+- **Commit:** this entry's title is the commit subject.
+
 ### 11:08: Tests stop acting on the real Mac, and the known test failures are fixed
 - **What:**
   - **Briefing's tests acted on the real Mac** (the user saw this on every test run):
