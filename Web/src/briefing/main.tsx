@@ -23,7 +23,7 @@ function App() {
   return (
     <MotionConfig reducedMotion="user">
       {briefing.phase === "ready" ? (
-        <BriefingPage briefing={briefing} categories={context.categories} />
+        <BriefingPage briefing={briefing} categories={context.categories} dayApps={context.dayApps} />
       ) : briefing.phase === "offline" ? (
         <Offline onRetry={briefing.refresh} />
       ) : (

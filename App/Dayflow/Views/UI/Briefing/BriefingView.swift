@@ -14,6 +14,7 @@ struct BriefingView: View {
   @Environment(\.dayflowTheme) private var theme
   @ObservedObject private var service = BriefingService.shared
   @ObservedObject private var categoryStore = CategoryStore.shared
+  @ObservedObject private var startOfDay = StartOfDay.shared
   @State private var question = ""
   @State private var newTodo = ""
   @State private var morePage: BriefingMorePage?
@@ -46,6 +47,7 @@ struct BriefingView: View {
       ScrollView {
         VStack(alignment: .leading, spacing: 22) {
           header
+          if !startOfDay.apps.isEmpty { todaysApps }
           if wide {
             HStack(alignment: .top, spacing: 18) {
               VStack(spacing: 18) {
@@ -74,6 +76,39 @@ struct BriefingView: View {
         .padding(.bottom, 40)
       }
       .scrollIndicators(.never)
+    }
+  }
+
+  // MARK: - Today's apps
+
+  /// The apps from Settings › Start of day: click one to bring it forward.
+  private var todaysApps: some View {
+    HStack(spacing: 14) {
+      Text("Today's apps")
+        .font(.custom("InstrumentSerif-Regular", size: 20))
+        .foregroundColor(theme.textPrimary)
+      HStack(spacing: 10) {
+        ForEach(startOfDay.apps) { app in
+          Button {
+            startOfDay.bringForward(bundleID: app.bundleID)
+          } label: {
+            Image(nsImage: NSWorkspace.shared.icon(forFile: app.path))
+              .resizable()
+              .frame(width: 40, height: 40)
+          }
+          .buttonStyle(.plain)
+          .help("Open \(app.name)")
+          .accessibilityLabel("Open \(app.name)")
+        }
+      }
+      Button {
+        startOfDay.run(reason: "briefing", force: true)
+      } label: {
+        Label("Set up my day", systemImage: "sunrise")
+          .font(.custom("Figtree", size: 13).weight(.medium))
+      }
+      .buttonStyle(.bordered)
+      .disabled(startOfDay.isRunning)
     }
   }
 

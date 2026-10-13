@@ -16,6 +16,7 @@ struct BriefingReactView: View {
   @Environment(\.dayflowTheme) private var theme
   @ObservedObject private var palette = DayframePaletteStore.shared
   @ObservedObject private var categoryStore = CategoryStore.shared
+  @ObservedObject private var startOfDay = StartOfDay.shared
   @State private var phase: Phase = .probing
   @State private var pageReady = false
   @State private var morePage: BriefingMorePage?
@@ -65,6 +66,9 @@ struct BriefingReactView: View {
       dark: theme.isDark,
       categories: categoryStore.categories.map {
         .init(name: $0.name, color: $0.colorHex.hasPrefix("#") ? $0.colorHex : "#\($0.colorHex)")
+      },
+      dayApps: startOfDay.apps.map {
+        .init(id: $0.bundleID, name: $0.name, icon: DayAppIcon.dataURL(forAppAt: $0.path))
       }
     )
   }
@@ -87,6 +91,10 @@ struct BriefingReactView: View {
       morePage = BriefingMorePage(rawValue: page)
     case .showTimeline:
       NotificationCenter.default.post(name: .navigateToTimeline, object: nil)
+    case .openApp(let bundleID):
+      StartOfDay.shared.bringForward(bundleID: bundleID)
+    case .setUpDay:
+      StartOfDay.shared.run(reason: "briefing", force: true)
     }
   }
 }
@@ -97,9 +105,17 @@ struct BriefingPageContext: Encodable, Equatable {
     let name: String
     let color: String
   }
+  struct DayAppItem: Encodable, Equatable {
+    let id: String
+    let name: String
+    /// A 64 px PNG as a data URL.
+    let icon: String
+  }
   let palette: String
   let dark: Bool
   let categories: [Category]
+  /// The apps from Settings › Start of day, for the "Today's apps" row.
+  let dayApps: [DayAppItem]
 }
 
 enum BriefingPageMessage: Equatable {
@@ -107,6 +123,8 @@ enum BriefingPageMessage: Equatable {
   case failed
   case openMore(String)
   case showTimeline
+  case openApp(bundleID: String)
+  case setUpDay
 
   init?(body: Any) {
     guard let dict = body as? [String: Any], let type = dict["type"] as? String else { return nil }
@@ -116,6 +134,10 @@ enum BriefingPageMessage: Equatable {
     case "openMore":
       guard let page = dict["page"] as? String else { return nil }
       self = .openMore(page)
+    case "openApp":
+      guard let id = dict["id"] as? String else { return nil }
+      self = .openApp(bundleID: id)
+    case "setUpDay": self = .setUpDay
     default: return nil
     }
   }

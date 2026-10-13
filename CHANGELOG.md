@@ -24,6 +24,22 @@ Entry template:
 
 ## 2026-10-13 (Tue)
 
+### 14:03: "Today's apps" row on Briefing
+- **What:**
+  - Briefing shows the day apps from Settings › Start of day as a row under the header: click an icon to bring that app forward (opening it if needed), or press **Set up my day** to run Start of day now. It's on both the React page and the native fallback screen.
+  - **Swift → page:** `BriefingPageContext.dayApps` carries each app's bundle ID, name and a 64 px PNG icon as a data URL. `DayAppIcon` makes each icon once and caches it. briefing.py's CSP already allows `img-src data:`.
+  - **Page → Swift:** new messages `openApp` and `setUpDay`. `StartOfDay.bringForward(bundleID:)` opens **only apps on the user's list** and logs a refusal for anything else, so the page can't launch arbitrary apps.
+  - **Web:** new pure `src/briefing/day-apps.ts` (`parseDayApps` keeps only a bundle-ID-shaped ID, a name and a PNG data URL), wired through `lib/bridge.ts` and `main.tsx` into a `TodaysApps` component. It reuses the page's PillButton, motion tokens and theme colors.
+  - `Briefing/dist` rebuilt and deployed to `~/Briefing/app/dist`.
+- **Files:** `Web/src/briefing/{day-apps.ts,day-apps.test.ts,briefing-page.tsx,main.tsx}`, `Web/src/lib/bridge.ts`, `App/Dayflow/Views/UI/Briefing/{BriefingReactView,BriefingView}.swift`, `App/Dayflow/Welcome/StartOfDay.swift`, `App/DayflowTests/NotchIslandTests.swift`
+- **Why:** The third idea the user asked to build now (ticket start-of-day-extras/03).
+- **Checked:**
+  - Web: 3 new parser tests (24 total), typecheck clean.
+  - App: message parsing for `openApp`/`setUpDay`, `dayApps` in the context JSON, refusal of a non-day-app bundle ID, and the cached PNG data URL. `DAYFRAME_LOW_DISK_OK=1 ./check.sh --app`: all clean, 250 tests.
+  - In the browser pane against the real Briefing server (`/app/?embed=dayframe`), with stand-in icons pushed through `window.dayframe.setContext`: the row renders with "Open Notes / Open Calendar / Open Cursor / Set up my day". A malformed entry (icon URL not a data URL) was dropped. It looks right in dark Original and light Lagoon, and the console is clean.
+  - Not yet: clicking it inside the app (needs the install), and the user has no day apps set yet (Settings › Start of day › Add app…).
+- **Commit:** this entry's title is the commit subject.
+
 ### 13:57: Start of day can turn on a Focus (through a Shortcut)
 - **What:**
   - macOS has no public API to set a Focus, so Dayframe uses the supported path. The user makes a Shortcut once with the **Set Focus** action (suggested name "Work Focus"), and Start of day runs it with `/usr/bin/shortcuts run` right after the day's apps open.

@@ -1,4 +1,15 @@
-import { ArrowUp, Ellipsis, RotateCw, Search, Sparkles, Target, ThumbsDown, ThumbsUp, Undo2 } from "lucide-react";
+import {
+  ArrowUp,
+  Ellipsis,
+  RotateCw,
+  Search,
+  Sparkles,
+  Sunrise,
+  Target,
+  ThumbsDown,
+  ThumbsUp,
+  Undo2,
+} from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { type FormEvent, useMemo, useState } from "react";
 import { ActivityChip } from "@/components/dayframe/activity-chip";
@@ -16,6 +27,7 @@ import { duration, ease, settle, stagger } from "@/lib/motion";
 import { useMediaQuery } from "@/lib/use-media-query";
 import { formatMinutes, greeting } from "@/lib/utils";
 import type { TimelineCard } from "./api";
+import type { DayApp } from "./day-apps";
 import { isEmptySections, parseSections, stripCitations } from "./sections";
 import type { Briefing } from "./use-briefing";
 
@@ -59,9 +71,10 @@ function openMore(page: string) {
 interface BriefingPageProps {
   briefing: Briefing;
   categories: CategoryColor[];
+  dayApps: DayApp[];
 }
 
-export function BriefingPage({ briefing, categories }: BriefingPageProps) {
+export function BriefingPage({ briefing, categories, dayApps }: BriefingPageProps) {
   const { state } = briefing;
   const wide = useMediaQuery("(min-width: 900px)");
   const sections = useMemo(() => parseSections(state?.briefing ?? ""), [state?.briefing]);
@@ -109,6 +122,11 @@ export function BriefingPage({ briefing, categories }: BriefingPageProps) {
       <div className="mx-auto flex max-w-[1240px] flex-col gap-[22px] px-6 pt-7 pb-10 min-[900px]:px-11">
         <Header briefing={briefing} />
         <ErrorNotice error={briefing.error} onRetry={briefing.refresh} onDismiss={briefing.dismissError} />
+        {isEmbedded && dayApps.length > 0 ? (
+          <BlurFade delay={enterAt()}>
+            <TodaysApps apps={dayApps} />
+          </BlurFade>
+        ) : null}
 
         {/* Wide: the story on the left, what to do now on the right. Narrow: one column by priority. */}
         {wide ? (
@@ -283,6 +301,38 @@ function HeroCard({ briefing, sections }: { briefing: Briefing; sections: Return
         )}
       </div>
     </GlassCard>
+  );
+}
+
+/** The apps from Settings › Start of day: one click brings each forward, or sets up the whole day. */
+function TodaysApps({ apps }: { apps: DayApp[] }) {
+  return (
+    <section aria-label="Today's apps" className="flex flex-wrap items-center gap-x-4 gap-y-3">
+      <h2 className="font-serif text-[20px] leading-tight text-shell-heading">Today's apps</h2>
+      <ul className="flex flex-wrap items-center gap-2.5">
+        {apps.map((app, i) => (
+          <motion.li
+            key={app.id}
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: duration.quick, ease: ease.outQuart, delay: i * 0.04 }}
+          >
+            <button
+              type="button"
+              title={`Open ${app.name}`}
+              aria-label={`Open ${app.name}`}
+              onClick={() => postToHost({ type: "openApp", id: app.id })}
+              className="grid size-11 place-items-center rounded-[12px] transition-transform duration-150 hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent active:translate-y-0"
+            >
+              <img src={app.icon} alt="" className="size-10" draggable={false} />
+            </button>
+          </motion.li>
+        ))}
+      </ul>
+      <PillButton icon={Sunrise} onClick={() => postToHost({ type: "setUpDay" })}>
+        Set up my day
+      </PillButton>
+    </section>
   );
 }
 

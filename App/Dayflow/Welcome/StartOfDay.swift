@@ -65,6 +65,28 @@ enum WindowStyle: String, CaseIterable, Identifiable {
   var title: String { self == .layout ? "Layout" : "Stage Manager" }
 }
 
+/// Day apps' icons as small PNG data URLs for the Briefing page, made once per app.
+@MainActor
+enum DayAppIcon {
+  private static var cache: [String: String] = [:]
+
+  static func dataURL(forAppAt path: String) -> String {
+    if let cached = cache[path] { return cached }
+    let icon = NSWorkspace.shared.icon(forFile: path)
+    let size = NSSize(width: 64, height: 64)
+    let image = NSImage(size: size, flipped: false) { rect in
+      icon.draw(in: rect)
+      return true
+    }
+    guard let tiff = image.tiffRepresentation, let bitmap = NSBitmapImageRep(data: tiff),
+      let png = bitmap.representation(using: .png, properties: [:])
+    else { return "" }
+    let url = "data:image/png;base64," + png.base64EncodedString()
+    cache[path] = url
+    return url
+  }
+}
+
 /// What one start-of-day run did: the line under "Run now", and the log's last word.
 struct StartOfDayReport: Equatable {
   var opened = 0
@@ -257,6 +279,28 @@ final class StartOfDay: ObservableObject {
       lastRun = report.summary(at: Date().formatted(date: .omitted, time: .shortened))
       startLog.notice("[StartOfDay] done: \(self.lastRun ?? "", privacy: .public)")
     }
+  }
+
+  /// Brings one of the day's apps forward, opening it if needed (Briefing's "Today's apps").
+  /// Only apps on the user's list: the page can't open anything else.
+  @discardableResult
+  func bringForward(bundleID: String) -> Bool {
+    guard let app = apps.first(where: { $0.bundleID == bundleID }) else {
+      startLog.error("[StartOfDay] refused to open \(bundleID, privacy: .public): not a day app")
+      return false
+    }
+    if let running = NSRunningApplication.runningApplications(withBundleIdentifier: bundleID).first
+    {
+      running.unhide()
+      running.activate()
+    } else {
+      let url =
+        NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID)
+        ?? URL(fileURLWithPath: app.path)
+      NSWorkspace.shared.openApplication(at: url, configuration: NSWorkspace.OpenConfiguration())
+    }
+    startLog.notice("[StartOfDay] \(app.name, privacy: .public): brought forward from Briefing")
+    return true
   }
 
   private func hideOthers(keeping: Set<String>) {

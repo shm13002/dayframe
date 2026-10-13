@@ -109,18 +109,38 @@ final class NotchIslandTests: XCTestCase {
     XCTAssertEqual(
       BriefingPageMessage(body: ["type": "openMore", "page": "memory"]), .openMore("memory"))
     XCTAssertNil(BriefingPageMessage(body: ["type": "openMore"]))
+    XCTAssertEqual(
+      BriefingPageMessage(body: ["type": "openApp", "id": "com.apple.Notes"]),
+      .openApp(bundleID: "com.apple.Notes"))
+    XCTAssertNil(BriefingPageMessage(body: ["type": "openApp"]))
+    XCTAssertEqual(BriefingPageMessage(body: ["type": "setUpDay"]), .setUpDay)
     XCTAssertNil(BriefingPageMessage(body: ["type": "rm -rf"]))
     XCTAssertNil(BriefingPageMessage(body: "ready"))
   }
 
   func testBriefingContextEncodesCategoryColors() throws {
     let context = BriefingPageContext(
-      palette: "lagoon", dark: true, categories: [.init(name: "Studying", color: "#7B83FF")])
+      palette: "lagoon", dark: true, categories: [.init(name: "Studying", color: "#7B83FF")],
+      dayApps: [.init(id: "com.apple.Notes", name: "Notes", icon: "data:image/png;base64,AA==")])
     let json = try XCTUnwrap(
       JSONSerialization.jsonObject(with: JSONEncoder().encode(context)) as? [String: Any])
     XCTAssertEqual(json["palette"] as? String, "lagoon")
     XCTAssertEqual(json["dark"] as? Bool, true)
     XCTAssertEqual((json["categories"] as? [[String: String]])?.first?["color"], "#7B83FF")
+    XCTAssertEqual((json["dayApps"] as? [[String: String]])?.first?["id"], "com.apple.Notes")
+  }
+
+  @MainActor
+  func testBriefingCanOnlyOpenTheDaysApps() {
+    // The page sends a bundle ID; anything not on the user's list is refused, not opened.
+    XCTAssertFalse(StartOfDay.shared.bringForward(bundleID: "com.example.not-a-day-app"))
+  }
+
+  @MainActor
+  func testDayAppIconIsASmallPNGDataURL() {
+    let url = DayAppIcon.dataURL(forAppAt: "/System/Applications/Notes.app")
+    XCTAssertTrue(url.hasPrefix("data:image/png;base64,"))
+    XCTAssertEqual(DayAppIcon.dataURL(forAppAt: "/System/Applications/Notes.app"), url)  // cached
   }
 
   // MARK: - Capture exclusion

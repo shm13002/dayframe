@@ -1,6 +1,7 @@
 // Talks to the Dayframe app when the page runs inside its WKWebView.
 // Swift → page: window.dayframe.setContext({...}) (theme changes without a reload).
 // Page → Swift: window.webkit.messageHandlers.dayframe.postMessage({...}).
+import { type DayApp, parseDayApps } from "@/briefing/day-apps";
 import { applyTheme, isPaletteName, type PaletteName } from "@/theme/palettes";
 
 export interface CategoryColor {
@@ -12,14 +13,21 @@ export interface HostContext {
   palette: PaletteName;
   dark: boolean;
   categories: CategoryColor[];
+  /** The apps from Settings › Start of day. */
+  dayApps: DayApp[];
 }
 
 export type HostMessage =
-  { type: "ready" } | { type: "openURL"; url: string } | { type: "openMore"; page: string } | { type: "showTimeline" };
+  | { type: "ready" }
+  | { type: "openURL"; url: string }
+  | { type: "openMore"; page: string }
+  | { type: "showTimeline" }
+  | { type: "openApp"; id: string }
+  | { type: "setUpDay" };
 
 interface WebkitHandlers {
   webkit?: { messageHandlers?: { dayframe?: { postMessage: (message: unknown) => void } } };
-  dayframe?: { setContext: (context: Partial<HostContext>) => void };
+  dayframe?: { setContext: (context: Partial<HostContext> & { dayApps?: unknown }) => void };
 }
 
 const host = window as unknown as Window & WebkitHandlers;
@@ -43,6 +51,7 @@ export function initialContext(): HostContext {
     palette: isPaletteName(palette) ? palette : "original",
     dark: theme ? theme === "dark" : prefersDark,
     categories: [],
+    dayApps: [],
   };
 }
 
@@ -62,6 +71,7 @@ export function connectHost(onChange: (context: HostContext) => void): () => voi
         palette: next.palette && isPaletteName(next.palette) ? next.palette : current.palette,
         dark: next.dark ?? current.dark,
         categories: next.categories ?? current.categories,
+        dayApps: next.dayApps !== undefined ? parseDayApps(next.dayApps) : current.dayApps,
       };
       applyTheme(current.palette, current.dark ? "dark" : "light");
       onChange(current);
