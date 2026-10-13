@@ -47,6 +47,7 @@ struct BriefingView: View {
       ScrollView {
         VStack(alignment: .leading, spacing: 22) {
           header
+          if let error = service.lastError { errorNotice(error) }
           if !startOfDay.apps.isEmpty { todaysApps }
           if wide {
             HStack(alignment: .top, spacing: 18) {
@@ -77,6 +78,27 @@ struct BriefingView: View {
       }
       .scrollIndicators(.never)
     }
+  }
+
+  // MARK: - Errors
+
+  private func errorNotice(_ message: String) -> some View {
+    HStack(spacing: 10) {
+      Image(systemName: "exclamationmark.triangle")
+        .foregroundStyle(theme.textSecondary)
+      Text(message)
+        .font(.custom("Figtree", size: 13))
+        .foregroundStyle(theme.textPrimary)
+        .fixedSize(horizontal: false, vertical: true)
+      Spacer(minLength: 8)
+      Button("Dismiss") { service.lastError = nil }
+        .buttonStyle(.borderless)
+        .font(.custom("Figtree", size: 13).weight(.medium))
+    }
+    .padding(.horizontal, 14)
+    .padding(.vertical, 10)
+    .background(
+      RoundedRectangle(cornerRadius: 12, style: .continuous).fill(theme.textPrimary.opacity(0.06)))
   }
 
   // MARK: - Today's apps

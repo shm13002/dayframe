@@ -9,7 +9,10 @@
 
 import Charts
 import GRDB
+import OSLog
 import SwiftUI
+
+private let usageLog = Logger(subsystem: "local.dayframe.app", category: "usage")
 
 struct AIUsageSection: View {
   @Environment(\.dayflowTheme) private var theme
@@ -150,7 +153,15 @@ struct AIUsageSection: View {
   }
 
   private func load() async {
-    let app = (try? Self.appRows()) ?? []
+    let app: [UsageRow]
+    do {
+      app = try Self.appRows()
+    } catch {
+      usageLog.error(
+        "[AIUsage] couldn't read the app's LLM calls: \(error.localizedDescription, privacy: .public)"
+      )
+      app = []
+    }
     let briefing = Self.briefingRows()
     var merged: [String: UsageRow] = [:]
     for r in app + briefing {

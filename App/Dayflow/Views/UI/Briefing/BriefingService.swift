@@ -7,6 +7,9 @@
 //
 
 import Foundation
+import OSLog
+
+private let briefingLog = Logger(subsystem: "local.dayframe.app", category: "briefing")
 
 struct BriefingTodo: Identifiable, Decodable, Equatable {
   let id: String
@@ -219,6 +222,8 @@ final class BriefingService: ObservableObject {
     return 8765
   }
 
+  private static let unreadableState = "Couldn't read the briefing data."
+
   static var baseURL: URL { URL(string: "http://127.0.0.1:\(port)")! }
 
   var sections: BriefingSections { BriefingSections(state?.briefing ?? "") }
@@ -247,8 +252,9 @@ final class BriefingService: ObservableObject {
       let decoded = try JSONDecoder().decode(BriefingState.self, from: data)
       if decoded != state { state = decoded }
       phase = .ready
+      if lastError == Self.unreadableState { lastError = nil }
     } catch is DecodingError {
-      lastError = "Couldn't read the briefing data"
+      lastError = Self.unreadableState
       phase = state == nil ? .offline : .ready
     } catch {
       if state == nil { phase = .offline }
@@ -258,24 +264,24 @@ final class BriefingService: ObservableObject {
   func newBriefing() async {
     isBriefing = true
     defer { isBriefing = false }
-    _ = try? await post("/api/brief", [:], timeout: 300)
+    await perform("write a new briefing", "/api/brief", [:], timeout: 300)
     await refresh()
   }
 
   func setTodo(_ todo: BriefingTodo, done: Bool) async {
-    _ = try? await post("/api/todo", ["id": todo.id, "done": done])
+    await perform("update the to-do", "/api/todo", ["id": todo.id, "done": done])
     await refresh()
   }
 
   func addTodo(_ text: String) async {
     let t = text.trimmingCharacters(in: .whitespacesAndNewlines)
     guard !t.isEmpty else { return }
-    _ = try? await post("/api/todo", ["add": t])
+    await perform("add the to-do", "/api/todo", ["add": t])
     await refresh()
   }
 
   func feedback(up: Bool) async {
-    _ = try? await post("/api/brief/feedback", ["rating": up ? "up" : "down"])
+    await perform("send feedback", "/api/brief/feedback", ["rating": up ? "up" : "down"])
   }
 
   func ask(_ question: String) async {
@@ -284,7 +290,7 @@ final class BriefingService: ObservableObject {
     isAsking = true
     askAnswer = nil
     defer { isAsking = false }
-    if let data = try? await post("/api/ask", ["q": q], timeout: 300),
+    if let data = await perform("answer the question", "/api/ask", ["q": q], timeout: 300),
       let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
     {
       askAnswer = (obj["answer"] as? String) ?? "No answer."
@@ -296,15 +302,34 @@ final class BriefingService: ObservableObject {
   func clearAnswer() { askAnswer = nil }
 
   func resume() async {
-    _ = try? await post("/api/resume", ["confirm": true])
+    await perform("resume", "/api/resume", ["confirm": true])
   }
 
   func setWriter(_ backend: String) async {
-    _ = try? await post("/api/settings", ["llm_backend": backend])
+    await perform("change who writes briefings", "/api/settings", ["llm_backend": backend])
     await refresh()
   }
 
   // MARK: - HTTP
+
+  /// Runs one user action against the service. A failure is shown (`lastError`) and logged
+  /// instead of dropped, so a click that seems to do nothing always says why.
+  @discardableResult
+  private func perform(
+    _ action: String, _ path: String, _ body: [String: Any], timeout: TimeInterval = 15
+  ) async -> Data? {
+    do {
+      let data = try await post(path, body, timeout: timeout)
+      lastError = nil
+      return data
+    } catch {
+      lastError = BriefingServiceError.message(action: action, error: error)
+      briefingLog.error(
+        "[Briefing] \(action, privacy: .public) failed: \(error.localizedDescription, privacy: .public)"
+      )
+      return nil
+    }
+  }
 
   private func get(_ path: String) async throws -> Data {
     var req = URLRequest(url: Self.baseURL.appendingPathComponent(path))
@@ -327,9 +352,28 @@ final class BriefingService: ObservableObject {
     req.timeoutInterval = timeout
     let (data, resp) = try await URLSession.shared.data(for: req)
     guard ((resp as? HTTPURLResponse)?.statusCode ?? 500) < 400 else {
-      lastError = String(data: data, encoding: .utf8)
-      throw URLError(.badServerResponse)
+      throw BriefingServiceError(body: data)
     }
     return data
+  }
+}
+
+/// A Briefing request the service refused. Carries the service's own `{"error": …}` text
+/// when it sent one, so the banner can say why instead of showing a raw response body.
+struct BriefingServiceError: Error, Equatable {
+  let serverMessage: String?
+
+  init(body: Data) {
+    let obj = try? JSONSerialization.jsonObject(with: body) as? [String: Any]
+    let text = (obj?["error"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)
+    serverMessage = text.flatMap { $0.isEmpty ? nil : String($0.prefix(200)) }
+  }
+
+  /// The banner text for a failed action.
+  static func message(action: String, error: Error) -> String {
+    if let reason = (error as? BriefingServiceError)?.serverMessage {
+      return "Couldn't \(action): \(reason)" + (reason.hasSuffix(".") ? "" : ".")
+    }
+    return "Couldn't \(action): the Briefing service didn't answer."
   }
 }

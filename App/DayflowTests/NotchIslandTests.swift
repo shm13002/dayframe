@@ -130,6 +130,29 @@ final class NotchIslandTests: XCTestCase {
     XCTAssertEqual((json["dayApps"] as? [[String: String]])?.first?["id"], "com.apple.Notes")
   }
 
+  func testBriefingFailureSaysWhy() {
+    // The service's own {"error": …} text is shown; anything else reads as "didn't answer".
+    let server = BriefingServiceError(body: Data(#"{"error": "grok not signed in"}"#.utf8))
+    XCTAssertEqual(server.serverMessage, "grok not signed in")
+    XCTAssertEqual(
+      BriefingServiceError.message(action: "write a new briefing", error: server),
+      "Couldn't write a new briefing: grok not signed in.")
+    let sentence = BriefingServiceError(body: Data(#"{"error": "bad path."}"#.utf8))
+    XCTAssertEqual(
+      BriefingServiceError.message(action: "resume", error: sentence), "Couldn't resume: bad path.")
+    let html = BriefingServiceError(body: Data("<html>502 Bad Gateway</html>".utf8))
+    XCTAssertNil(html.serverMessage)
+    XCTAssertEqual(
+      BriefingServiceError.message(action: "add the to-do", error: html),
+      "Couldn't add the to-do: the Briefing service didn't answer.")
+    XCTAssertEqual(
+      BriefingServiceError.message(action: "resume", error: URLError(.timedOut)),
+      "Couldn't resume: the Briefing service didn't answer.")
+    let long = String(repeating: "x", count: 500)
+    let capped = BriefingServiceError(body: Data(#"{"error": "\#(long)"}"#.utf8))
+    XCTAssertEqual(capped.serverMessage?.count, 200)
+  }
+
   @MainActor
   func testBriefingCanOnlyOpenTheDaysApps() {
     // The page sends a bundle ID; anything not on the user's list is refused, not opened.

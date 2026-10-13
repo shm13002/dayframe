@@ -24,6 +24,23 @@ Entry template:
 
 ## 2026-10-13 (Tue)
 
+### 14:15: Review of the island, Briefing and settings code: errors are shown and logged, not dropped
+- **What:**
+  - **Briefing actions say why they failed.** Writing a briefing, to-dos, feedback, Ask, resume and the writer picker used to drop errors (`try?`), so a click could seem to do nothing. They now go through one `perform(...)` that logs (category `briefing`) and sets `lastError`. The native Briefing screen shows it as a banner with Dismiss.
+    - New `BriefingServiceError` reads the service's own `{"error": …}` text (capped at 200 characters). A raw response body (e.g. HTML) is never shown; it reads "the Briefing service didn't answer".
+    - A successful action clears the banner. The "couldn't read the briefing data" notice clears on the next good refresh.
+  - **One Briefing address:** `BriefingPanelView` had its own copy of the port lookup. It now uses `BriefingService.baseURL`.
+  - **Logged instead of silent:** `print` → `os.Logger` in `RecordingWatchdog` (category `recording`), `IslandShowPanel`, `IslandSound` (`island`). A show that can't start, and a failed read of the app's AI usage (`usage`), are now logged.
+  - **Colors:** the pill's accent default comes from `DayframePalette.original`. Its fixed neutrals (it always sits on the black notch) are named once in `PillInk` instead of repeated hex strings.
+  - **Kept on purpose:** `try?` on `Task.sleep` (cancellation) and in Briefing's lenient JSON decoding. The force unwraps of fixed localhost URLs and of Apple's standard 44.1 kHz mono audio format can't fail. Dayflow's own files (e.g. `StorageSettingsViewModel`'s `print`) are left alone so upstream diffs stay small (ADR 0001).
+- **Files:** `App/Dayflow/Views/UI/Briefing/{BriefingService,BriefingView}.swift`, `App/Dayflow/Views/UI/BriefingPanelView.swift`, `App/Dayflow/Views/UI/Settings/AIUsageSection.swift`, `App/Dayflow/Island/{IslandShowPanel,IslandSound,NotchPillView}.swift`, `App/Dayflow/App/RecordingWatchdog.swift`, `App/DayflowTests/NotchIslandTests.swift`
+- **Why:** Ticket clean-code/04: the code-smell review of the island, native Briefing, settings and Chat on Qwen (swallowed errors, duplicated values, unlogged decisions). Started in the earlier session and finished here.
+- **Checked:**
+  - New test `testBriefingFailureSaysWhy`: the server's message, no doubled period, HTML and a timeout both read as "didn't answer", the 200-character cap.
+  - `./check.sh --app` (3.5 GB free): all clean, **251 tests, 0 failures** (1 skipped: the icon writer). Web 24 tests, Briefing 95 tests.
+  - Not yet: seeing the banner in the installed app (next install).
+- **Commit:** this entry's title is the commit subject.
+
 ### 14:03: "Today's apps" row on Briefing
 - **What:**
   - Briefing shows the day apps from Settings › Start of day as a row under the header: click an icon to bring that app forward (opening it if needed), or press **Set up my day** to run Start of day now. It's on both the React page and the native fallback screen.

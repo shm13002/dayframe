@@ -22,7 +22,7 @@ final class NotchPillModel: ObservableObject {
   @Published var stats: IslandStats = .empty
   @Published var recording = true
   @Published var nextThing: String?
-  @Published var accentHex = "#F3854B"
+  @Published var accentHex = DayframePalette.original.accentHex
   /// Bumped to make the eyes blink once (a new card, a hover).
   @Published var blinkSignal = 0
   /// Bumped to drip a droplet out of the pill (a new card was saved).
@@ -197,7 +197,7 @@ struct NotchPillView: View {
 
   private var tooltip: some View {
     HStack(spacing: 6) {
-      Circle().fill(model.recording ? Color(hex: "#34D399") : Color(hex: "#8A8A8E")).frame(
+      Circle().fill(model.recording ? PillInk.live : PillInk.muted).frame(
         width: 6, height: 6
       )
       .accessibilityLabel(model.recording ? "Recording" : "Paused")
@@ -208,7 +208,7 @@ struct NotchPillView: View {
     .foregroundStyle(.white)
     .padding(.horizontal, 12)
     .padding(.vertical, 6)
-    .background(Capsule().fill(Color(hex: "#1D1D1F")))
+    .background(Capsule().fill(PillInk.tooltip))
     .overlay(Capsule().strokeBorder(.white.opacity(0.35), lineWidth: 1))
     .fixedSize()
   }
@@ -225,18 +225,18 @@ struct NotchPillView: View {
         Spacer()
         Text(model.recording ? "Recording" : "Paused")
           .font(.system(size: 12))
-          .foregroundStyle(Color(hex: "#8A8A8E"))
+          .foregroundStyle(PillInk.muted)
       }
       Text(model.nextThing ?? "Pick one small step and start.")
         .font(.system(size: 13))
-        .foregroundStyle(Color(hex: "#D0D0D4"))
+        .foregroundStyle(PillInk.body)
         .lineLimit(2)
         .fixedSize(horizontal: false, vertical: true)
       if s.focusGoalMinutes > 0 {
         VStack(alignment: .leading, spacing: 6) {
           GeometryReader { proxy in
             ZStack(alignment: .leading) {
-              Capsule().fill(Color(hex: "#2A2A2E"))
+              Capsule().fill(PillInk.track)
               Capsule().fill(accent).frame(
                 width: max(6, proxy.size.width * min(s.focusFraction, 1)))
             }
@@ -248,7 +248,7 @@ struct NotchPillView: View {
             Text("\(s.trackedMinutes.islandDuration) tracked")
           }
           .font(.system(size: 12))
-          .foregroundStyle(Color(hex: "#D0D0D4"))
+          .foregroundStyle(PillInk.body)
         }
       }
       HStack(spacing: 8) {
@@ -320,14 +320,14 @@ private struct FocusRing: View {
 
   var body: some View {
     ZStack {
-      Circle().stroke(Color(hex: "#3A3A3C"), lineWidth: 2.4).frame(width: 18, height: 18)
+      Circle().stroke(PillInk.eyeRing, lineWidth: 2.4).frame(width: 18, height: 18)
       Circle()
         .trim(from: 0, to: min(max(fraction, 0), 1))
         .stroke(accent, style: StrokeStyle(lineWidth: 2.4, lineCap: .round))
         .rotationEffect(.degrees(-90))
         .frame(width: 18, height: 18)
         .animation(.easeOut(duration: 0.6), value: fraction)
-      Circle().fill(Color(hex: "#1C1C1E")).frame(width: 14, height: 14)
+      Circle().fill(PillInk.surface).frame(width: 14, height: 14)
       Circle().fill(accent).frame(width: 4.8, height: 4.8)
     }
   }
@@ -386,13 +386,25 @@ private struct CardButton: View {
     Button(action: action) {
       Text(title)
         .font(.system(size: 12, weight: .medium))
-        .foregroundStyle(subtle ? Color(hex: "#8A8A8E") : .white)
+        .foregroundStyle(subtle ? PillInk.muted : .white)
         .padding(.horizontal, 12)
         .padding(.vertical, 6)
         .background(
-          Capsule().fill(Color(hex: subtle ? "#1C1C1E" : "#2A2A2E").opacity(hovering ? 1 : 0.85)))
+          Capsule().fill((subtle ? PillInk.surface : PillInk.track).opacity(hovering ? 1 : 0.85)))
     }
     .buttonStyle(.plain)
     .onHover { hovering = $0 }
   }
+}
+
+/// The pill's fixed neutrals. It always sits on the black notch, so only the accent follows the
+/// palette; these stay put.
+private enum PillInk {
+  static let live = Color(hex: "#34D399")
+  static let muted = Color(hex: "#8A8A8E")
+  static let body = Color(hex: "#D0D0D4")
+  static let tooltip = Color(hex: "#1D1D1F")
+  static let track = Color(hex: "#2A2A2E")
+  static let surface = Color(hex: "#1C1C1E")
+  static let eyeRing = Color(hex: "#3A3A3C")
 }

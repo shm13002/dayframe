@@ -12,6 +12,9 @@
 
 import AVFoundation
 import Foundation
+import OSLog
+
+private let soundLog = Logger(subsystem: "local.dayframe.app", category: "island")
 
 enum IslandCue: String, CaseIterable {
   case drip, pop, grain, bloop, eyes, ping1, ping2, ping3
@@ -80,7 +83,8 @@ final class IslandSound {
       try engine.start()
       return true
     } catch {
-      print("[IslandSound] engine failed to start: \(error.localizedDescription)")
+      soundLog.error(
+        "[IslandSound] engine failed to start: \(error.localizedDescription, privacy: .public)")
       return false
     }
   }

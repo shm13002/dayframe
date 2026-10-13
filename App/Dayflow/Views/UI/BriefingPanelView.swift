@@ -18,20 +18,9 @@ struct BriefingPanelView: View {
   /// Dashboard section to open (e.g. "memory", "weekly"); nil = its home page.
   var tab: String? = nil
 
-  static var port: Int {
-    let cfg = FileManager.default.homeDirectoryForCurrentUser
-      .appendingPathComponent("Briefing/config.json")
-    if let data = try? Data(contentsOf: cfg),
-      let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-      let port = obj["dashboard_port"] as? Int
-    {
-      return port
-    }
-    return 8765
-  }
-
   private var url: URL {
-    var c = URLComponents(string: "http://127.0.0.1:\(Self.port)/")!
+    var c = URLComponents(url: BriefingService.baseURL, resolvingAgainstBaseURL: false)!
+    c.path = "/"
     c.queryItems = [
       URLQueryItem(name: "embed", value: "dayframe"),
       URLQueryItem(name: "theme", value: theme.isDark ? "dark" : "light"),
@@ -84,7 +73,7 @@ struct BriefingPanelView: View {
 
   private func probe() async {
     reachable = nil
-    var req = URLRequest(url: URL(string: "http://127.0.0.1:\(Self.port)/api/context")!)
+    var req = URLRequest(url: BriefingService.baseURL.appendingPathComponent("api/context"))
     req.timeoutInterval = 3
     do {
       let (_, resp) = try await URLSession.shared.data(for: req)

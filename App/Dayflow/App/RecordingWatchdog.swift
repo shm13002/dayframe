@@ -13,6 +13,9 @@
 
 import AppKit
 import CoreGraphics
+import OSLog
+
+private let recordingLog = Logger(subsystem: "local.dayframe.app", category: "recording")
 
 @MainActor
 final class RecordingWatchdog {
@@ -85,7 +88,9 @@ final class RecordingWatchdog {
     let limit = max(180, ScreenshotConfig.interval * 6)
     guard age > limit, Date().timeIntervalSince(lastStallRestart) > 300 else { return }
     lastStallRestart = Date()
-    print("[RecordingWatchdog] No frame for \(Int(age)) s while recording; restarting capture")
+    recordingLog.error(
+      "[RecordingWatchdog] No frame for \(Int(age), privacy: .public) s while recording; restarting capture"
+    )
     AppState.shared.setRecording(false, analyticsReason: "watchdog_stall", persistPreference: false)
     Task { @MainActor in
       try? await Task.sleep(nanoseconds: 1_500_000_000)

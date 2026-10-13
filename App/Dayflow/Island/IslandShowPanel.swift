@@ -89,7 +89,7 @@ final class IslandShowPanel: NSObject, WKScriptMessageHandler {
 
   func present() {
     guard let url = Bundle.main.url(forResource: "island", withExtension: "html") else {
-      print("[Island] island.html is missing from the app bundle")
+      islandLog.error("[Island] island.html is missing from the app bundle")
       finish()
       return
     }
@@ -193,13 +193,14 @@ final class IslandShowPanel: NSObject, WKScriptMessageHandler {
       let data = try? JSONEncoder().encode(payload),
       let json = String(data: data, encoding: .utf8)
     else {
+      islandLog.error("[Island] show skipped: no panel, or the payload didn't encode")
       finish()
       return
     }
     webView.evaluateJavaScript("window.island.play(\(json))") { [weak self] _, error in
       guard let self else { return }
       if let error {
-        print("[Island] play failed: \(error.localizedDescription)")
+        islandLog.error("[Island] play failed: \(error.localizedDescription, privacy: .public)")
         self.finish()
         return
       }
