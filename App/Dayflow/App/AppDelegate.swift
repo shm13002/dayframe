@@ -88,6 +88,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     LaunchAtLoginManager.shared.bootstrapDefaultPreference()
     WelcomeController.shared.start()
     WallpaperManager.shared.start()
+    AppIconManager.shared.start()
     deepLinkRouter = AppDeepLinkRouter()
 
     // Check if we've passed the screen recording permission step

@@ -122,7 +122,8 @@ final class StartOfDayTests: XCTestCase {
         let image = try XCTUnwrap(NSBitmapImageRep(data: data))
         XCTAssertEqual(image.pixelsWide, 2560)
         XCTAssertEqual(image.pixelsHigh, 1664)
-        // To look at them: DAYFRAME_DUMP_WALLPAPERS=1 writes each one to the temp folder.
+        // To look at them: TEST_RUNNER_DAYFRAME_DUMP_WALLPAPERS=1 xcodebuild test … writes each
+        // one to the test's temp folder (xcodebuild passes TEST_RUNNER_-prefixed variables on).
         if ProcessInfo.processInfo.environment["DAYFRAME_DUMP_WALLPAPERS"] == "1" {
           try data.write(
             to: FileManager.default.temporaryDirectory.appendingPathComponent(
