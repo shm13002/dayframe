@@ -24,6 +24,15 @@ Entry template:
 
 ## 2026-10-13 (Tue)
 
+### 11:36: Grok in the native Briefing menu and in Settings › AI usage
+- **What:**
+  - The native Briefing screen's "Briefings are written by" menu lists Grok (`grok_cli`).
+  - Settings › Providers › AI usage counts Briefing's `grok_cli` calls as "Grok" (gray bar). There is no plan-usage link: xAI's usage page for CLI plans isn't known, so none is guessed.
+- **Files:** `App/Dayflow/Views/UI/Briefing/BriefingView.swift`, `App/Dayflow/Views/UI/Settings/AIUsageSection.swift`
+- **Why:** These finish 11:11 (Briefing writes with Grok), which had to wait for an app build.
+- **Checked:** Built and tested in the 11:35 `./check.sh --app` run (227 pass). Swift style clean.
+- **Commit:** this entry's title is the commit subject.
+
 ### 11:35: Start of day: audit fixes (decisions logged, external-display fix, one source for show timings)
 - **What:** From auditing commit `0c28ded` (ticket clean-code/03):
   - **Every welcome decision is logged** with its reason (category `welcome`), so after a real logout or a long lock `./logs.sh 1h welcome` says why it did or didn't play. Examples: `login: play: new login session, 31 s old`, `back: skip: away 5.0 min, needs 10.0 min`, `away (screen locked)`.

@@ -237,6 +237,7 @@ struct AIUsageSection: View {
     switch raw.lowercased() {
     case "claude", "claude_cli", "chat_cli_claude": return "claude"
     case "chatgpt", "codex", "codex_cli", "chat_cli": return "chatgpt"
+    case "grok", "grok_cli": return "grok"
     case "ollama", "lmstudio", "custom", "local", "openai": return "local"
     default: return raw.lowercased()
     }
@@ -246,6 +247,7 @@ struct AIUsageSection: View {
     switch p {
     case "claude": return "Claude"
     case "chatgpt": return "ChatGPT"
+    case "grok": return "Grok"
     case "local": return "On this Mac"
     default: return p.capitalized
     }
@@ -255,6 +257,7 @@ struct AIUsageSection: View {
     switch p {
     case "claude": return Color(hex: "D97757")
     case "chatgpt": return Color(hex: "10A37F")
+    case "grok": return Color(hex: "8E8E93")
     default: return theme.accent
     }
   }

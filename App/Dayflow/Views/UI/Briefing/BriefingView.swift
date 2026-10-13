@@ -120,6 +120,7 @@ struct BriefingView: View {
     switch backend {
     case "claude_cli": return "Claude"
     case "codex_cli": return "ChatGPT"
+    case "grok_cli": return "Grok"
     case "openai": return "LM Studio"
     default: return "Qwen (on this Mac)"
     }
@@ -137,7 +138,7 @@ struct BriefingView: View {
         }
       }
       Section("Briefings are written by") {
-        ForEach(["ollama", "claude_cli", "codex_cli"], id: \.self) { backend in
+        ForEach(["ollama", "claude_cli", "codex_cli", "grok_cli"], id: \.self) { backend in
           Button {
             Task { await service.setWriter(backend) }
           } label: {
