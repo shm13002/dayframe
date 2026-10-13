@@ -6,6 +6,9 @@ final class AppDeepLinkRouter {
     case startRecording = "start-recording"
     case stopRecording = "stop-recording"
     case referral = "referral"
+    /// dayflow://welcome-preview?variant=dailyWake plays a welcome preview, so its in-app frame
+    /// rate can be measured from Terminal (`open …`, then `./logs.sh 5m welcome`).
+    case welcomePreview = "welcome-preview"
 
     init?(identifier: String) {
       switch identifier.lowercased() {
@@ -15,6 +18,8 @@ final class AppDeepLinkRouter {
         self = .stopRecording
       case Self.referral.rawValue, "claim", "r":
         self = .referral
+      case Self.welcomePreview.rawValue:
+        self = .welcomePreview
       default:
         return nil
       }
@@ -71,6 +76,10 @@ final class AppDeepLinkRouter {
       stopRecording()
     case .referral:
       saveReferralCode(from: url)
+    case .welcomePreview:
+      let variant = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems?
+        .first { $0.name == "variant" }?.value
+      WelcomeController.shared.preview(variant == "dailyWake" ? .dailyWake : .firstLaunch)
     }
   }
 

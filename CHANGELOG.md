@@ -24,6 +24,31 @@ Entry template:
 
 ## 2026-10-13 (Tue)
 
+### 11:35: Start of day: audit fixes (decisions logged, external-display fix, one source for show timings)
+- **What:** From auditing commit `0c28ded` (ticket clean-code/03):
+  - **Every welcome decision is logged** with its reason (category `welcome`), so after a real logout or a long lock `./logs.sh 1h welcome` says why it did or didn't play. Examples: `login: play: new login session, 31 s old`, `back: skip: away 5.0 min, needs 10.0 min`, `away (screen locked)`.
+    - The gates now return a `WelcomeDecision` (play plus a reason) instead of a bare Bool.
+    - `WelcomeLoginGate.shouldPlay` is renamed `decide`.
+  - **Bug, external displays:** on "started" the show faded the *first* screen's cover, assuming it was the main display. With a second monitor that could be the wrong one, which would show the desktop on that display mid-show. The panel now keeps direct references to the main display's panel and cover.
+  - **One source for the show's timings:** `WelcomeShowPanel` had its own copies of 5.45 / 2.0 / 0.8 s. The page now sends its length with "started" (`duration`), and the other displays' fade is timed from that. The timings live only in `Web/src/welcome/scene.ts`.
+  - **StartOfDay:**
+    - Each app is reported and logged as opened, already open, or couldn't open, with the error (failures used to be swallowed by `try?`). Placement is logged per app, and so is "Accessibility isn't allowed".
+    - The Settings line now reads e.g. "Ran at 9:01 AM: 1 opened, 2 already open, 2 placed." (new `StartOfDayReport`; it used to count already-open apps as "opened").
+    - Dayframe's own window placement now moves the **main** window (new `MainWindowController.window`), not the first visible window, which could be Settings.
+    - The AX window lookup checks the CF type instead of force-casting.
+  - `WallpaperManager` is started by `AppDelegate`, no longer as a side effect of `WelcomeController.start()`.
+  - Settings › Window style: the Accessibility poll is a `.task` loop that runs only while the section is visible. It replaces a `Timer.publish` created inside the view struct.
+  - **New deep link** `dayflow://welcome-preview?variant=dailyWake|firstLaunch` plays a preview, so the in-app frame rate can be measured from Terminal without clicking (`open …`, then `./logs.sh 5m welcome`).
+  - Tests: `WelcomeEventGateTests.swift` renamed `StartOfDayTests.swift` (it also covers slots, wallpaper and assets). The wallpaper test writes its 12 PNGs only when `DAYFRAME_DUMP_WALLPAPERS=1`. New tests check the skip reasons and the run summary.
+  - `check.sh --app` deletes the previous test result bundle first (about 100 MB each on this small disk).
+  - The 23:34 entry is corrected: its Files list named a file that commit didn't touch, and its Commit line is now `0c28ded`.
+- **Files:** `App/Dayflow/Welcome/{WelcomeController,WelcomeShowPanel,StartOfDay,StartOfDaySettingsView}.swift`, `App/Dayflow/Welcome/Resources/welcome.html` (rebuilt), `Web/src/welcome/main.ts`, `App/Dayflow/App/{AppDelegate,DayflowApp,AppDeepLinkRouter}.swift`, `App/DayflowTests/StartOfDayTests.swift` (renamed), `check.sh`, `CHANGELOG.md`
+- **Why:** The user asked for an audit of the Aether Pulse / Start of day work, with clean code and everything logged.
+- **Checked:**
+  - `./check.sh --app`: **all clean**. 227 app tests, 0 failures; Briefing 95; web 21; Swift style clean. This is the first fully green run.
+  - Not installed yet. The real login, the 10-minute lock and the external display are still the user's checks (ticket start-of-day-extras/04); the new log lines are there to read afterwards.
+- **Commit:** this entry's title is the commit subject.
+
 ### 11:11: Briefing can write with Grok (grok_cli)
 - **What:**
   - `briefing.py`: a third CLI backend, `grok_cli`, next to `claude_cli` and `codex_cli`. It runs xAI's Grok CLI signed in with the user's own plan (no API key) and falls back to Qwen on any error, like the others.
@@ -153,7 +178,7 @@ Entry template:
     - Stage Manager style skips the layout.
   - **Settings → Start of day** (new tab): Opening, Wallpaper (live preview), Your day (apps, slots, Run now), Window style.
 - **Removed:** Codex's SwiftUI fire ring (`WelcomeView.swift`), `WelcomeSettingsSection.swift`, `welcome-fire.m4a` (audio from an unrelated video with no license) and its provenance note. `DayflowWindowBackground` is private again.
-- **Files:** `App/Dayflow/Welcome/{WelcomeController,WelcomeShowPanel,WallpaperManager,StartOfDay,StartOfDaySettingsView}.swift`, `App/Dayflow/Welcome/Resources/*`, `App/Dayflow/Utilities/DayframePalette.swift`, `App/Dayflow/Views/UI/{SettingsView,MainView/MainView}.swift`, `App/Dayflow/Views/UI/Settings/SettingsOtherTabView.swift`, `App/DayflowTests/WelcomeEventGateTests.swift`, `Web/src/welcome/*`, `Web/vite.welcome.config.ts`, `Web/{package.json,tsconfig.json}`, `Web/src/theme/palettes.ts`, `START-HERE.md`
+- **Files:** `App/Dayflow/Welcome/{WelcomeController,WelcomeShowPanel,WallpaperManager,StartOfDay,StartOfDaySettingsView}.swift`, `App/Dayflow/Welcome/Resources/*`, `App/Dayflow/Utilities/DayframePalette.swift`, `App/Dayflow/Views/UI/{SettingsView,MainView/MainView}.swift`, `App/Dayflow/App/AppDelegate.swift`, `App/Dayflow/Island/IslandController.swift`, `App/DayflowTests/WelcomeEventGateTests.swift` *(corrected 2026-10-13: this list named `SettingsOtherTabView.swift`, which the commit didn't touch, and missed AppDelegate and IslandController)*, `Web/src/welcome/*`, `Web/vite.welcome.config.ts`, `Web/{package.json,tsconfig.json}`, `Web/src/theme/palettes.ts`, `START-HERE.md`
 - **Why:** The user wants opening the Mac to feel like one product: a branded background behind the password, the Aether animation right after it, then Dayframe as the hub with everything else organized. Everything is on brand and in the palette, and the lock screen must not say Dayframe.
 - **Checked:**
   - Typecheck is clean. Frozen frames at 0.6, 1.2, 1.8, 2.62, 3.0, 3.6 and 4.5 s were compared with the reference cut: beats, sizes and positions match. Checked in Original, Lagoon, Lavender and Ember, and the daily wake in Ember.
@@ -163,7 +188,7 @@ Entry template:
     - In-app Preview and its fps log. The user declined computer control, so they run it themselves.
     - A real logout/login, a 10+ min lock, an external display, and the Accessibility layout.
   - The welcome stays **off** until turned on in Settings → Start of day.
-- **Commit:** see `git log`
+- **Commit:** `0c28ded`
 
 ### 22:45: Dayframe Welcome fire ring (Codex; never committed, superseded by 23:34)
 - **What:** Added an integrated, palette-aware fire-ring welcome, reference audio, preview-first settings, login/unlock event handling, skip controls and reduced-motion fade. Reuses the app background and suppresses the notch’s automatic unlock welcome when enabled.

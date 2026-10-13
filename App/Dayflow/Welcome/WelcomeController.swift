@@ -14,7 +14,22 @@
 //
 
 import AppKit
+import OSLog
 import SwiftUI
+
+private let welcomeLog = Logger(subsystem: "local.dayframe.app", category: "welcome")
+
+/// A gate's answer, with the reason the log records, so "why didn't it play?" has an answer
+/// after a real login or lock (`./logs.sh 1h welcome`).
+struct WelcomeDecision: Equatable {
+  let play: Bool
+  let reason: String
+
+  static func play(_ reason: String) -> Self { Self(play: true, reason: reason) }
+  static func skip(_ reason: String) -> Self { Self(play: false, reason: reason) }
+
+  var logLine: String { (play ? "play: " : "skip: ") + reason }
+}
 
 /// Pure event gate for unlocks. Times are wall-clock seconds, so sleep counts as away.
 struct WelcomeEventGate {
@@ -26,13 +41,22 @@ struct WelcomeEventGate {
     if awaySince == nil { awaySince = now }
   }
 
-  /// True when an unlock should play the daily wake.
-  mutating func returnToSession(now: TimeInterval, accessible: Bool) -> Bool {
-    guard accessible, let since = awaySince else { return false }
+  /// Whether coming back (unlock, wake) should play the daily wake.
+  mutating func returnToSession(now: TimeInterval, accessible: Bool) -> WelcomeDecision {
+    guard accessible else { return .skip("the screen is still locked") }
+    guard let since = awaySince else { return .skip("there was no lock or sleep before this") }
     awaySince = nil
-    guard now - since >= minAway, now - lastPlayback > 8 else { return false }
+    let away = now - since
+    guard away >= minAway else {
+      return .skip("away \(Self.minutes(away)), needs \(Self.minutes(minAway))")
+    }
+    guard now - lastPlayback > 8 else { return .skip("it played \(Int(now - lastPlayback)) s ago") }
     lastPlayback = now
-    return true
+    return .play("away \(Self.minutes(away))")
+  }
+
+  private static func minutes(_ seconds: TimeInterval) -> String {
+    String(format: "%.1f min", seconds / 60)
   }
 }
 
@@ -41,14 +65,21 @@ struct WelcomeLoginGate {
   /// How long after login the full welcome may still play (covers slow logins).
   static let window: TimeInterval = 240
 
-  static func shouldPlay(
+  static func decide(
     sessionID: String?, lastWelcomedSessionID: String?, launchedAsLoginItem: Bool,
     sessionAge: TimeInterval?
-  ) -> Bool {
-    guard let sessionID, sessionID != lastWelcomedSessionID else { return false }
-    if launchedAsLoginItem { return true }
-    guard let sessionAge else { return false }
-    return sessionAge < window
+  ) -> WelcomeDecision {
+    guard let sessionID else { return .skip("macOS reported no login session ID") }
+    guard sessionID != lastWelcomedSessionID else {
+      return .skip("this login session was already welcomed")
+    }
+    if launchedAsLoginItem { return .play("new login session; launched as a login item") }
+    guard let sessionAge else { return .skip("new login session, but its age is unknown") }
+    guard sessionAge < window else {
+      return .skip(
+        "the login session is \(Int(sessionAge / 60)) min old (limit \(Int(window / 60)))")
+    }
+    return .play("new login session, \(Int(sessionAge)) s old")
   }
 }
 
@@ -99,23 +130,31 @@ final class WelcomeController: ObservableObject {
       && event?.paramDescriptor(forKeyword: keyAEPropData)?.enumCodeValue
         == keyAELaunchedAsLogInItem
     applySettings()
-    WallpaperManager.shared.start()
 
-    guard Self.enabled, defaults.bool(forKey: Keys.login) else { return }
+    guard Self.enabled else {
+      return welcomeLog.notice("[Welcome] login: skip: the welcome is off")
+    }
+    guard defaults.bool(forKey: Keys.login) else {
+      return welcomeLog.notice("[Welcome] login: skip: \"After login\" is off")
+    }
     let session = Self.sessionID
-    let play = WelcomeLoginGate.shouldPlay(
+    let decision = WelcomeLoginGate.decide(
       sessionID: session, lastWelcomedSessionID: defaults.string(forKey: Keys.lastSession),
       launchedAsLoginItem: launchedAsLoginItem, sessionAge: Self.sessionAge)
+    welcomeLog.notice("[Welcome] login: \(decision.logLine, privacy: .public)")
     // Whatever happens, this session has now been seen: a later relaunch never plays.
     defaults.set(session, forKey: Keys.lastSession)
-    guard play else { return }
+    guard decision.play else { return }
     pending = Task { [weak self] in
       // Wait (up to 10 s) until the desktop is really in use.
       for _ in 0..<40 {
         if Self.desktopAccessible { break }
         try? await Task.sleep(for: .milliseconds(250))
       }
-      guard !Task.isCancelled, let self, Self.desktopAccessible else { return }
+      guard !Task.isCancelled, let self else { return }
+      guard Self.desktopAccessible else {
+        return welcomeLog.notice("[Welcome] login: skip: the desktop stayed locked for 10 s")
+      }
       self.play(.firstLaunch, preview: false)
     }
   }
@@ -139,12 +178,12 @@ final class WelcomeController: ObservableObject {
       NSWorkspace.willSleepNotification, NSWorkspace.screensDidSleepNotification,
       NSWorkspace.sessionDidResignActiveNotification,
     ] {
-      observe(workspace, name) { $0.markAway() }
+      observe(workspace, name) { $0.markAway(name.rawValue) }
     }
     // The same distributed notifications Dayframe's recorder and island use. They are
     // implementation-dependent, so the session dictionary is checked before playing.
     observe(DistributedNotificationCenter.default(), .init("com.apple.screenIsLocked")) {
-      $0.markAway()
+      $0.markAway("screen locked")
     }
     observe(DistributedNotificationCenter.default(), .init("com.apple.screenIsUnlocked")) {
       $0.returned()
@@ -166,7 +205,8 @@ final class WelcomeController: ObservableObject {
     observers.append((center, token))
   }
 
-  private func markAway() {
+  private func markAway(_ signal: String) {
+    if gate.awaySince == nil { welcomeLog.notice("[Welcome] away (\(signal, privacy: .public))") }
     gate.markAway(now: Date().timeIntervalSince1970)
     pending?.cancel()
     show?.cancel()
@@ -177,11 +217,14 @@ final class WelcomeController: ObservableObject {
     pending = Task { [weak self] in
       // Several "back" signals arrive together; wait for the screen to really be in use.
       try? await Task.sleep(for: .milliseconds(900))
-      guard !Task.isCancelled, let self, Self.enabled, Self.desktopAccessible,
-        self.defaults.bool(forKey: Keys.unlock),
-        self.gate.returnToSession(now: Date().timeIntervalSince1970, accessible: true)
-      else { return }
-      self.play(.dailyWake, preview: false)
+      guard !Task.isCancelled, let self, Self.enabled else { return }
+      guard self.defaults.bool(forKey: Keys.unlock) else {
+        return welcomeLog.notice("[Welcome] back: skip: \"After unlock\" is off")
+      }
+      let decision = self.gate.returnToSession(
+        now: Date().timeIntervalSince1970, accessible: Self.desktopAccessible)
+      welcomeLog.notice("[Welcome] back: \(decision.logLine, privacy: .public)")
+      if decision.play { self.play(.dailyWake, preview: false) }
     }
   }
 

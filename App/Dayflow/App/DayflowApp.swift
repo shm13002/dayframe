@@ -522,6 +522,13 @@ final class MainWindowController {
     }
   }
 
+  /// The main window (SwiftUI scene id "main"), when it's open.
+  var window: NSWindow? {
+    NSApp.windows.first {
+      $0.identifier?.rawValue == "main" || $0.identifier?.rawValue.hasPrefix("main-") == true
+    }
+  }
+
   func showMainWindow() {
     guard let openWindowAction else {
       hasPendingOpenRequest = true

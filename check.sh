@@ -155,6 +155,7 @@ check_app() {
     return
   fi
   mkdir -p build
+  rm -rf build/Logs/Test # each run leaves a result bundle (~100 MB); keep only the newest
   if without_git_env xcodebuild test -project App/Dayflow.xcodeproj -scheme Dayflow -configuration Debug \
     -derivedDataPath build -destination 'platform=macOS' -only-testing:DayflowTests \
     -parallel-testing-enabled NO -skipPackagePluginValidation -skipMacroValidation \

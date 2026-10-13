@@ -311,7 +311,6 @@ private struct DayAppsSection: View {
 private struct WindowStyleSection: View {
   @AppStorage(StartOfDay.Keys.windowStyle) private var windowStyle = WindowStyle.layout.rawValue
   @State private var trusted = StartOfDay.accessibilityTrusted
-  private let poll = Timer.publish(every: 2, on: .main, in: .common).autoconnect()
 
   var body: some View {
     SettingsSection(
@@ -359,6 +358,12 @@ private struct WindowStyleSection: View {
         }
       }
     }
-    .onReceive(poll) { _ in trusted = StartOfDay.accessibilityTrusted }
+    .task {
+      // macOS sends no notification when Accessibility is granted, so check while this is visible.
+      while !Task.isCancelled {
+        trusted = StartOfDay.accessibilityTrusted
+        try? await Task.sleep(for: .seconds(2))
+      }
+    }
   }
 }

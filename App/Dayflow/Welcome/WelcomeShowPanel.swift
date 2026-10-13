@@ -53,7 +53,9 @@ final class WelcomeShowPanel: NSObject, WKScriptMessageHandler {
   private let mix: WelcomeSoundMix
   private let palette: DayframePalette
   private var panels: [NSPanel] = []
-  private var covers: [NSView] = []
+  /// The main display's panel and its sky cover: the page plays there.
+  private var mainPanel: NSPanel?
+  private var mainCover: NSView?
   private var webView: WKWebView?
   private var player: AVAudioPlayer?
   private var watchdog: Task<Void, Never>?
@@ -98,9 +100,10 @@ final class WelcomeShowPanel: NSObject, WKScriptMessageHandler {
       let cover = WelcomeSkyView(frame: container.bounds, palette: palette)
       cover.autoresizingMask = [.width, .height]
       container.addSubview(cover)
-      covers.append(cover)
 
       if screen == main {
+        mainPanel = panel
+        mainCover = cover
         let config = WKWebViewConfiguration()
         config.websiteDataStore = .nonPersistent()
         config.userContentController.add(WeakScriptMessageHandler(self), name: "welcome")
@@ -117,6 +120,9 @@ final class WelcomeShowPanel: NSObject, WKScriptMessageHandler {
       panels.append(panel)
     }
     windowNumbers = panels.map(\.windowNumber)
+    welcomeLog.notice(
+      "[Welcome] \(self.variant.rawValue, privacy: .public) show on \(self.panels.count, privacy: .public) display(s)"
+    )
     // The cover fades in fast; for a login the screen goes straight to the sky.
     fadePanels(to: 1, duration: variant == .firstLaunch ? 0.08 : 0.15)
     loadSound()
@@ -142,8 +148,16 @@ final class WelcomeShowPanel: NSObject, WKScriptMessageHandler {
       start()
     case "started":
       player?.play()
-      // The page draws the same sky; hand over to it.
-      for cover in covers.prefix(1) { fade(cover, to: 0, duration: 0.2) }
+      // The page draws the same sky on the main display; hand over to it.
+      if let mainCover { fade(mainCover, to: 0, duration: 0.2) }
+      // Extra displays follow the page's closing dissolve. The page sends its own length, so
+      // the show's timings live only in Web/src/welcome/scene.ts.
+      if let duration = (body["duration"] as? NSNumber)?.doubleValue {
+        Task { @MainActor [weak self] in
+          try? await Task.sleep(for: .seconds(max(0, duration - 0.45)))
+          self?.fadePanels(to: 0, duration: 0.4, extraScreensOnly: true)
+        }
+      }
     case "skip":
       player?.setVolume(0, fadeDuration: 0.25)
       fadePanels(to: 0, duration: 0.3, extraScreensOnly: true)
@@ -164,9 +178,7 @@ final class WelcomeShowPanel: NSObject, WKScriptMessageHandler {
   }
 
   private func start() {
-    guard let webView,
-      let panel = panels.first(where: { $0.contentView?.subviews.contains(webView) == true })
-    else {
+    guard let webView, let panel = mainPanel else {
       finish()
       return
     }
@@ -188,13 +200,6 @@ final class WelcomeShowPanel: NSObject, WKScriptMessageHandler {
       }
       panel.makeKey()
       panel.makeFirstResponder(webView)
-      // Extra displays follow the page's closing dissolve.
-      let total: TimeInterval =
-        payload.reducedMotion ? 0.8 : (self.variant == .firstLaunch ? 5.45 : 2.0)
-      Task { @MainActor [weak self] in
-        try? await Task.sleep(for: .seconds(max(0, total - 0.45)))
-        self?.fadePanels(to: 0, duration: 0.4, extraScreensOnly: true)
-      }
     }
   }
 
@@ -209,11 +214,7 @@ final class WelcomeShowPanel: NSObject, WKScriptMessageHandler {
 
   private func fadePanels(to alpha: CGFloat, duration: TimeInterval, extraScreensOnly: Bool = false)
   {
-    for panel in panels
-    where
-      !(extraScreensOnly
-      && panel.contentView?.subviews.contains(where: { $0 is WKWebView }) == true)
-    {
+    for panel in panels where !(extraScreensOnly && panel === mainPanel) {
       NSAnimationContext.runAnimationGroup { ctx in
         ctx.duration = duration
         ctx.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
@@ -246,7 +247,8 @@ final class WelcomeShowPanel: NSObject, WKScriptMessageHandler {
       panel.contentView = nil
     }
     panels.removeAll()
-    covers.removeAll()
+    mainPanel = nil
+    mainCover = nil
     webView = nil
     onFinished?()
     onFinished = nil

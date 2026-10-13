@@ -65,6 +65,22 @@ enum WindowStyle: String, CaseIterable, Identifiable {
   var title: String { self == .layout ? "Layout" : "Stage Manager" }
 }
 
+/// What one start-of-day run did: the line under "Run now", and the log's last word.
+struct StartOfDayReport: Equatable {
+  var opened = 0
+  var alreadyOpen = 0
+  var failed = 0
+  var placed = 0
+
+  func summary(at time: String) -> String {
+    var parts = ["\(opened) opened"]
+    if alreadyOpen > 0 { parts.append("\(alreadyOpen) already open") }
+    if failed > 0 { parts.append("\(failed) couldn't open") }
+    parts.append("\(placed) placed")
+    return "Ran at \(time): " + parts.joined(separator: ", ") + "."
+  }
+}
+
 struct DayApp: Codable, Identifiable, Hashable {
   var bundleID: String
   var name: String
@@ -153,6 +169,7 @@ final class StartOfDay: ObservableObject {
       NSApp.activate(ignoringOtherApps: true)
 
       // 2. Your day's apps, quietly, one after another.
+      var report = StartOfDayReport()
       var launched: [NSRunningApplication] = []
       for app in apps {
         if let running = NSRunningApplication.runningApplications(
@@ -160,6 +177,8 @@ final class StartOfDay: ObservableObject {
         ).first {
           running.unhide()
           launched.append(running)
+          report.alreadyOpen += 1
+          startLog.notice("[StartOfDay] \(app.name, privacy: .public): already open")
           continue
         }
         let config = NSWorkspace.OpenConfiguration()
@@ -168,10 +187,16 @@ final class StartOfDay: ObservableObject {
         let url =
           NSWorkspace.shared.urlForApplication(withBundleIdentifier: app.bundleID)
           ?? URL(fileURLWithPath: app.path)
-        if let running = try? await NSWorkspace.shared.openApplication(
-          at: url, configuration: config)
-        {
-          launched.append(running)
+        do {
+          launched.append(
+            try await NSWorkspace.shared.openApplication(at: url, configuration: config))
+          report.opened += 1
+          startLog.notice("[StartOfDay] \(app.name, privacy: .public): opened")
+        } catch {
+          report.failed += 1
+          startLog.error(
+            "[StartOfDay] \(app.name, privacy: .public): couldn't open: \(error.localizedDescription, privacy: .public)"
+          )
         }
         try? await Task.sleep(for: .milliseconds(500))
       }
@@ -180,16 +205,22 @@ final class StartOfDay: ObservableObject {
       if defaults.bool(forKey: Keys.hideOthers) { hideOthers(keeping: Set(apps.map(\.bundleID))) }
 
       // 4. Windows to their places (Layout style only; Stage Manager arranges its own).
-      var placed = 0
+      let slotted = apps.filter { $0.slot != .keep }
       if windowStyle == .layout {
         placeDayframe()
-        if Self.accessibilityTrusted {
-          for app in apps where app.slot != .keep {
+        if !Self.accessibilityTrusted, !slotted.isEmpty {
+          startLog.notice(
+            "[StartOfDay] \(slotted.count, privacy: .public) window(s) not placed: Accessibility isn't allowed"
+          )
+        } else {
+          for app in slotted {
             guard let running = launched.first(where: { $0.bundleIdentifier == app.bundleID })
             else { continue }
-            if await AXWindowPlacer.place(pid: running.processIdentifier, slot: app.slot) {
-              placed += 1
-            }
+            let placed = await AXWindowPlacer.place(pid: running.processIdentifier, slot: app.slot)
+            if placed { report.placed += 1 }
+            startLog.notice(
+              "[StartOfDay] \(app.name, privacy: .public): \(placed ? "placed" : "no window to place", privacy: .public) (\(app.slot.rawValue, privacy: .public))"
+            )
           }
         }
       }
@@ -197,9 +228,8 @@ final class StartOfDay: ObservableObject {
       // 5. Back to the hub.
       MainWindowController.shared.showMainWindow()
       NSApp.activate(ignoringOtherApps: true)
-      let time = Date().formatted(date: .omitted, time: .shortened)
-      lastRun = "Ran at \(time): \(launched.count) app(s) opened, \(placed) placed."
-      startLog.notice("[StartOfDay] done: \(launched.count) app(s), \(placed) placed")
+      lastRun = report.summary(at: Date().formatted(date: .omitted, time: .shortened))
+      startLog.notice("[StartOfDay] done: \(self.lastRun ?? "", privacy: .public)")
     }
   }
 
@@ -215,8 +245,10 @@ final class StartOfDay: ObservableObject {
   private func placeDayframe() {
     guard let screen = NSScreen.main, let target = dayframeSlot.frame(in: screen.visibleFrame)
     else { return }
-    let window = NSApp.windows.first { $0.isVisible && $0.canBecomeMain && !($0 is NSPanel) }
-    window?.setFrame(target, display: true, animate: true)
+    guard let window = MainWindowController.shared.window else {
+      return startLog.notice("[StartOfDay] Dayframe's main window isn't open; not moved")
+    }
+    window.setFrame(target, display: true, animate: true)
   }
 }
 
@@ -242,9 +274,9 @@ enum AXWindowPlacer {
   private static func firstWindow(of app: AXUIElement) -> AXUIElement? {
     var value: CFTypeRef?
     if AXUIElementCopyAttributeValue(app, kAXMainWindowAttribute as CFString, &value) == .success,
-      let value
+      let value, CFGetTypeID(value) == AXUIElementGetTypeID()
     {
-      return (value as! AXUIElement)
+      return unsafeDowncast(value, to: AXUIElement.self)
     }
     guard AXUIElementCopyAttributeValue(app, kAXWindowsAttribute as CFString, &value) == .success,
       let windows = value as? [AXUIElement]

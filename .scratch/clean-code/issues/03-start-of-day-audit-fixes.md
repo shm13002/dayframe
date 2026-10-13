@@ -1,5 +1,5 @@
 # Start of day: audit fixes
-Status: ready-for-agent
+Status: done
 Type: task
 
 Findings from auditing commit 0c28ded:
@@ -15,3 +15,7 @@ Findings from auditing commit 0c28ded:
 10. `WindowStyleSection` creates a `Timer.publish` in a view struct. Use a `.task` loop.
 11. The CHANGELOG 23:34 entry lists `SettingsOtherTabView.swift`, which the commit didn't touch, and says "Commit: see git log". Correct it to `0c28ded`.
 12. Add a shell trigger for the welcome preview (`dayframe://welcome/preview?variant=…`) so its in-app fps can be measured and logged without computer control.
+
+## Comments
+
+- 2026-10-13 11:35: done (CHANGELOG 11:35). All 12 findings fixed; also found and fixed the external-display cover bug. 227 app tests green.

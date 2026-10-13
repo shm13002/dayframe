@@ -1,6 +1,7 @@
 // Entry point of the welcome show page.
 // Inside Dayframe:  Swift calls window.welcome.play(payload) after "ready". The page posts
-//                   "started" on its first frame (Swift starts the sound then), "skip" when
+//                   "started" on its first frame with the show's length in seconds (Swift
+//                   starts the sound then and times the other displays' fade), "skip" when
 //                   the user clicks or presses a key, and "done" with the measured fps.
 // In a browser:     a demo bar plays either cue in any palette. ?variant=…&palette=…&t=…
 //                   renders one frozen frame, for side-by-side checks.
@@ -14,7 +15,8 @@ interface WelcomePayload {
   reducedMotion: boolean;
 }
 
-type WelcomeMessage = { type: "ready" | "started" | "skip" } | { type: "done"; fps: number };
+type WelcomeMessage =
+  { type: "ready" | "skip" } | { type: "started"; duration: number } | { type: "done"; fps: number };
 
 interface WelcomeHost {
   webkit?: { messageHandlers?: { welcome?: { postMessage: (m: WelcomeMessage) => void } } };
@@ -60,7 +62,7 @@ function play(p: WelcomePayload): void {
     if (stopped) return;
     if (start < 0) {
       start = now;
-      post({ type: "started" });
+      post({ type: "started", duration: total });
     }
     const T = (now - start) / 1000;
     frames++;
