@@ -24,6 +24,17 @@ Entry template:
 
 ## 2026-10-13 (Tue)
 
+### 14:17: Installed 338a31b: today's Grok, icon, Focus, Today's apps and review fixes are in the app
+- **What:** `./build-and-install.sh` at 14:16. It ships everything since the 11:41 install: Grok as a provider and an MCP client, the ring app icon and palette Dock icon, Start of day Focus, the Today's apps row, and the review fixes.
+- **Files:** none (install only)
+- **Why:** None of today's afternoon work was in the running app yet.
+- **Checked:**
+  - 3.5 GB free before the build. Build, stable signing and keep-alive OK. The new binary is running (14:16:11).
+  - Recording: a new chunk started 2 s after launch and kept growing. `./logs.sh 10m` shows no errors or watchdog restarts.
+  - The bundled `AppIcon.icns` (converted to PNG) is the eclipse ring, no longer Dayflow's flower.
+  - Not yet seen by Claude: the live Dock tile (macOS may need `killall Dock` to drop the cached icon), the Briefing error banner and Today's apps row inside the app, and Grok in Settings (it needs `grok login`).
+- **Commit:** this entry's title is the commit subject.
+
 ### 14:15: Review of the island, Briefing and settings code: errors are shown and logged, not dropped
 - **What:**
   - **Briefing actions say why they failed.** Writing a briefing, to-dos, feedback, Ask, resume and the writer picker used to drop errors (`try?`), so a click could seem to do nothing. They now go through one `perform(...)` that logs (category `briefing`) and sets `lastError`. The native Briefing screen shows it as a banner with Dismiss.
