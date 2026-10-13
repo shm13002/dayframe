@@ -9,7 +9,10 @@
 //
 
 import AppKit
+import OSLog
 import WebKit
+
+private let islandLog = Logger(subsystem: "local.dayframe.app", category: "island")
 
 /// Everything the island page needs; encoded to JSON for window.island.play(...).
 struct IslandPayload: Encodable {
@@ -146,8 +149,10 @@ final class IslandShowPanel: NSObject, WKScriptMessageHandler {
 
   func userContentController(_ controller: WKUserContentController, didReceive message: WKScriptMessage) {
     guard message.name == "island", let body = message.body as? [String: Any] else { return }
-    if body["type"] as? String == "done", let fps = body["fps"] as? Double {
-      NSLog("[Island] %@ show finished at %.0f fps", payload.variant.rawValue, fps)
+    // WebKit hands JS numbers over as NSNumber; read it that way so integer values aren't dropped.
+    if body["type"] as? String == "done", let fps = (body["fps"] as? NSNumber)?.doubleValue {
+      islandLog.notice(
+        "[Island] \(self.payload.variant.rawValue, privacy: .public) show finished at \(Int(fps.rounded()), privacy: .public) fps")
     }
     handle(type: body["type"] as? String, cueName: body["name"] as? String, value: body["value"] as? Double)
   }

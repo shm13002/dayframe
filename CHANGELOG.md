@@ -24,6 +24,24 @@ Entry template:
 
 ## 2026-10-12 (Mon)
 
+### 21:40: Installed the island fixes; show frame rate measured (14 fps)
+- **What:**
+  - Freed disk so the build could run. At the user's request, 38 stale Chrome `code_sign_clone` copies were deleted, keeping the one the running Chrome uses. Only about 3 GB came back (13 → 16 GB free): `du` said 86 GB, but the clones were APFS copy-on-write and shared blocks with Chrome.
+  - Installed `af2b9f2`'s pending show fixes: the demo bar stays hidden in the app, and the canvases are sized to the island area.
+  - The fps line never logged. `body["fps"] as? Double` dropped the number WebKit hands over, so it's now read as `NSNumber` and logged with `os.Logger` (subsystem `local.dayframe.app`, category `island`, public values).
+- **Files:** `App/Dayflow/Island/IslandShowPanel.swift`
+- **Why:** To finish the open items from 21:14, and so the show's frame rate can actually be read: `/usr/bin/log show --predicate 'subsystem == "local.dayframe.app" AND category == "island"'`. In zsh, plain `log` is a shell builtin, so always use `/usr/bin/log`.
+- **Checked:**
+  - Build, signing check and install all pass.
+  - New recording segment within 3 s of relaunch; 0 tccd "Failed to match" since the install (checked with `/usr/bin/log`).
+  - Play now: the show panel (1470×956, level 1000) is up for ~7 s, then the pill returns.
+  - The log reads `startup show finished at 14 fps`. Low Power Mode is off and load is low.
+  - Recorded frames: the pill isn't visible at the notch, and no dimmed show frames appear in the 21:26 segment.
+- **Open:**
+  - **The show runs at 14 fps.** Probable cause: `filter: url(#goo)` on two canvases. WebKit renders SVG-reference filters on the CPU at Retina resolution every frame, while Chrome uses the GPU, which is why the prototype was smooth in a browser. Shrinking the canvases doesn't help much, because the filter still runs at full device resolution. The likely fix is to draw the liquid layers in WebGL (the same blur + threshold, done on the GPU). Waiting on the user.
+  - Still to test: the real unlock trigger (lock the Mac for 10+ min).
+- **Commit:** see `git log`
+
 ### 21:14: React Briefing, liquid notch island ("Jarvis"), Web design system
 - **What:**
   - **`Web/` (new):** Vite 8 + React 19 + TypeScript + Tailwind 4 + Motion 14 + shadcn/Magic UI (number-ticker, blur-fade).
