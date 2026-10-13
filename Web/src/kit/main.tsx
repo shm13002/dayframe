@@ -30,7 +30,9 @@ function Kit() {
         <header className="flex flex-wrap items-end gap-4">
           <div className="mr-auto">
             <h1 className="font-serif text-[34px] leading-none text-ink">Dayframe UI kit</h1>
-            <p className="mt-1 text-[13px] text-ink-2">Figtree for reading, Instrument Serif for the things worth noticing.</p>
+            <p className="mt-1 text-[13px] text-ink-2">
+              Figtree for reading, Instrument Serif for the things worth noticing.
+            </p>
           </div>
           <label className="text-[13px] text-ink-2">
             Palette{" "}
@@ -50,7 +52,9 @@ function Kit() {
         </header>
 
         <section aria-labelledby="palettes" className="flex flex-col gap-3">
-          <h2 id="palettes" className="font-serif text-[22px] text-shell-heading">Palettes</h2>
+          <h2 id="palettes" className="font-serif text-[22px] text-shell-heading">
+            Palettes
+          </h2>
           <div className="grid grid-cols-3 gap-3 sm:grid-cols-6">
             {PALETTES.map((p) => {
               const t = paletteTokens(p, mode);
@@ -76,7 +80,9 @@ function Kit() {
         </section>
 
         <section aria-labelledby="type" className="flex flex-col gap-2">
-          <h2 id="type" className="font-serif text-[22px] text-shell-heading">Type</h2>
+          <h2 id="type" className="font-serif text-[22px] text-shell-heading">
+            Type
+          </h2>
           <p className="font-serif text-[30px] leading-none text-ink">Monday, October 12</p>
           <p className="font-serif text-[24px] text-ink">Your next thing, in serif</p>
           <p className="text-[17px] text-ink">Body text at 17 for the briefing itself.</p>
@@ -85,7 +91,9 @@ function Kit() {
         </section>
 
         <section aria-labelledby="components" className="grid gap-[18px] md:grid-cols-[minmax(0,1fr)_340px]">
-          <h2 id="components" className="sr-only">Components</h2>
+          <h2 id="components" className="sr-only">
+            Components
+          </h2>
           <GlassCard>
             <div className="flex flex-col gap-4">
               <CardTitle trailing={<PillButton onClick={() => setReplay((r) => r + 1)}>Replay ink</PillButton>}>
@@ -95,8 +103,12 @@ function Kit() {
                 <InkText key={replay} text={SAMPLE} />
               </p>
               <div className="flex flex-wrap gap-2.5">
-                <PillButton prominent icon={Sparkles}>New briefing</PillButton>
-                <PillButton prominent busy>Writing…</PillButton>
+                <PillButton prominent icon={Sparkles}>
+                  New briefing
+                </PillButton>
+                <PillButton prominent busy>
+                  Writing…
+                </PillButton>
                 <PillButton icon={Undo2}>Resume my apps</PillButton>
                 <PillButton disabled>Disabled</PillButton>
               </div>

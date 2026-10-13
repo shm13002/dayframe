@@ -86,7 +86,12 @@ export function Menu({ label, trigger, sections }: MenuProps) {
             className="absolute top-[42px] right-0 z-20 w-60 rounded-xl border border-popover-border bg-popover p-1.5 shadow-[0_12px_32px_rgba(0,0,0,0.18)] backdrop-blur-xl"
           >
             {sections.map((section, s) => (
-              <div key={section.title} role="group" aria-label={section.title} className={cn(s > 0 && "mt-1 border-t border-popover-border pt-1")}>
+              <div
+                key={section.title}
+                role="group"
+                aria-label={section.title}
+                className={cn(s > 0 && "mt-1 border-t border-popover-border pt-1")}
+              >
                 <p className="px-2.5 pt-1.5 pb-1 text-[11px] font-semibold text-ink-muted">{section.title}</p>
                 {section.items.map((item) => (
                   <button

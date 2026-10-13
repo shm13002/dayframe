@@ -22,6 +22,22 @@ Entry template:
 
 ---
 
+## 2026-10-13 (Tue)
+
+### 00:04: Web: Prettier everywhere, palette parity test, island tests
+- **What:**
+  - Ran Prettier (print width 120) over all of `Web/src` and the Vite configs. Whitespace and line breaks only.
+  - **New `src/theme/palettes.test.ts`:** reads `App/Dayflow/Utilities/DayframePalette.swift` and checks that every palette's stops and accents match `paletteStops()`, including Original's fallback. The colors are written in both Swift and TypeScript; now a change on one side fails the tests.
+  - **New `src/island/island.test.ts`:** easing endpoints, path length and normals, the spring settling within a second, the tracked-time labels ("3h 19m"), and each show's beat sheet (sounds in order, everything before `doneAt`).
+  - Rebuilt `island.html` and `welcome.html`: byte-identical, so nothing to commit.
+- **Files:** `Web/src/**` (formatting), `Web/src/theme/palettes.test.ts`, `Web/src/island/island.test.ts`, `Web/vite*.ts`, `.scratch/clean-code/issues/05-web-format-and-parity.md`
+- **Why:** Ticket clean-code/05. Values shared between Swift and the web were mirrored by hand with only a comment holding them together.
+- **Checked:**
+  - Vitest: 21 pass. Typecheck clean. `prettier --check src` clean.
+  - Mutation check: changing Lagoon's accent in the Swift file to `1C9E95` made the parity test fail ("expected '1C9E94' to be '1C9E95'"). Restored.
+  - **Disk:** only about 400 MB free, because swap grew to 13 GB under memory pressure (Ollama/Qwen 6.3 GB, about 5 GB of Chrome tabs, plus Codex, Cursor and Grok Bot). The Swift formatting from ticket clean-code/02 stays uncommitted until there is room to build and test it.
+- **Commit:** this entry's title is the commit subject.
+
 ## 2026-10-12 (Mon)
 
 ### 23:54: Clean-code groundwork: Matt Pocock's skills, AGENTS.md, check.sh gate, tracked hooks

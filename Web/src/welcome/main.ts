@@ -133,7 +133,11 @@ if (!embedded) {
   for (const button of document.querySelectorAll<HTMLButtonElement>("#demo [data-variant]")) {
     button.addEventListener("click", () => {
       showDemo(false);
-      play({ variant: button.dataset.variant as WelcomeVariant, palette: select.value, reducedMotion: reduced.checked });
+      play({
+        variant: button.dataset.variant as WelcomeVariant,
+        palette: select.value,
+        reducedMotion: reduced.checked,
+      });
     });
   }
   window.addEventListener("keydown", (e) => e.key === "Escape" && current?.skip());

@@ -87,7 +87,12 @@ function layoutText(layout: Layout, payload: IslandPayload): TextState {
   greetingEl.textContent = "";
   subtitleEl.textContent = startup ? "" : (payload.lines[0]?.text ?? "");
   copy.style.opacity = "1";
-  return { greeting: payload.greeting, subtitle: subtitleEl.textContent, lineCount: linesEl.children.length, shownLines: 0 };
+  return {
+    greeting: payload.greeting,
+    subtitle: subtitleEl.textContent,
+    lineCount: linesEl.children.length,
+    shownLines: 0,
+  };
 }
 
 function updateText(state: TextState, T: number, tl: Timeline): void {
@@ -198,7 +203,8 @@ function samplePayload(variant: ShowVariant, reducedMotion: boolean): IslandPayl
     screen: { width, height: window.innerHeight },
     notch: { x: (width - notchWidth) / 2, width: notchWidth, height: 32 },
     pill: { leftWing: 64, rightWing: 84, height: 32, radius: 14 },
-    greeting: variant === "goal" ? "Focus goal reached" : variant === "recap" ? "Today, recapped" : "Good evening, Shahzi",
+    greeting:
+      variant === "goal" ? "Focus goal reached" : variant === "recap" ? "Today, recapped" : "Good evening, Shahzi",
     lines:
       variant === "startup"
         ? [

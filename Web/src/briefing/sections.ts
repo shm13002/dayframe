@@ -57,5 +57,4 @@ export function parseSections(raw: string): BriefingSections {
   };
 }
 
-export const isEmptySections = (s: BriefingSections) =>
-  s.leftOff === "" && s.goal === "" && s.nextSteps.length === 0;
+export const isEmptySections = (s: BriefingSections) => s.leftOff === "" && s.goal === "" && s.nextSteps.length === 0;

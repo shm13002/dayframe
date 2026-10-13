@@ -87,7 +87,9 @@ canvas {
   border-radius: 14px;
   background: rgba(0, 0, 0, 0.55);
   color: #ddd;
-  font: 12px/1 "Figtree", sans-serif;
+  font:
+    12px/1 "Figtree",
+    sans-serif;
   z-index: 10;
 }
 

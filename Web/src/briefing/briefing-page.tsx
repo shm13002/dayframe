@@ -66,8 +66,8 @@ export function BriefingPage({ briefing, categories }: BriefingPageProps) {
   const sections = useMemo(() => parseSections(state?.briefing ?? ""), [state?.briefing]);
 
   const colorFor = (category?: string) =>
-    categories.find((c) => c.name.localeCompare(category ?? "", undefined, { sensitivity: "accent" }) === 0)
-      ?.color ?? "var(--df-accent)";
+    categories.find((c) => c.name.localeCompare(category ?? "", undefined, { sensitivity: "accent" }) === 0)?.color ??
+    "var(--df-accent)";
 
   // One orchestrated entrance: the cards settle in order, once.
   let order = 0;
@@ -167,7 +167,9 @@ function Header({ briefing }: { briefing: Briefing }) {
         <h1 className="font-serif text-[30px] leading-none font-normal text-ink">{dateFormat.format(new Date())}</h1>
         <p className="text-[13px] text-ink-2">
           {greeting()}.{" "}
-          {written ? `${writerName(writer)} wrote this briefing at ${written}.` : `Briefings are written by ${writerName(writer)}.`}
+          {written
+            ? `${writerName(writer)} wrote this briefing at ${written}.`
+            : `Briefings are written by ${writerName(writer)}.`}
         </p>
       </div>
       <PillButton prominent icon={Sparkles} busy={writing} onClick={() => void briefing.newBriefing()}>
@@ -178,7 +180,15 @@ function Header({ briefing }: { briefing: Briefing }) {
   );
 }
 
-function ErrorNotice({ error, onRetry, onDismiss }: { error: string | null; onRetry: () => void; onDismiss: () => void }) {
+function ErrorNotice({
+  error,
+  onRetry,
+  onDismiss,
+}: {
+  error: string | null;
+  onRetry: () => void;
+  onDismiss: () => void;
+}) {
   return (
     <AnimatePresence initial={false}>
       {error ? (

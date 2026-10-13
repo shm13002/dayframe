@@ -30,8 +30,7 @@ const mix = (a: RGB, b: RGB, t: number): RGB => [
   a[2] + (b[2] - a[2]) * t,
 ];
 const scale = (c: RGB, k: number): RGB => [c[0] * k, c[1] * k, c[2] * k];
-const css = (c: RGB, alpha = 1) =>
-  `rgba(${Math.round(c[0])}, ${Math.round(c[1])}, ${Math.round(c[2])}, ${alpha})`;
+const css = (c: RGB, alpha = 1) => `rgba(${Math.round(c[0])}, ${Math.round(c[1])}, ${Math.round(c[2])}, ${alpha})`;
 
 export interface WelcomeColors {
   /** Deep version of the palette's dark sky (three stops). */
@@ -165,7 +164,10 @@ function firstLaunch(T: number): Frame {
     dotted: smooth(0.9, 1.3, T) * (1 - smooth(2.4, 2.6, T)),
     vortex: { alpha: Math.max(0, vAlpha), inner: T < ignite ? 61 : r, outer: Math.max(r + 26, outerShrink), spin },
     innerRing: build * (0.25 + 0.75 * Math.exp(-Math.max(0, T - 1.8) * 9)) * (1 - smooth(2.4, 2.5, T)),
-    shock: { r: 150 + 160 * (1 - Math.exp(-Math.max(0, T - 2.52) * 9)), alpha: T < 2.52 ? 0 : 0.9 * (1 - smooth(2.6, 2.95, T)) },
+    shock: {
+      r: 150 + 160 * (1 - Math.exp(-Math.max(0, T - 2.52) * 9)),
+      alpha: T < 2.52 ? 0 : 0.9 * (1 - smooth(2.6, 2.95, T)),
+    },
     flash: T < ignite ? 0 : Math.exp(-(T - ignite) * 7),
     eclipse: { r, alpha: smooth(2.57, 2.63, T) * (1 - smooth(5.0, 5.35, T)), rim: 1 + confirm },
     sparks: T < ignite ? 0 : 1 - smooth(2.9, 3.4, T),
@@ -201,7 +203,10 @@ function dailyWake(T: number): Frame {
       spin,
     },
     innerRing: 0,
-    shock: { r: 61 + 180 * (1 - Math.exp(-Math.max(0, T - ignite) * 8)), alpha: T < ignite ? 0 : 0.8 * (1 - smooth(0.36, 0.7, T)) },
+    shock: {
+      r: 61 + 180 * (1 - Math.exp(-Math.max(0, T - ignite) * 8)),
+      alpha: T < ignite ? 0 : 0.8 * (1 - smooth(0.36, 0.7, T)),
+    },
     flash: T < ignite ? 0 : Math.exp(-(T - ignite) * 7),
     eclipse: { r, alpha: smooth(0.29, 0.34, T) * (1 - smooth(1.6, 1.9, T)), rim: 1 + confirm },
     sparks: T < ignite ? 0 : 1 - smooth(0.6, 1.0, T),

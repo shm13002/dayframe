@@ -5,14 +5,7 @@
 export type PaletteName = "original" | "lagoon" | "lavender" | "matcha" | "rose" | "ember";
 export type Mode = "light" | "dark";
 
-export const PALETTES: readonly PaletteName[] = [
-  "original",
-  "lagoon",
-  "lavender",
-  "matcha",
-  "rose",
-  "ember",
-];
+export const PALETTES: readonly PaletteName[] = ["original", "lagoon", "lavender", "matcha", "rose", "ember"];
 
 /** Everything a palette changes. Values are CSS colors. */
 export interface PaletteTokens {
@@ -138,34 +131,69 @@ interface Spec {
 
 const SPECS: Record<Exclude<PaletteName, "original">, Spec> = {
   lagoon: {
-    lightBG: ["C9F2EA", "DDEFFF", "E4E2FF"], darkBG: ["1E4A57", "233548", "2C2F55"],
-    accent: "1C9E94", accentTextLight: "45BDB2", accentTextDark: "6ED8CC",
-    controlFill: "B6EAE2", controlBorder: "C6E2DD", controlGlow: "E3F8F4",
-    buttonLight: "2BB3A7", buttonDark: "1C8C83", softFill: "E8F8F5",
+    lightBG: ["C9F2EA", "DDEFFF", "E4E2FF"],
+    darkBG: ["1E4A57", "233548", "2C2F55"],
+    accent: "1C9E94",
+    accentTextLight: "45BDB2",
+    accentTextDark: "6ED8CC",
+    controlFill: "B6EAE2",
+    controlBorder: "C6E2DD",
+    controlGlow: "E3F8F4",
+    buttonLight: "2BB3A7",
+    buttonDark: "1C8C83",
+    softFill: "E8F8F5",
   },
   lavender: {
-    lightBG: ["E6D9FF", "FFE1EE", "D9E6FF"], darkBG: ["3B2F66", "33304F", "4A2A55"],
-    accent: "8A63F2", accentTextLight: "A98BFF", accentTextDark: "C2A9FF",
-    controlFill: "DCCBFF", controlBorder: "DCD2EE", controlGlow: "F1EAFF",
-    buttonLight: "9874F5", buttonDark: "6F4FD1", softFill: "F3EEFF",
+    lightBG: ["E6D9FF", "FFE1EE", "D9E6FF"],
+    darkBG: ["3B2F66", "33304F", "4A2A55"],
+    accent: "8A63F2",
+    accentTextLight: "A98BFF",
+    accentTextDark: "C2A9FF",
+    controlFill: "DCCBFF",
+    controlBorder: "DCD2EE",
+    controlGlow: "F1EAFF",
+    buttonLight: "9874F5",
+    buttonDark: "6F4FD1",
+    softFill: "F3EEFF",
   },
   matcha: {
-    lightBG: ["DDEFC8", "F4EED6", "D6ECE2"], darkBG: ["2D4A33", "2E3B35", "3D3A2C"],
-    accent: "5C9A3B", accentTextLight: "7DB85A", accentTextDark: "A2D67F",
-    controlFill: "D2E9BD", controlBorder: "D8E3CB", controlGlow: "EEF7E4",
-    buttonLight: "6DAA49", buttonDark: "4F8A33", softFill: "F1F8E9",
+    lightBG: ["DDEFC8", "F4EED6", "D6ECE2"],
+    darkBG: ["2D4A33", "2E3B35", "3D3A2C"],
+    accent: "5C9A3B",
+    accentTextLight: "7DB85A",
+    accentTextDark: "A2D67F",
+    controlFill: "D2E9BD",
+    controlBorder: "D8E3CB",
+    controlGlow: "EEF7E4",
+    buttonLight: "6DAA49",
+    buttonDark: "4F8A33",
+    softFill: "F1F8E9",
   },
   rose: {
-    lightBG: ["FFD6DD", "FFE8D8", "EEDDF7"], darkBG: ["5A2D40", "432F45", "4D3242"],
-    accent: "E0557A", accentTextLight: "F27C9B", accentTextDark: "FF9DB7",
-    controlFill: "FFC9D3", controlBorder: "F0D3D9", controlGlow: "FFEAEE",
-    buttonLight: "EC6B8D", buttonDark: "C24767", softFill: "FFF0F3",
+    lightBG: ["FFD6DD", "FFE8D8", "EEDDF7"],
+    darkBG: ["5A2D40", "432F45", "4D3242"],
+    accent: "E0557A",
+    accentTextLight: "F27C9B",
+    accentTextDark: "FF9DB7",
+    controlFill: "FFC9D3",
+    controlBorder: "F0D3D9",
+    controlGlow: "FFEAEE",
+    buttonLight: "EC6B8D",
+    buttonDark: "C24767",
+    softFill: "FFF0F3",
   },
   ember: {
-    lightBG: ["FFD0A8", "FFC7B8", "E3D2F5"], darkBG: ["5C3420", "4A2B3E", "35285A"],
-    accent: "F06A1F", accentTextLight: "FF8F4F", accentTextDark: "FFA36B",
-    controlFill: "FFC39C", controlBorder: "EFCDB8", controlGlow: "FFE6D6",
-    buttonLight: "F57A33", buttonDark: "C9551A", softFill: "FFF0E5",
+    lightBG: ["FFD0A8", "FFC7B8", "E3D2F5"],
+    darkBG: ["5C3420", "4A2B3E", "35285A"],
+    accent: "F06A1F",
+    accentTextLight: "FF8F4F",
+    accentTextDark: "FFA36B",
+    controlFill: "FFC39C",
+    controlBorder: "EFCDB8",
+    controlGlow: "FFE6D6",
+    buttonLight: "F57A33",
+    buttonDark: "C9551A",
+    softFill: "FFF0E5",
   },
 };
 
@@ -253,7 +281,13 @@ export function paletteStops(name: PaletteName): PaletteStops {
     };
   }
   const s = SPECS[name];
-  return { dark: s.darkBG, light: s.lightBG, accent: s.accent, accentLight: s.accentTextLight, accentDark: s.accentTextDark };
+  return {
+    dark: s.darkBG,
+    light: s.lightBG,
+    accent: s.accent,
+    accentLight: s.accentTextLight,
+    accentDark: s.accentTextDark,
+  };
 }
 
 export function isPaletteName(value: string | null | undefined): value is PaletteName {

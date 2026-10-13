@@ -14,10 +14,7 @@ export function ActivityChip({ title, time, category, color, summary, className 
   return (
     <article
       title={summary}
-      className={cn(
-        "flex min-h-[84px] w-[170px] shrink-0 flex-col gap-1.5 rounded-chip border bg-card p-3",
-        className,
-      )}
+      className={cn("flex min-h-[84px] w-[170px] shrink-0 flex-col gap-1.5 rounded-chip border bg-card p-3", className)}
       style={{ borderColor: `color-mix(in srgb, ${color} 45%, transparent)` }}
     >
       <span className="flex items-center gap-1.5 text-[11px] font-medium text-card-time">

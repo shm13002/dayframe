@@ -15,10 +15,7 @@ export interface HostContext {
 }
 
 export type HostMessage =
-  | { type: "ready" }
-  | { type: "openURL"; url: string }
-  | { type: "openMore"; page: string }
-  | { type: "showTimeline" };
+  { type: "ready" } | { type: "openURL"; url: string } | { type: "openMore"; page: string } | { type: "showTimeline" };
 
 interface WebkitHandlers {
   webkit?: { messageHandlers?: { dayframe?: { postMessage: (message: unknown) => void } } };

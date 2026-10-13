@@ -425,7 +425,13 @@ export class IslandEngine {
         this.warpSpawned++;
         const a = rand(0, TAU);
         const d = rand(170, 390);
-        this.warp.push({ x: ex + Math.cos(a) * d, y: ey + Math.sin(a) * d * 0.34, v: 60, color: pick(PARTICLE_COLORS), dead: false });
+        this.warp.push({
+          x: ex + Math.cos(a) * d,
+          y: ey + Math.sin(a) * d * 0.34,
+          v: 60,
+          color: pick(PARTICLE_COLORS),
+          dead: false,
+        });
       }
     }
     c.lineCap = "round";
@@ -653,7 +659,12 @@ export class IslandEngine {
       pct = Math.round(focusPct * p);
       minutes = Math.round(tracked * this.countProgress(T, 0.1));
     }
-    if (pct !== this.lastCountValue && T > tl.count[0] && performance.now() - this.lastCountAt > 65 && !this.collapsed) {
+    if (
+      pct !== this.lastCountValue &&
+      T > tl.count[0] &&
+      performance.now() - this.lastCountAt > 65 &&
+      !this.collapsed
+    ) {
       this.lastCountAt = performance.now();
       this.cb.cue("count", Math.min(pct, 100));
     }
@@ -768,7 +779,7 @@ function drawFocusRing(c: CanvasRenderingContext2D, [x, y]: Point, pct: number, 
     c.strokeStyle = accent;
     c.lineCap = "round";
     c.beginPath();
-    c.arc(x, y, 9, -Math.PI / 2, -Math.PI / 2 + TAU * Math.min(pct, 100) / 100);
+    c.arc(x, y, 9, -Math.PI / 2, -Math.PI / 2 + (TAU * Math.min(pct, 100)) / 100);
     c.stroke();
   }
   c.fillStyle = DISC;

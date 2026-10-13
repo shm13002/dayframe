@@ -88,7 +88,8 @@ function compile(gl: WebGLRenderingContext, vertex: string, fragment: string): W
     if (!shader) throw new Error("createShader failed");
     gl.shaderSource(shader, source);
     gl.compileShader(shader);
-    if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(shader) ?? "shader error");
+    if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS))
+      throw new Error(gl.getShaderInfoLog(shader) ?? "shader error");
     gl.attachShader(program, shader);
   }
   gl.bindAttribLocation(program, 0, "a_pos");

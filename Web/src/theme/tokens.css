@@ -55,7 +55,12 @@
   --df-card-border: #d0d0d0;
   --df-card-title: #333333;
   --df-card-time: #979797;
-  --df-shell-gradient: linear-gradient(90deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0.2));
+  --df-shell-gradient: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.2),
+    rgba(255, 255, 255, 0.7),
+    rgba(255, 255, 255, 0.2)
+  );
   --df-shell-border: #dadada;
   --df-shell-heading: #90837a;
   --df-shell-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
