@@ -16,6 +16,7 @@ struct StartOfDaySettingsView: View {
       OpeningSection()
       WallpaperSection()
       DayAppsSection()
+      FocusSection()
       WindowStyleSection()
     }
   }
@@ -303,6 +304,58 @@ private struct DayAppsSection: View {
     panel.prompt = "Add"
     guard panel.runModal() == .OK else { return }
     for url in panel.urls { startOfDay.add(appAt: url) }
+  }
+}
+
+// MARK: - Focus
+
+private struct FocusSection: View {
+  @AppStorage(StartOfDay.Keys.focusShortcut) private var shortcut = ""
+  @State private var available: [String] = []
+
+  var body: some View {
+    SettingsSection(
+      title: "Focus",
+      subtitle:
+        "Turn on a Focus when your day starts. macOS lets only Shortcuts switch Focus, so Dayframe runs a shortcut you make once."
+    ) {
+      VStack(alignment: .leading, spacing: 0) {
+        SettingsRow(
+          label: "Shortcut to run",
+          subtitle: available.isEmpty
+            ? "No shortcuts yet. In Shortcuts, make one with the Set Focus action, for example \"\(FocusShortcut.suggestedName)\"."
+            : "Runs right after your day's apps open."
+        ) {
+          HStack(spacing: 8) {
+            Picker("Shortcut", selection: $shortcut) {
+              Text("None").tag("")
+              ForEach(available, id: \.self) { Text($0).tag($0) }
+            }
+            .pickerStyle(.menu)
+            .labelsHidden()
+            .frame(width: 180)
+            SettingsSecondaryButton(title: "Open Shortcuts", systemImage: "arrow.up.right") {
+              NSWorkspace.shared.open(URL(string: "shortcuts://")!)
+            }
+          }
+        }
+        SettingsRow(label: "Try it", showsDivider: false) {
+          SettingsSecondaryButton(
+            title: "Run now", systemImage: "moon", isDisabled: shortcut.isEmpty
+          ) {
+            let name = shortcut
+            Task.detached { _ = FocusShortcut.run(name) }
+          }
+        }
+      }
+    }
+    .task {
+      // Picks up a shortcut made in Shortcuts while this was open.
+      while !Task.isCancelled {
+        available = await Task.detached(priority: .utility) { FocusShortcut.available() }.value
+        try? await Task.sleep(for: .seconds(5))
+      }
+    }
   }
 }
 

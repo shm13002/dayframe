@@ -24,6 +24,20 @@ Entry template:
 
 ## 2026-10-13 (Tue)
 
+### 13:57: Start of day can turn on a Focus (through a Shortcut)
+- **What:**
+  - macOS has no public API to set a Focus, so Dayframe uses the supported path. The user makes a Shortcut once with the **Set Focus** action (suggested name "Work Focus"), and Start of day runs it with `/usr/bin/shortcuts run` right after the day's apps open.
+  - New `FocusShortcut` (lists and runs shortcuts; the list parsing is pure and tested).
+  - New setting key `dayframeStartOfDayFocusShortcut` ("" means none).
+  - The run is logged (category `startofday`), and the Settings line ends "Work Focus is on." or "Work Focus didn't run."
+  - **Settings › Start of day › Focus** (new section): a picker of the user's shortcuts that rechecks every 5 s while visible, so a shortcut just made in Shortcuts appears; "Open Shortcuts"; and "Run now" to try it.
+- **Files:** `App/Dayflow/Welcome/{FocusShortcut,StartOfDay,StartOfDaySettingsView}.swift`, `App/DayflowTests/StartOfDayTests.swift`
+- **Why:** One of the three ideas the user asked to build now (ticket start-of-day-extras/02).
+- **Checked:**
+  - New tests: the summary with a Focus that ran or failed, and parsing of `shortcuts list` output. `DAYFRAME_LOW_DISK_OK=1 ./check.sh --app`: all clean, 248 tests.
+  - `shortcuts list` on this Mac returns nothing: **the user has no shortcuts yet.** Making "Work Focus" in Shortcuts (Set Focus → Work → On) is the user's step, then picking it in Settings › Start of day › Focus.
+- **Commit:** this entry's title is the commit subject.
+
 ### 13:51: New app icon: the welcome's ring, and the Dock follows the palette
 - **What:**
   - **New `AppIconArt`** (SwiftUI Canvas): the welcome's final mark. That is the night-sky tile, the eclipse ring with its corona and soft-to-sharp rim, and the three locks at rest. It uses the proportions and colors of `scene.ts` (ring radius 44 of the tile's 74, `LOCK_ANGLES`, `welcomeColors`) on Apple's icon grid (824 of 1024, continuous corners). The glow is clipped to the tile.

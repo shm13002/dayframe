@@ -112,6 +112,22 @@ final class StartOfDayTests: XCTestCase {
       "Ran at 9:01 AM: 1 opened, 2 already open, 1 couldn't open, 0 placed.")
   }
 
+  func testRunSummarySaysWhetherTheFocusShortcutRan() {
+    var report = StartOfDayReport(opened: 1, placed: 1)
+    report.focus = ("Work Focus", nil)
+    XCTAssertEqual(
+      report.summary(at: "9:01 AM"), "Ran at 9:01 AM: 1 opened, 1 placed. Work Focus is on.")
+    report.focus = ("Work Focus", "The shortcut couldn't be found.")
+    XCTAssertTrue(report.summary(at: "9:01 AM").hasSuffix("Work Focus didn't run."))
+  }
+
+  func testFocusShortcutNamesComeFromTheShortcutsList() {
+    XCTAssertEqual(
+      FocusShortcut.names(fromList: "Work Focus\n  Morning Music \n\nSet Up Desk\n"),
+      ["Work Focus", "Morning Music", "Set Up Desk"])
+    XCTAssertEqual(FocusShortcut.names(fromList: ""), [])
+  }
+
   @MainActor
   func testWallpaperRendersAtNativeSizeForEveryPalette() throws {
     let pixels = CGSize(width: 2560, height: 1664)

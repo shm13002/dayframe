@@ -71,13 +71,24 @@ struct StartOfDayReport: Equatable {
   var alreadyOpen = 0
   var failed = 0
   var placed = 0
+  /// The Focus shortcut that ran, and whether it worked (nil when none is set).
+  var focus: (name: String, error: String?)?
+
+  static func == (a: Self, b: Self) -> Bool {
+    (a.opened, a.alreadyOpen, a.failed, a.placed) == (b.opened, b.alreadyOpen, b.failed, b.placed)
+      && a.focus?.name == b.focus?.name && a.focus?.error == b.focus?.error
+  }
 
   func summary(at time: String) -> String {
     var parts = ["\(opened) opened"]
     if alreadyOpen > 0 { parts.append("\(alreadyOpen) already open") }
     if failed > 0 { parts.append("\(failed) couldn't open") }
     parts.append("\(placed) placed")
-    return "Ran at \(time): " + parts.joined(separator: ", ") + "."
+    var text = "Ran at \(time): " + parts.joined(separator: ", ") + "."
+    if let focus {
+      text += focus.error == nil ? " \(focus.name) is on." : " \(focus.name) didn't run."
+    }
+    return text
   }
 }
 
@@ -100,6 +111,8 @@ final class StartOfDay: ObservableObject {
     static let apps = "dayframeStartOfDayApps"
     static let dayframeSlot = "dayframeStartOfDayDayframeSlot"
     static let windowStyle = "dayframeStartOfDayWindowStyle"
+    /// The Shortcut that turns the day's Focus on ("" = none).
+    static let focusShortcut = "dayframeStartOfDayFocusShortcut"
   }
 
   @Published var apps: [DayApp] { didSet { save() } }
@@ -204,7 +217,20 @@ final class StartOfDay: ObservableObject {
       // 3. Everything else out of the way (hidden, not quit).
       if defaults.bool(forKey: Keys.hideOthers) { hideOthers(keeping: Set(apps.map(\.bundleID))) }
 
-      // 4. Windows to their places (Layout style only; Stage Manager arranges its own).
+      // 4. The day's Focus, through the user's Shortcut (macOS has no API for it).
+      if let name = defaults.string(forKey: Keys.focusShortcut), !name.isEmpty {
+        let error = await Task.detached(priority: .userInitiated) { FocusShortcut.run(name) }.value
+        report.focus = (name, error)
+        if let error {
+          startLog.error(
+            "[StartOfDay] Focus shortcut \(name, privacy: .public) failed: \(error, privacy: .public)"
+          )
+        } else {
+          startLog.notice("[StartOfDay] Focus shortcut \(name, privacy: .public) ran")
+        }
+      }
+
+      // 5. Windows to their places (Layout style only; Stage Manager arranges its own).
       let slotted = apps.filter { $0.slot != .keep }
       if windowStyle == .layout {
         placeDayframe()
@@ -225,7 +251,7 @@ final class StartOfDay: ObservableObject {
         }
       }
 
-      // 5. Back to the hub.
+      // 6. Back to the hub.
       MainWindowController.shared.showMainWindow()
       NSApp.activate(ignoringOtherApps: true)
       lastRun = report.summary(at: Date().formatted(date: .omitted, time: .shortened))
