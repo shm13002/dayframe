@@ -127,7 +127,7 @@ struct SettingsProvidersTabView: View {
           text: KeychainManager.shared.retrieve(for: "gemini") != nil
             ? String(localized: "Stored safely in Keychain") : String(localized: "Not set"))
       }
-    case .chatGPT, .claude:
+    case .chatGPT, .claude, .grok:
       SettingsRow(label: String(localized: "CLI")) {
         SettingsMetadata(text: viewModel.cliStatusLabel(for: viewModel.currentProvider))
       }
@@ -199,6 +199,11 @@ struct SettingsProvidersTabView: View {
         case .claude:
           ChatCLITestView(
             selectedTool: .claude,
+            onTestComplete: { _ in }
+          )
+        case .grok:
+          ChatCLITestView(
+            selectedTool: .grok,
             onTestComplete: { _ in }
           )
         case .openAICompatible:
@@ -274,8 +279,7 @@ struct SettingsProvidersTabView: View {
           SettingsBadge(text: String(localized: "NEEDS ATTENTION"))
         } else if !isChecking && !isPrimary && !isSecondary && isConfigured {
           SettingsBadge(
-            text: provider.id == .chatGPT || provider.id == .claude
-              ? "DETECTED" : "CONFIGURED")
+            text: [.chatGPT, .claude, .grok].contains(provider.id) ? "DETECTED" : "CONFIGURED")
         } else if !isChecking && !isPrimary && !isSecondary {
           SettingsBadge(text: String(localized: "NOT SET"))
         }
@@ -455,7 +459,7 @@ struct SettingsProvidersTabView: View {
         ],
         onReset: viewModel.resetOllamaPromptOverrides
       )
-    case .dayflow, .chatGPT, .claude, .openAICompatible:
+    case .dayflow, .chatGPT, .claude, .grok, .openAICompatible:
       EmptyView()
     }
   }

@@ -36,6 +36,7 @@ struct ChatView: View {
   @State var geminiConfigured = false
   @State var codexDetected = false
   @State var claudeDetected = false
+  @State var grokDetected = false
   @State var localAvailable = false
   @State var completedAccessBatchCount = 0
   @State var cliDetectionTask: Task<Void, Never>?

@@ -22,11 +22,10 @@ class ProviderSetupState: ObservableObject {
   @Published var openAICompatibleModelID: String = ""
   @Published var openAICompatibleAPIKey: String = ""
   // CLI detection
-  @Published var codexCLIStatus: CLIDetectionState = .unknown
-  @Published var claudeCLIStatus: CLIDetectionState = .unknown
+  /// Each CLI's detection result (missing = not checked yet).
+  @Published var cliStatus: [CLITool: CLIDetectionState] = [:]
+  @Published var cliReports: [CLITool: CLIDetectionReport] = [:]
   @Published var isCheckingCLIStatus: Bool = false
-  @Published var codexCLIReport: CLIDetectionReport?
-  @Published var claudeCLIReport: CLIDetectionReport?
   @Published var debugCommandInput: String = "which codex"
   @Published var debugCommandOutput: String = ""
   @Published var isRunningDebugCommand: Bool = false
@@ -136,13 +135,11 @@ class ProviderSetupState: ObservableObject {
             String(localized: "All set!"),
             String(localized: "Local AI is configured and ready to use with Dayframe."))),
       ]
-    case .chatGPT, .claude:
-      preferredCLITool = provider == .claude ? .claude : .codex
+    case .chatGPT, .claude, .grok:
+      preferredCLITool = CLITool(providerID: provider)
       steps = chatCLISteps(for: provider)
-      codexCLIStatus = .unknown
-      claudeCLIStatus = .unknown
-      codexCLIReport = nil
-      claudeCLIReport = nil
+      cliStatus = [:]
+      cliReports = [:]
       isCheckingCLIStatus = false
       hasStartedCLICheck = false
     case .openAICompatible:
@@ -204,9 +201,9 @@ class ProviderSetupState: ObservableObject {
   }
 
   private func chatCLISteps(for provider: LLMProviderID) -> [SetupStep] {
-    let isClaude = provider == .claude
-    let providerName = isClaude ? "Claude" : "ChatGPT"
-    let cliName = isClaude ? "Claude Code" : "Codex CLI"
+    let tool = CLITool(providerID: provider) ?? .codex
+    let providerName = tool.shortName
+    let cliName = tool == .codex ? "Codex CLI" : tool == .claude ? "Claude Code" : "Grok CLI"
     return [
       SetupStep(
         id: "intro",
@@ -247,9 +244,8 @@ class ProviderSetupState: ObservableObject {
   /// Claude on the detection step). Rewrites the step copy in place without resetting
   /// detection results or the user's position in the flow.
   private func switchChatCLIProvider(to provider: LLMProviderID) {
-    guard configuredProviderID == .chatGPT || configuredProviderID == .claude,
-      provider == .chatGPT || provider == .claude,
-      provider != configuredProviderID
+    guard let current = configuredProviderID, CLITool(providerID: current) != nil,
+      CLITool(providerID: provider) != nil, provider != current
     else { return }
     configuredProviderID = provider
     let refreshedSteps = chatCLISteps(for: provider)
@@ -331,22 +327,23 @@ class ProviderSetupState: ObservableObject {
   func refreshCLIStatuses(source: String = "manual_recheck") {
     if isCheckingCLIStatus { return }
     isCheckingCLIStatus = true
-    codexCLIStatus = .checking
-    claudeCLIStatus = .checking
-    codexCLIReport = nil
-    claudeCLIReport = nil
+    cliStatus = Dictionary(uniqueKeysWithValues: CLITool.allCases.map { ($0, .checking) })
+    cliReports = [:]
 
     Task.detached { [weak self] in
       guard let self else { return }
-      async let codex = CLIDetector.detect(tool: .codex)
-      async let claude = CLIDetector.detect(tool: .claude)
-      let (codexResult, claudeResult) = await (codex, claude)
+      let reports = await withTaskGroup(of: (CLITool, CLIDetectionReport).self) { group in
+        for tool in CLITool.allCases {
+          group.addTask { (tool, await CLIDetector.detect(tool: tool)) }
+        }
+        var found: [CLITool: CLIDetectionReport] = [:]
+        for await (tool, report) in group { found[tool] = report }
+        return found
+      }
 
       await MainActor.run {
-        self.codexCLIReport = codexResult
-        self.claudeCLIReport = claudeResult
-        self.codexCLIStatus = codexResult.state
-        self.claudeCLIStatus = claudeResult.state
+        self.cliReports = reports
+        self.cliStatus = reports.mapValues(\.state)
         self.isCheckingCLIStatus = false
         self.ensurePreferredCLIToolIsValid()
         self.captureChatCLIDetectionChecked(source: source)
@@ -389,7 +386,7 @@ class ProviderSetupState: ObservableObject {
   func selectPreferredCLITool(_ tool: CLITool) {
     guard preferredCLITool != tool else { return }
     preferredCLITool = tool
-    switchChatCLIProvider(to: tool == .claude ? .claude : .chatGPT)
+    switchChatCLIProvider(to: tool.providerID)
     captureChatCLIToolSelected(tool)
   }
 
@@ -399,11 +396,7 @@ class ProviderSetupState: ObservableObject {
     if preferredCLITool != nil {
       return
     }
-    if isToolAvailable(.codex) {
-      preferredCLITool = .codex
-    } else if isToolAvailable(.claude) {
-      preferredCLITool = .claude
-    }
+    preferredCLITool = CLITool.allCases.first(where: isToolAvailable)
   }
 
   func captureChatCLIDetectionChecked(source: String) {
@@ -430,25 +423,23 @@ class ProviderSetupState: ObservableObject {
     source: String,
     selectedTool: CLITool?
   ) -> [String: Any] {
-    let codexAvailable = isToolAvailable(.codex)
-    let claudeAvailable = isToolAvailable(.claude)
-    let availableToolCount = [codexAvailable, claudeAvailable].filter { $0 }.count
+    let available = CLITool.allCases.filter(isToolAvailable)
     let selectedToolAvailable = selectedTool.map(isToolAvailable(_:)) ?? false
 
-    return [
+    var properties: [String: Any] = [
       "source": source,
       "provider_id": configuredProviderID?.rawValue ?? "unknown",
       "setup_step": "detect",
       "selected_tool": selectedTool?.rawValue ?? "none",
       "selected_tool_available": selectedToolAvailable,
-      "codex_available": codexAvailable,
-      "claude_available": claudeAvailable,
-      "any_cli_available": codexAvailable || claudeAvailable,
-      "both_clis_available": codexAvailable && claudeAvailable,
-      "available_tool_count": availableToolCount,
-      "codex_status": analyticsValue(for: codexCLIStatus),
-      "claude_status": analyticsValue(for: claudeCLIStatus),
+      "any_cli_available": !available.isEmpty,
+      "available_tool_count": available.count,
     ]
+    for tool in CLITool.allCases {
+      properties["\(tool.rawValue)_available"] = available.contains(tool)
+      properties["\(tool.rawValue)_status"] = analyticsValue(for: cliStatus[tool] ?? .unknown)
+    }
+    return properties
   }
 
   func analyticsValue(for status: CLIDetectionState) -> String {
@@ -467,14 +458,7 @@ class ProviderSetupState: ObservableObject {
   }
 
   func isToolAvailable(_ tool: CLITool) -> Bool {
-    switch tool {
-    case .codex:
-      if codexCLIStatus.isInstalled { return true }
-      return codexCLIReport?.resolvedPath != nil
-    case .claude:
-      if claudeCLIStatus.isInstalled { return true }
-      return claudeCLIReport?.resolvedPath != nil
-    }
+    (cliStatus[tool]?.isInstalled ?? false) || cliReports[tool]?.resolvedPath != nil
   }
 
 }

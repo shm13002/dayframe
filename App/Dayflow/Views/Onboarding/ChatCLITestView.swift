@@ -359,39 +359,26 @@ struct ChatCLITestView: View {
     // Simple math test - deterministic and doesn't require image handling
     let prompt = String(localized: "What is 2+2? Answer with just the number.")
 
+    let cliTool: ChatCLITool
     switch tool {
-    case .codex:
-      let runner = ChatCLIProcessRunner()
-      let run = try runner.run(
-        tool: .codex,
-        prompt: prompt,
-        workingDirectory: safeWorkingDir,
-        reasoningEffort: "low",
-        disableTools: true
-      )
-      return CLIResult(
-        stdout: run.stdout,
-        stderr: run.stderr,
-        exitCode: run.exitCode,
-        shellCommand: run.shellCommand,
-        environmentOverrides: run.environmentOverrides
-      )
-    case .claude:
-      let runner = ChatCLIProcessRunner()
-      let run = try runner.run(
-        tool: .claude,
-        prompt: prompt,
-        workingDirectory: safeWorkingDir,
-        disableTools: true
-      )
-      return CLIResult(
-        stdout: run.stdout,
-        stderr: run.stderr,
-        exitCode: run.exitCode,
-        shellCommand: run.shellCommand,
-        environmentOverrides: run.environmentOverrides
-      )
+    case .codex: cliTool = .codex
+    case .claude: cliTool = .claude
+    case .grok: cliTool = .grok
     }
+    let run = try ChatCLIProcessRunner().run(
+      tool: cliTool,
+      prompt: prompt,
+      workingDirectory: safeWorkingDir,
+      reasoningEffort: tool == .codex ? "low" : nil,
+      disableTools: true
+    )
+    return CLIResult(
+      stdout: run.stdout,
+      stderr: run.stderr,
+      exitCode: run.exitCode,
+      shellCommand: run.shellCommand,
+      environmentOverrides: run.environmentOverrides
+    )
   }
 
   func parseForSuccess(_ result: CLIResult, for tool: CLITool) -> Bool {
@@ -411,6 +398,8 @@ struct ChatCLITestView: View {
       || combined.contains("not logged in")
       || combined.contains("codex auth")
       || combined.contains("claude login")
+      || combined.contains("grok login")
+      || combined.contains("not signed in")
       || combined.contains("authentication required")
       || combined.contains("unauthorized")
 
@@ -424,6 +413,9 @@ struct ChatCLITestView: View {
     case .codex:
       return String(
         localized: "Codex CLI is not signed in. Run 'codex auth' in Terminal to authenticate.")
+    case .grok:
+      return String(
+        localized: "Grok CLI is not signed in. Run 'grok login' in Terminal to authenticate.")
     }
   }
 }
@@ -431,11 +423,13 @@ struct ChatCLITestView: View {
 enum CLITool: String, CaseIterable {
   case codex
   case claude
+  case grok
 
   var displayName: String {
     switch self {
     case .codex: return String(localized: "ChatGPT (Codex CLI)")
     case .claude: return String(localized: "Claude Code")
+    case .grok: return String(localized: "Grok (Grok CLI)")
     }
   }
 
@@ -443,6 +437,7 @@ enum CLITool: String, CaseIterable {
     switch self {
     case .codex: return "ChatGPT"
     case .claude: return "Claude"
+    case .grok: return "Grok"
     }
   }
 
@@ -452,6 +447,8 @@ enum CLITool: String, CaseIterable {
       return String(localized: "OpenAI's ChatGPT desktop tooling with codex CLI")
     case .claude:
       return String(localized: "Anthropic's Claude Code command-line helper")
+    case .grok:
+      return String(localized: "xAI's Grok command-line agent")
     }
   }
 
@@ -459,11 +456,17 @@ enum CLITool: String, CaseIterable {
     switch self {
     case .codex: return "codex"
     case .claude: return "claude"
+    case .grok: return "grok"
     }
   }
 
+  /// How the login shell starts it: Grok by its full path when installed in ~/.grok/bin.
+  var shellCommand: String {
+    self == .grok ? ChatCLITool.grok.shellCommand : executableName
+  }
+
   var versionCommand: String {
-    "\(executableName) --version"
+    "\(shellCommand) --version"
   }
 
   var installURL: URL? {
@@ -472,6 +475,8 @@ enum CLITool: String, CaseIterable {
       return URL(string: "https://developers.openai.com/codex/cli/")
     case .claude:
       return URL(string: "https://docs.anthropic.com/en/docs/claude-code/setup")
+    case .grok:
+      return URL(string: "https://x.ai/cli")
     }
   }
 
@@ -479,13 +484,30 @@ enum CLITool: String, CaseIterable {
     switch self {
     case .codex: return "terminal"
     case .claude: return "bolt.horizontal.circle"
+    case .grok: return "sparkle"
     }
+  }
+
+  /// The provider this CLI stands for.
+  var providerID: LLMProviderID {
+    switch self {
+    case .codex: return .chatGPT
+    case .claude: return .claude
+    case .grok: return .grok
+    }
+  }
+
+  /// The CLI for a CLI provider; nil for providers that aren't a CLI.
+  init?(providerID: LLMProviderID) {
+    guard let tool = Self.allCases.first(where: { $0.providerID == providerID }) else { return nil }
+    self = tool
   }
 
   var logoAssetName: String {
     switch self {
     case .codex: return "ChatGPTLogo"
     case .claude: return "ClaudeLogo"
+    case .grok: return "GrokLogo"
     }
   }
 }

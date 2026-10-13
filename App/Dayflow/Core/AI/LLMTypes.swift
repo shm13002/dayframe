@@ -17,6 +17,8 @@ enum DashboardChatProvider: String, Codable, CaseIterable {
   case gemini
   case codex
   case claude
+  /// Dayframe: xAI's Grok through the Grok CLI and the user's own plan.
+  case grok
   /// Dayframe: the on-device model (Qwen on Ollama), the default chat provider.
   case local
 
@@ -32,14 +34,15 @@ enum DashboardChatProvider: String, Codable, CaseIterable {
     case .gemini: return "Gemini"
     case .codex: return "Codex"
     case .claude: return "Claude"
+    case .grok: return "Grok"
     case .local: return "Qwen"
     }
   }
 
-  /// Claude Code and Codex keep their own session and can resume it; the others get the
-  /// full structured history every turn.
+  /// The CLI agents (Claude Code, Codex, Grok) keep their own session and can resume it; the
+  /// others get the full structured history every turn.
   var usesCLISession: Bool {
-    self == .codex || self == .claude
+    self == .codex || self == .claude || self == .grok
   }
 
   var analyticsProvider: String {
@@ -52,7 +55,7 @@ enum DashboardChatProvider: String, Codable, CaseIterable {
       return "gemini_function_calling"
     case .local:
       return "local_function_calling"
-    case .codex, .claude:
+    case .codex, .claude, .grok:
       return "chat_cli"
     }
   }
@@ -109,6 +112,8 @@ enum LLMProviderID: String, Codable, CaseIterable {
   case claude
   case openAICompatible = "openai_compatible"
   case local
+  /// Dayframe: xAI's Grok through the Grok CLI and the user's own plan (no API key).
+  case grok
 
   var analyticsName: String {
     switch self {
@@ -116,7 +121,7 @@ enum LLMProviderID: String, Codable, CaseIterable {
       return "dayflow"
     case .gemini:
       return "gemini"
-    case .chatGPT, .claude:
+    case .chatGPT, .claude, .grok:
       return "chat_cli"
     case .openAICompatible:
       return "openai_compatible"
@@ -131,6 +136,7 @@ enum LLMProviderID: String, Codable, CaseIterable {
     case .gemini: return "gemini"
     case .chatGPT: return "chatgpt"
     case .claude: return "claude"
+    case .grok: return "grok"
     case .openAICompatible: return "openai_compatible"
     case .local:
       return "local"

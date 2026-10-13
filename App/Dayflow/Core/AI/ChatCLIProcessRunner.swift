@@ -432,6 +432,7 @@ struct ChatCLIProcessRunner {
     model: String? = nil,
     reasoningEffort: String? = nil,
     sessionId: String? = nil,
+    disableTools: Bool = false,
     codexConfigOverrides: [String] = [],
     environmentOverrides: [String: String] = [:],
     onProcessStart: (@Sendable (String, [String: String]) -> Void)? = nil
@@ -446,6 +447,7 @@ struct ChatCLIProcessRunner {
             model: model,
             reasoningEffort: reasoningEffort,
             sessionId: sessionId,
+            disableTools: disableTools,
             codexConfigOverrides: codexConfigOverrides,
             continuation: continuation,
             onProcessStart: onProcessStart,
@@ -466,6 +468,7 @@ struct ChatCLIProcessRunner {
     model: String?,
     reasoningEffort: String?,
     sessionId: String?,
+    disableTools: Bool = false,
     codexConfigOverrides: [String] = [],
     continuation: AsyncThrowingStream<ChatStreamEvent, Error>.Continuation,
     onProcessStart: (@Sendable (String, [String: String]) -> Void)? = nil,
@@ -478,9 +481,10 @@ struct ChatCLIProcessRunner {
     let executableCommand =
       codexExecutable.map {
         LoginShellRunner.shellEscape($0.executableURL.path)
-      } ?? toolName
+      } ?? tool.shellCommand
 
     var cmdParts: [String] = [executableCommand]
+    var grokPromptFile: URL?
     switch tool {
     case .codex:
       if let sessionId = sessionId {
@@ -522,6 +526,14 @@ struct ChatCLIProcessRunner {
         reasoningEffort: reasoningEffort,
         sessionId: sessionId
       )
+
+    case .grok:
+      let file = try GrokCLI.writePromptFile(prompt, in: workingDirectory)
+      grokPromptFile = file
+      let command = GrokCLICommand(
+        promptFile: file.path, model: model, reasoningEffort: reasoningEffort,
+        resumeSessionID: sessionId, streaming: true, access: disableTools ? .textOnly : .shell)
+      cmdParts += command.arguments().map(LoginShellRunner.shellEscape)
     }
 
     let shellCommand =
@@ -570,6 +582,7 @@ struct ChatCLIProcessRunner {
       stderrHandle.readabilityHandler = nil
       cleanupPty?()
       cleanupPty = nil
+      if let grokPromptFile { try? FileManager.default.removeItem(at: grokPromptFile) }
     }
 
     func drainBufferedLines() -> [ChatStreamEvent] {
@@ -788,7 +801,7 @@ struct ChatCLIProcessRunner {
       if stderr.contains("command not found") {
         continuation.yield(
           .error(
-            "\(toolName) CLI not found. Please install it and run '\(tool == .codex ? "codex auth" : "claude login")' in Terminal."
+            "\(toolName) CLI not found. Please install it and run '\(tool.signInCommand)' in Terminal."
           ))
       } else if !stderr.isEmpty {
         continuation.yield(.error(stderr))
@@ -810,6 +823,8 @@ struct ChatCLIProcessRunner {
       return parseCodexEvent(data)
     case .claude:
       return parseClaudeEvent(data)
+    case .grok:
+      return GrokCLIOutput.parseStreamLine(line)
     }
   }
 
@@ -1052,6 +1067,10 @@ struct ChatCLIProcessRunner {
       return (envelope.text, envelope.usage)
     }
 
+    if tool == .grok, let envelope = GrokCLIOutput.parseEnvelope(trimmed) {
+      return (envelope.error == nil ? envelope.text : "", envelope.usage)
+    }
+
     return (trimmed, nil)
   }
 
@@ -1254,9 +1273,11 @@ struct ChatCLIProcessRunner {
     let executableCommand =
       codexExecutable.map {
         LoginShellRunner.shellEscape($0.executableURL.path)
-      } ?? toolName
+      } ?? tool.shellCommand
 
     var cmdParts: [String] = [executableCommand]
+    var grokPromptFile: URL?
+    defer { if let grokPromptFile { try? FileManager.default.removeItem(at: grokPromptFile) } }
     switch tool {
     case .codex:
       if let codexResumeSessionId {
@@ -1311,6 +1332,14 @@ struct ChatCLIProcessRunner {
         profile: claudeProfile,
         sessionMode: claudeSessionMode
       )
+    case .grok:
+      // Grok's headless mode takes no images: callers put the frames' text in the prompt.
+      let file = try GrokCLI.writePromptFile(prompt, in: workingDirectory)
+      grokPromptFile = file
+      let command = GrokCLICommand(
+        promptFile: file.path, model: model, reasoningEffort: reasoningEffort,
+        access: disableTools ? .textOnly : .shell)
+      cmdParts += command.arguments().map(LoginShellRunner.shellEscape)
     }
 
     let shellCommand =
@@ -1468,7 +1497,7 @@ struct ChatCLIProcessRunner {
         domain: "ChatCLI", code: -2,
         userInfo: [
           NSLocalizedDescriptionKey:
-            "\(toolName) CLI not found. Please install it and run '\(tool == .codex ? "codex auth" : "claude login")' in Terminal."
+            "\(toolName) CLI not found. Please install it and run '\(tool.signInCommand)' in Terminal."
         ])
     }
 

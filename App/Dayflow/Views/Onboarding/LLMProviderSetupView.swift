@@ -23,6 +23,8 @@ struct LLMProviderSetupView: View {
       return String(localized: "Connect ChatGPT")
     case .claude:
       return String(localized: "Connect Claude")
+    case .grok:
+      return String(localized: "Connect Grok")
     case .openAICompatible:
       return String(localized: "Connect an AI endpoint")
     case .gemini:
@@ -605,10 +607,8 @@ struct LLMProviderSetupView: View {
 
     case .cliDetection:
       ChatCLIDetectionStepView(
-        codexStatus: setupState.codexCLIStatus,
-        codexReport: setupState.codexCLIReport,
-        claudeStatus: setupState.claudeCLIStatus,
-        claudeReport: setupState.claudeCLIReport,
+        statuses: setupState.cliStatus,
+        reports: setupState.cliReports,
         isChecking: setupState.isCheckingCLIStatus,
         onRetry: { setupState.refreshCLIStatuses() },
         onInstall: { tool in openChatCLIInstallPage(for: tool) },

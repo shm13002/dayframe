@@ -185,6 +185,7 @@ struct TimelineFailureClassification {
     switch provider {
     case "ChatGPT": return "codex auth"
     case "Claude": return "claude login"
+    case "Grok": return "grok login"
     case "AWS": return "aws sso login"
     default: return nil
     }
@@ -197,6 +198,7 @@ struct TimelineFailureClassification {
     case "gemini": return String(localized: "Gemini")
     case "chatgpt": return String(localized: "ChatGPT")
     case "claude": return String(localized: "Claude")
+    case "grok": return String(localized: "Grok")
     case "local", "ollama": return String(localized: "Ollama/LM Studio")
     case "dayflow": return String(localized: "Dayframe")
     default: return label
@@ -238,7 +240,7 @@ enum TimelineFailureClassifier {
       .providerLoginExpired,
       [
         "could not be refreshed", "log out and sign in", "please run /login",
-        "sso session", "aws sso login",
+        "sso session", "aws sso login", "not signed in. to authenticate",
       ]
     ),
     (.cliNotInstalled, ["cli not found", "enoent"]),
@@ -308,6 +310,9 @@ enum TimelineFailureClassifier {
     }
     if lower.contains("claude") || lower.contains("please run /login") {
       return "Claude"
+    }
+    if lower.contains("grok") {
+      return "Grok"
     }
     if lower.contains("ollama") || lower.contains("lmstudio") || lower.contains("lm studio") {
       return "Ollama/LM Studio"

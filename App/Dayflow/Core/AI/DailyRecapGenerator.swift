@@ -24,6 +24,7 @@ enum DailyRecapGeneratorError: LocalizedError {
   case missingGeminiAPIKey
   case missingCodexCLI
   case missingClaudeCLI
+  case missingGrokCLI
   case emptyGeneratedContent(day: String)
   case invalidJSONResponse(rawResponse: String)
   case invalidResponseShape(rawResponse: String)
@@ -52,6 +53,8 @@ enum DailyRecapGeneratorError: LocalizedError {
       return String(localized: "Codex CLI is not installed.")
     case .missingClaudeCLI:
       return String(localized: "Claude Code is not installed.")
+    case .missingGrokCLI:
+      return String(localized: "The Grok CLI is not installed.")
     case .emptyGeneratedContent(let day):
       return String(localized: "Daily generation returned no usable items for \(day).")
     case .invalidJSONResponse(let rawResponse):
@@ -162,6 +165,7 @@ final class DailyRecapGenerator {
       .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
     let codexInstalled = LoginShellRunner.isInstalled("codex")
     let claudeInstalled = LoginShellRunner.isInstalled("claude")
+    let grokInstalled = GrokProvider.isInstalled
     let isLocalConfigured = localProviderIsConfigured()
     let localModel = DailyRecapProvider.local.modelOrTool
 
@@ -194,6 +198,12 @@ final class DailyRecapGenerator {
           ? DailyRecapProvider.claude.pickerSubtitle
           : "Install Claude Code before using this provider"
       ),
+      .grok: DailyRecapProviderAvailability(
+        isAvailable: grokInstalled,
+        detail: grokInstalled
+          ? DailyRecapProvider.grok.pickerSubtitle
+          : "Install the Grok CLI before using this provider"
+      ),
       .none: DailyRecapProviderAvailability(
         isAvailable: true,
         detail: DailyRecapProvider.none.pickerSubtitle
@@ -223,6 +233,8 @@ final class DailyRecapGenerator {
       return try await generateWithChatGPT(context: context, metadata: metadata)
     case .claude:
       return try await generateWithClaude(context: context, metadata: metadata)
+    case .grok:
+      return try await generateWithGrok(context: context, metadata: metadata)
     case .none:
       throw DailyRecapGeneratorError.noProviderSelected
     }
@@ -463,6 +475,18 @@ final class DailyRecapGenerator {
       reasoningEffort: nil,
       disableTools: true
     )
+    let parsed = try Self.parseLocalResponse(rawText)
+    return try makeDraft(from: parsed, context: context, metadata: metadata)
+  }
+
+  private func generateWithGrok(
+    context: DailyRecapGenerationContext,
+    metadata: DailyStandupGenerationMetadata
+  ) async throws -> DailyStandupDraft {
+    guard GrokProvider.isInstalled else { throw DailyRecapGeneratorError.missingGrokCLI }
+    let prompt = Self.makeLocalPrompt(day: context.sourceDayString, cards: context.cards)
+    let (rawText, _) = try await GrokProvider().generateText(
+      prompt: prompt, model: "grok-4.5", reasoningEffort: "medium", disableTools: true)
     let parsed = try Self.parseLocalResponse(rawText)
     return try makeDraft(from: parsed, context: context, metadata: metadata)
   }

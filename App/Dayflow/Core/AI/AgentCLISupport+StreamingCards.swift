@@ -1,29 +1,46 @@
 import AppKit
 import Foundation
 
-extension CodexProvider {
-  // MARK: - Codex activity cards
+/// A CLI provider that writes timeline cards with the shared streaming loop: one session,
+/// up to three attempts, each failed validation sent back as a correction. Codex and Grok
+/// use it; Claude has its own stricter path.
+protocol StreamingCardWriter: AgentCLISupporting, ChatGPTTimelinePromptSupporting {
+  static func activityCardModelConfiguration() -> (model: String, reasoningEffort: String?)
+  /// True when card turns must run with every tool removed (Grok); Codex keeps its defaults.
+  static var cardTurnsAreTextOnly: Bool { get }
+}
+
+extension CodexProvider: StreamingCardWriter {
+  static func activityCardModelConfiguration() -> (model: String, reasoningEffort: String?) {
+    (model: "gpt-5.6-sol", reasoningEffort: "low")
+  }
+
+  static let cardTurnsAreTextOnly = false
+}
+
+private enum CardParseError: LocalizedError {
+  case empty
+  case decodeFailure
+  case validationFailed(details: String)
+
+  var errorDescription: String? {
+    switch self {
+    case .empty:
+      return String(localized: "No cards returned.")
+    case .decodeFailure:
+      return String(localized: "Failed to decode cards.")
+    case .validationFailed(let details):
+      return details
+    }
+  }
+}
+
+extension StreamingCardWriter {
+  // MARK: - Activity cards
 
   func generateActivityCards(
     observations: [Observation], context: ActivityGenerationContext, batchId: Int64?
   ) async throws -> (cards: [ActivityCardData], log: LLMCall) {
-    enum CardParseError: LocalizedError {
-      case empty
-      case decodeFailure
-      case validationFailed(details: String)
-
-      var errorDescription: String? {
-        switch self {
-        case .empty:
-          return String(localized: "No cards returned.")
-        case .decodeFailure:
-          return String(localized: "Failed to decode cards.")
-        case .validationFailed(let details):
-          return details
-        }
-      }
-    }
-
     let callStart = Date()
     let basePrompt = buildCardsPrompt(observations: observations, context: context)
     var actualPromptUsed = basePrompt
@@ -41,7 +58,8 @@ extension CodexProvider {
     for attempt in 1...3 {
       do {
         let runResult = try await runStreamingAndCollect(
-          prompt: actualPromptUsed, model: model, reasoningEffort: effort, sessionId: sessionId)
+          prompt: actualPromptUsed, model: model, reasoningEffort: effort, sessionId: sessionId,
+          disableTools: Self.cardTurnsAreTextOnly)
         let run = runResult.run
         sessionId = runResult.sessionId
         lastRun = run
@@ -132,7 +150,7 @@ extension CodexProvider {
       ?? (lastError as NSError?)?.userInfo["partialStderr"] as? String
     let finalRun =
       lastRun
-      ?? codexRunResultFromStreamingError(
+      ?? runResultFromStreamingError(
         finalError,
         stdout: lastRawOutput,
         stderr: finalStderr ?? "",
@@ -147,13 +165,7 @@ extension CodexProvider {
     throw finalError
   }
 
-  static func activityCardModelConfiguration() -> (
-    model: String, reasoningEffort: String?
-  ) {
-    return (model: "gpt-5.6-sol", reasoningEffort: "low")
-  }
-
-  private func codexRunResultFromStreamingError(
+  private func runResultFromStreamingError(
     _ error: Error,
     stdout: String,
     stderr: String,

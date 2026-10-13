@@ -56,6 +56,7 @@ final class ProvidersSettingsViewModel: ObservableObject {
   @Published private(set) var openAICompatibleAPIKey = ""
   @Published private(set) var codexCLIInstalled = false
   @Published private(set) var claudeCLIInstalled = false
+  @Published private(set) var grokCLIInstalled = false
   @Published private(set) var isCheckingCLIReadiness = false
 
   @Published var geminiPromptOverridesLoaded = false
@@ -171,8 +172,9 @@ final class ProvidersSettingsViewModel: ObservableObject {
     refreshUpgradeBannerState()
     loadGeminiPromptOverridesIfNeeded()
     loadOllamaPromptOverridesIfNeeded()
-    if currentProvider == .chatGPT || currentProvider == .claude {
-      selectedAgentPromptProvider = currentProvider
+    if [.chatGPT, .claude, .grok].contains(currentProvider) {
+      // Grok writes cards with ChatGPT's prompts, so it edits those.
+      selectedAgentPromptProvider = currentProvider == .claude ? .claude : .chatGPT
     } else {
       loadAgentPromptOverridesIfNeeded()
     }
@@ -207,8 +209,8 @@ final class ProvidersSettingsViewModel: ObservableObject {
       loadGeminiPromptOverridesIfNeeded(force: true)
     } else if provider == .local {
       loadOllamaPromptOverridesIfNeeded(force: true)
-    } else if provider == .chatGPT || provider == .claude {
-      selectedAgentPromptProvider = provider
+    } else if [.chatGPT, .claude, .grok].contains(provider) {
+      selectedAgentPromptProvider = provider == .claude ? .claude : .chatGPT
       loadAgentPromptOverridesIfNeeded(force: true)
     }
     refreshUpgradeBannerState()
@@ -242,9 +244,11 @@ final class ProvidersSettingsViewModel: ObservableObject {
     Task.detached { [weak self] in
       let codexInstalled = CLIDetector.isInstalled(.codex)
       let claudeInstalled = CLIDetector.isInstalled(.claude)
+      let grokInstalled = CLIDetector.isInstalled(.grok)
       await MainActor.run { [weak self] in
         self?.codexCLIInstalled = codexInstalled
         self?.claudeCLIInstalled = claudeInstalled
+        self?.grokCLIInstalled = grokInstalled
         self?.isCheckingCLIReadiness = false
       }
     }
@@ -312,8 +316,7 @@ final class ProvidersSettingsViewModel: ObservableObject {
   var secondaryRoutingProviderId: LLMProviderID? { routing.secondary }
 
   var hasCodexOrClaudeProviderInRouting: Bool {
-    routing.primary == .chatGPT || routing.primary == .claude
-      || routing.secondary == .chatGPT || routing.secondary == .claude
+    [routing.primary, routing.secondary].contains { [.chatGPT, .claude, .grok].contains($0) }
   }
 
   func loadRouting() {
@@ -380,6 +383,9 @@ final class ProvidersSettingsViewModel: ObservableObject {
       refreshCLIReadiness()
     case .claude:
       claudeCLIInstalled = true
+      refreshCLIReadiness()
+    case .grok:
+      grokCLIInstalled = true
       refreshCLIReadiness()
     case .gemini:
       let preference = GeminiModelPreference.load()
@@ -583,6 +589,8 @@ final class ProvidersSettingsViewModel: ObservableObject {
       return codexCLIInstalled && LLMProviderSetupPreferences.isComplete(.chatGPT)
     case .claude:
       return claudeCLIInstalled && LLMProviderSetupPreferences.isComplete(.claude)
+    case .grok:
+      return grokCLIInstalled && LLMProviderSetupPreferences.isComplete(.grok)
     case .openAICompatible:
       guard let configuration = OpenAICompatiblePreferences.load(), configuration.isComplete else {
         return false
@@ -604,7 +612,7 @@ final class ProvidersSettingsViewModel: ObservableObject {
   }
 
   func isProviderReadinessChecking(_ providerId: LLMProviderID) -> Bool {
-    isCheckingCLIReadiness && (providerId == .chatGPT || providerId == .claude)
+    isCheckingCLIReadiness && [.chatGPT, .claude, .grok].contains(providerId)
   }
 
   func clearBackupProvider() {
@@ -710,6 +718,8 @@ final class ProvidersSettingsViewModel: ObservableObject {
       properties["chat_cli_tool"] = "codex"
     } else if providerId == .claude {
       properties["chat_cli_tool"] = "claude"
+    } else if providerId == .grok {
+      properties["chat_cli_tool"] = "grok"
     } else if providerId == .openAICompatible {
       properties["endpoint_kind"] = openAICompatiblePreset.rawValue
       properties["has_api_key"] =
@@ -744,6 +754,10 @@ final class ProvidersSettingsViewModel: ObservableObject {
         summary: String(localized: "Uses Codex CLI through your existing ChatGPT plan")
       ),
       CompactProviderInfo(
+        id: .grok,
+        summary: String(localized: "Uses the Grok CLI through your existing Grok plan")
+      ),
+      CompactProviderInfo(
         id: .local,
         summary: String(localized: "Qwen 3.5 on this Mac • private & offline")
       ),
@@ -771,6 +785,8 @@ final class ProvidersSettingsViewModel: ObservableObject {
       return cliStatusLabel(for: .chatGPT)
     case .claude:
       return cliStatusLabel(for: .claude)
+    case .grok:
+      return cliStatusLabel(for: .grok)
     case .openAICompatible:
       return openAICompatibleModelID.isEmpty
         ? String(localized: "OpenAI-compatible endpoint") : openAICompatibleModelID
@@ -791,6 +807,9 @@ final class ProvidersSettingsViewModel: ObservableObject {
     case .claude:
       return claudeCLIInstalled
         ? String(localized: "Claude Code detected") : String(localized: "Claude Code not detected")
+    case .grok:
+      return grokCLIInstalled
+        ? String(localized: "Grok CLI detected") : String(localized: "Grok CLI not detected")
     default:
       return String(localized: "Not applicable")
     }
@@ -806,6 +825,8 @@ final class ProvidersSettingsViewModel: ObservableObject {
       return String(localized: "Codex CLI")
     case .claude:
       return String(localized: "Claude Code")
+    case .grok:
+      return String(localized: "Grok CLI")
     case .openAICompatible:
       return String(localized: "OpenAI-compatible API")
     case .dayflow:
@@ -819,6 +840,7 @@ final class ProvidersSettingsViewModel: ObservableObject {
     case .gemini: return "Gemini"
     case .chatGPT: return "ChatGPT"
     case .claude: return "Claude"
+    case .grok: return "Grok"
     case .openAICompatible: return "OpenAI-compatible"
     case .dayflow: return String(localized: "Dayflow Pro")
     }
@@ -838,6 +860,7 @@ struct CompactProviderInfo: Identifiable {
     case .gemini: return "Gemini"
     case .chatGPT: return "ChatGPT"
     case .claude: return "Claude"
+    case .grok: return "Grok"
     case .openAICompatible: return "OpenAI-compatible"
     case .dayflow: return String(localized: "Dayflow Pro")
     }

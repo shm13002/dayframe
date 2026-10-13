@@ -248,7 +248,8 @@ extension AgentCLISupporting {
       batchId: batchId,
       callGroupId: nil,
       attempt: attempt,
-      provider: "chat_cli",
+      // One name per CLI (codex_cli, claude_cli, grok_cli), so AI usage can tell them apart.
+      provider: cliTool.rawValue + "_cli",
       providerID: providerID.rawValue,
       model: model,
       operation: operation,

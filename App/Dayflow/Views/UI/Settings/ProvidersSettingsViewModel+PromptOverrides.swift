@@ -120,7 +120,7 @@ extension ProvidersSettingsViewModel {
     let overrides: ActivityCardPromptOverrides
     let defaults: (titleBlock: String, summaryBlock: String, detailedSummaryBlock: String)
     switch selectedAgentPromptProvider {
-    case .chatGPT:
+    case .chatGPT, .grok:  // Grok writes cards with ChatGPT's prompts
       overrides = CodexPromptPreferences.load()
       defaults = (
         CodexPromptDefaults.titleBlock,
@@ -177,7 +177,7 @@ extension ProvidersSettingsViewModel {
 
     if overrides.isEmpty {
       switch selectedAgentPromptProvider {
-      case .chatGPT:
+      case .chatGPT, .grok:  // Grok writes cards with ChatGPT's prompts
         CodexPromptPreferences.reset()
       case .claude:
         ClaudePromptPreferences.reset()
@@ -186,7 +186,7 @@ extension ProvidersSettingsViewModel {
       }
     } else {
       switch selectedAgentPromptProvider {
-      case .chatGPT:
+      case .chatGPT, .grok:  // Grok writes cards with ChatGPT's prompts
         CodexPromptPreferences.save(overrides)
       case .claude:
         ClaudePromptPreferences.save(overrides)
@@ -200,7 +200,7 @@ extension ProvidersSettingsViewModel {
     isUpdatingAgentPromptState = true
     let defaults: (titleBlock: String, summaryBlock: String, detailedSummaryBlock: String)
     switch selectedAgentPromptProvider {
-    case .chatGPT:
+    case .chatGPT, .grok:  // Grok writes cards with ChatGPT's prompts
       defaults = (
         CodexPromptDefaults.titleBlock,
         CodexPromptDefaults.summaryBlock,
@@ -227,7 +227,7 @@ extension ProvidersSettingsViewModel {
     agentSummaryPromptText = defaults.summaryBlock
     agentDetailedPromptText = defaults.detailedSummaryBlock
     switch selectedAgentPromptProvider {
-    case .chatGPT:
+    case .chatGPT, .grok:  // Grok writes cards with ChatGPT's prompts
       CodexPromptPreferences.reset()
     case .claude:
       ClaudePromptPreferences.reset()

@@ -304,7 +304,8 @@ extension ChatView {
       let detection = await Task.detached(priority: .utility) {
         (
           CLIDetector.isInstalled(.codex),
-          CLIDetector.isInstalled(.claude)
+          CLIDetector.isInstalled(.claude),
+          CLIDetector.isInstalled(.grok)
         )
       }.value
       let localReady = await LocalChatAvailability.isReady()
@@ -312,6 +313,7 @@ extension ChatView {
       guard !Task.isCancelled else { return }
       codexDetected = detection.0
       claudeDetected = detection.1
+      grokDetected = detection.2
       localAvailable = localReady
       geminiConfigured = isGeminiConfigured()
       normalizeSelectedProviderIfNeeded()
@@ -354,6 +356,8 @@ extension ChatView {
       return codexDetected
     case .claude:
       return claudeDetected
+    case .grok:
+      return grokDetected
     }
   }
 
@@ -365,6 +369,8 @@ extension ChatView {
       applySelectedProvider(.claude)
     } else if codexDetected {
       applySelectedProvider(.codex)
+    } else if grokDetected {
+      applySelectedProvider(.grok)
     } else if geminiConfigured {
       applySelectedProvider(.gemini)
     }
@@ -387,6 +393,8 @@ extension ChatView {
       return String(localized: "Claude")
     case .codex:
       return String(localized: "Codex")
+    case .grok:
+      return String(localized: "Grok")
     case .none:
       return String(localized: "selected provider")
     }
@@ -396,6 +404,6 @@ extension ChatView {
     if selectedProviderAvailable {
       return String(localized: "Choose chat provider")
     }
-    return String(localized: "Start Ollama (Qwen) or install Claude Code")
+    return String(localized: "Start Ollama (Qwen) or install Claude Code, Codex or Grok")
   }
 }

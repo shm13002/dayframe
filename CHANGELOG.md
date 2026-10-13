@@ -24,6 +24,38 @@ Entry template:
 
 ## 2026-10-13 (Tue)
 
+### 13:42: Grok as a full app provider (timeline, Chat, daily recap), with shared CLI code instead of copies
+- **What:**
+  - **Grok is a fourth AI provider** next to Qwen, Claude and ChatGPT. It runs xAI's Grok CLI signed in with the user's own plan (`grok login`, no API key, ADR 0003). It's chosen in onboarding, Settings › Providers (routing, connection test, "Grok CLI detected") and the Chat pill, and it can write the daily recap.
+    - **Timeline:** Grok's headless mode takes no images, so Grok transcribes from the frames' **on-screen text** (Apple Vision OCR plus app hints, from the same input builder Claude uses), then writes cards. Card turns run with every tool removed.
+    - **Chat:** streams and resumes its session (`-r`). It gets only the shell, to query the timeline with sqlite3, like Claude and Codex Chat.
+    - Models: `grok-4.5`, low effort for transcripts and cards, medium for Chat, text and recap.
+  - **New pure pieces, unit-tested:**
+    - `GrokCLICommand` builds the arguments. The prompt goes in a private 0600 file (`--prompt-file`), deleted after the run, never on the command line.
+    - `GrokCLIOutput` reads `json` and `streaming-json`, including the real "Not signed in" line.
+    - `GrokCLI.executable()` prefers `~/.grok/bin/grok`, which isn't on every shell's PATH.
+  - **Less copied code (deep modules):**
+    - Codex's card loop moved to `AgentCLISupport+StreamingCards.swift` as `StreamingCardWriter`, used by Codex and Grok. It only adds the `disableTools` option for Grok; Codex behaves the same.
+    - `CodexProvider+Text` and `ClaudeProvider+Text` were identical except for model names. They are now one `CLITextProvider` (`AgentCLISupport+Text.swift`) where each provider names its models. Grok's text and Chat are a few lines.
+    - Chat's identical `buildCodexPrompt` / `buildClaudePrompt` became one `buildCLIPrompt`. Grok uses the shared CLI system prompt.
+    - Claude's private segments-to-observations mapping is now shared, so Grok didn't need a third copy.
+    - Onboarding's CLI detection stores one status per tool (`cliStatus[tool]`), and the view loops over all CLIs instead of naming each.
+  - **Bug fixed along the way:** the app logged every CLI call as provider `chat_cli`, so Settings › AI usage counted Claude's usage as ChatGPT. Calls are now logged as `codex_cli`, `claude_cli` or `grok_cli`. Rows from before this stay as they were.
+  - `ChatCLITool.signInCommand` and `.shellCommand` replace the `codex ? "codex auth" : "claude login"` ternaries in the "CLI not found" messages.
+  - An expired Grok sign-in is classified as "login expired" with the fix `grok login`.
+  - `GrokLogo` asset made from the installed Grok Bot app's icon.
+- **Files:**
+  - New: `App/Dayflow/Core/AI/{GrokCLI,GrokProvider,GrokProvider+Transcription}.swift`, `App/DayflowTests/GrokCLITests.swift`, `App/Dayflow/Assets.xcassets/GrokLogo.imageset`
+  - Moved: `CodexProvider+ActivityCards.swift` → `AgentCLISupport+StreamingCards.swift`, `CodexProvider+Text.swift` → `AgentCLISupport+Text.swift` (with `ClaudeProvider+Text.swift` merged in)
+  - Changed: `ChatCLIRunner`, `ChatCLIProcessRunner`, `AgentCLISupport{,+Parsing,+Transcription}`, `ClaudeProvider+Transcription`, `LLMTypes`, `LLMService`, `ChatService`, `DailyRecap{Models,Generator}`, `TimelineFailureClassifier`, `StorageManager+TimelineCards`, onboarding (`ChatCLITestView`, `ChatCLIDetectionViews`, `ProviderSetupState`, `LLMProviderSetupView`, `OnboardingPrototypeChooseProviderStep`), Chat (`ChatView{,+State,+Actions,+Content}`, `ChatHistoryPanel`), Settings (`ProvidersSettingsViewModel{,+PromptOverrides}`, `SettingsProvidersTabView`)
+- **Why:** The user asked to connect Grok "just like Claude". Tickets grok/01 and grok/02.
+- **Checked:**
+  - **239 app tests, 0 failures** (12 new in `GrokCLITests`: arguments, prompt file privacy and permissions, executable lookup, envelope and stream parsing, the runner's Grok output, Chat/recap/provider mapping, missing session, per-CLI usage names, text-only card turns).
+  - The build compiles with every provider `switch` handling Grok. Swift style clean (418 files).
+  - **Disk:** with only 1.3 GB free, the user chose to unload Qwen (`keep_alive: 0`) for the test run. Dayframe reloads it for its next batch. The tests ran with a watchdog ready to stop the build below 600 MB; free space stayed at 1.3 GB.
+  - **Not yet verified live:** the Grok CLI isn't signed in (its 7-day sign-in expired), so no real Grok card or Chat turn has run. **For the user:** `~/.grok/bin/grok login`, then Settings › Providers › Grok › Test. Images for Grok: ticket grok/05.
+- **Commit:** this entry's title is the commit subject.
+
 ### 11:42: Installed 5c2695b; the welcome measured 59–60 fps in the app
 - **What:** Installed the audit fixes and the `dayframe://` scheme (commit `5c2695b`). Then played both previews through `dayframe://welcome-preview` and read the frame rates the page reports.
 - **Files:** none (install and measurement only)

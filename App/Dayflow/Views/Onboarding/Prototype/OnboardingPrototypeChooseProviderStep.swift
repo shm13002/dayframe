@@ -60,10 +60,11 @@ struct OnboardingPrototypeChooseProviderStep: View {
   @State private var dayflowProInitialReferralCode = ""
   @State private var isCodexCLIInstalled = false
   @State private var isClaudeCLIInstalled = false
+  @State private var isGrokCLIInstalled = false
 
-  // Dayframe: your Mac (Qwen) or your own Claude / ChatGPT subscription. No API keys.
+  // Dayframe: your Mac (Qwen) or your own Claude / ChatGPT / Grok subscription. No API keys.
   private static let providers: [ComparisonProvider] = allProviders.filter {
-    [.local, .claude, .chatGPT].contains($0.providerID)
+    [.local, .claude, .chatGPT, .grok].contains($0.providerID)
   }
 
   private static let allProviders: [ComparisonProvider] = [
@@ -92,6 +93,15 @@ struct OnboardingPrototypeChooseProviderStep: View {
       ease: RatedValue(text: String(localized: "Install Claude CLI"), rating: .medium),
       notes: String(
         localized: "Uses your Claude subscription and less than 1% of your daily limit.")
+    ),
+    ComparisonProvider(
+      providerID: .grok,
+      title: String(localized: "Grok"),
+      accuracy: RatedValue(text: String(localized: "Good"), rating: .medium),
+      subscription: String(localized: "Your Grok plan"),
+      ease: RatedValue(text: String(localized: "Install Grok CLI"), rating: .medium),
+      notes: String(
+        localized: "Uses your Grok plan. Reads the text on screen, not the pictures.")
     ),
     ComparisonProvider(
       providerID: .gemini,
@@ -165,12 +175,14 @@ struct OnboardingPrototypeChooseProviderStep: View {
       let installed = await Task.detached(priority: .utility) {
         (
           codex: CLIDetector.isInstalled(.codex),
-          claude: CLIDetector.isInstalled(.claude)
+          claude: CLIDetector.isInstalled(.claude),
+          grok: CLIDetector.isInstalled(.grok)
         )
       }.value
       guard !Task.isCancelled else { return }
       isCodexCLIInstalled = installed.codex
       isClaudeCLIInstalled = installed.claude
+      isGrokCLIInstalled = installed.grok
     }
   }
 
@@ -296,6 +308,8 @@ struct OnboardingPrototypeChooseProviderStep: View {
       iconCircle(imageName: "ChatGPTLogo")
     case .claude:
       iconCircle(imageName: "ClaudeLogo")
+    case .grok:
+      iconCircle(imageName: "GrokLogo")
     case .gemini:
       iconCircle(imageName: "GeminiLogo")
     case .openAICompatible:
@@ -334,6 +348,9 @@ struct OnboardingPrototypeChooseProviderStep: View {
       return RatedValue(text: String(localized: "CLI installed"), rating: .best)
     }
     if provider.providerID == .claude, isClaudeCLIInstalled {
+      return RatedValue(text: String(localized: "CLI installed"), rating: .best)
+    }
+    if provider.providerID == .grok, isGrokCLIInstalled {
       return RatedValue(text: String(localized: "CLI installed"), rating: .best)
     }
     return provider.ease

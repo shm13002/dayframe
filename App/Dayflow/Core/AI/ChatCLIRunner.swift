@@ -15,6 +15,7 @@ import Foundation
 enum ChatCLITool: String, Codable {
   case codex
   case claude
+  case grok
 
   var providerID: LLMProviderID {
     switch self {
@@ -22,6 +23,23 @@ enum ChatCLITool: String, Codable {
       return .chatGPT
     case .claude:
       return .claude
+    case .grok:
+      return .grok
+    }
+  }
+
+  /// How the login shell starts this CLI. Grok's installer puts it in ~/.grok/bin, which only
+  /// some shells have on their PATH, so it is started by its full path when installed there.
+  var shellCommand: String {
+    self == .grok ? LoginShellRunner.shellEscape(GrokCLI.executable()) : rawValue
+  }
+
+  /// What the user runs to sign the CLI in to their plan.
+  var signInCommand: String {
+    switch self {
+    case .codex: return "codex auth"
+    case .claude: return "claude login"
+    case .grok: return "grok login"
     }
   }
 }

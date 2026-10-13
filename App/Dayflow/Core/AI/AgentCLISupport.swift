@@ -46,8 +46,10 @@ extension AgentCLISupporting {
       disableTools: disableTools)
   }
 
+  /// `disableTools` removes every tool for this turn (Grok card turns); Codex and Claude ignore it.
   func runStreamingAndCollect(
-    prompt: String, model: String?, reasoningEffort: String?, sessionId: String?
+    prompt: String, model: String?, reasoningEffort: String?, sessionId: String?,
+    disableTools: Bool = false
   ) async throws -> (run: ChatCLIRunResult, sessionId: String?) {
     let started = Date()
     var collectedText = ""
@@ -62,6 +64,7 @@ extension AgentCLISupporting {
       model: model,
       reasoningEffort: reasoningEffort,
       sessionId: sessionId,
+      disableTools: disableTools,
       onProcessStart: { shellCommand, environmentOverrides in
         debugSink.update(
           shellCommand: shellCommand,

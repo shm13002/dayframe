@@ -777,6 +777,13 @@ extension ChatView {
       ) {
         handleProviderSelection(.claude)
       }
+      ProviderTogglePill(
+        title: String(localized: "Grok"),
+        isSelected: selectedProvider == .grok,
+        isEnabled: isProviderAvailable(.grok)
+      ) {
+        handleProviderSelection(.grok)
+      }
     }
     .padding(4)
     .background(

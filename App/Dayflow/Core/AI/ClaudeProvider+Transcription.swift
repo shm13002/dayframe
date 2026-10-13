@@ -220,44 +220,4 @@ extension ClaudeProvider {
       Tool requirement: use Read exactly once on every supplied file before answering; skipping or rereading a file is an error. After the final Read, reason briefly without narrating, then immediately produce the timeline. Do not emit scratch notes or summarize individual frames before the answer. Then send exactly one bare JSON object. The first character of the assistant response must be { and the last must be }; do not use a preamble or Markdown fence.
       """
   }
-
-  private func observations(
-    from segments: [SegmentMergeResponse.Segment],
-    durationSeconds: Int,
-    batchStartTime: Date,
-    batchId: Int64?,
-    model: String
-  ) -> [Observation] {
-    let ordered = segments.sorted {
-      parseVideoTimestamp($0.start) < parseVideoTimestamp($1.start)
-    }
-    return ordered.compactMap { segment in
-      let startSeconds = TimeInterval(parseVideoTimestamp(segment.start))
-      let endSeconds = TimeInterval(parseVideoTimestamp(segment.end))
-      let clampedStart = max(0, startSeconds)
-      let clampedEnd = min(endSeconds, TimeInterval(durationSeconds))
-      guard clampedEnd > clampedStart else { return nil }
-
-      let description = segment.description.trimmingCharacters(in: .whitespacesAndNewlines)
-      guard !description.isEmpty else { return nil }
-
-      let startEpoch = Int(
-        batchStartTime.addingTimeInterval(clampedStart).timeIntervalSince1970
-      )
-      let endEpoch = max(
-        startEpoch + 1,
-        Int(batchStartTime.addingTimeInterval(clampedEnd).timeIntervalSince1970)
-      )
-      return Observation(
-        id: nil,
-        batchId: batchId ?? -1,
-        startTs: startEpoch,
-        endTs: endEpoch,
-        observation: description,
-        metadata: nil,
-        llmModel: model,
-        createdAt: Date()
-      )
-    }
-  }
 }

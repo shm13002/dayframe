@@ -448,6 +448,7 @@ final class ChatService: ObservableObject {
     let text = message.lowercased()
     return text.contains("no rollout found for thread id")
       || text.contains("no conversation found with session id")
+      || (text.contains("session") && text.contains("not found"))  // Grok's `-r <id>`
   }
 
   private func buildChatRequest(provider: DashboardChatProvider, isResume: Bool)
@@ -472,26 +473,15 @@ final class ChatService: ObservableObject {
         systemInstruction: buildLocalSystemInstruction(),
         history: conversationHistory
       )
-    case .codex:
+    case .codex, .claude, .grok:
+      // The CLI agents keep their own session: a resumed turn sends only the new message.
       let prompt: String
       if isResume {
         prompt = conversationHistory.last?.content ?? ""
       } else {
-        prompt = buildCodexPrompt()
-      }
-      return DashboardChatRequest(
-        provider: provider,
-        prompt: prompt,
-        sessionId: isResume ? currentSessionId : nil,
-        systemInstruction: nil,
-        history: []
-      )
-    case .claude:
-      let prompt: String
-      if isResume {
-        prompt = conversationHistory.last?.content ?? ""
-      } else {
-        prompt = buildClaudePrompt()
+        prompt = buildCLIPrompt(
+          systemPrompt: provider == .claude
+            ? ChatPromptBuilder.claudeSystemPrompt() : ChatPromptBuilder.codexSystemPrompt())
       }
       return DashboardChatRequest(
         provider: provider,
@@ -503,27 +493,9 @@ final class ChatService: ObservableObject {
     }
   }
 
-  private func buildCodexPrompt() -> String {
-    let systemPrompt = ChatPromptBuilder.codexSystemPrompt()
-
-    var prompt = systemPrompt + "\n\n"
-
-    let memoryBlob = DashboardChatMemoryStore.load()
-    if !memoryBlob.isEmpty {
-      prompt += "## User Memory\n\(memoryBlob)\n\n"
-    }
-
-    for entry in conversationHistory {
-      prompt += "\(entry.role.promptLabel): \(entry.content)\n\n"
-    }
-
-    prompt += "Assistant:"
-    return prompt
-  }
-
-  private func buildClaudePrompt() -> String {
-    let systemPrompt = ChatPromptBuilder.claudeSystemPrompt()
-
+  /// The first turn for a CLI agent: its system prompt, the user's memory, then the
+  /// conversation so far.
+  private func buildCLIPrompt(systemPrompt: String) -> String {
     var prompt = systemPrompt + "\n\n"
 
     let memoryBlob = DashboardChatMemoryStore.load()
@@ -578,7 +550,7 @@ final class ChatService: ObservableObject {
         lines.append("\(turn.role.promptLabel): \(turn.content)")
       }
       return lines.joined(separator: "\n\n")
-    case .codex, .claude:
+    case .codex, .claude, .grok:
       if isResume, let sessionId = request.sessionId {
         return String(localized: "[Resuming session \(sessionId)] \(request.prompt)")
       }
@@ -772,6 +744,6 @@ extension ChatService {
       UserDefaults.standard.string(forKey: "llmLocalBaseURL")?
       .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
     return !geminiKey.isEmpty || !localEndpoint.isEmpty || CLIDetector.isInstalled(.codex)
-      || CLIDetector.isInstalled(.claude)
+      || CLIDetector.isInstalled(.claude) || CLIDetector.isInstalled(.grok)
   }
 }

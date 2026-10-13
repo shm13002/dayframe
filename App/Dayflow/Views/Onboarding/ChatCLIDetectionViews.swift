@@ -22,7 +22,7 @@ struct CLIDetector {
       )
     }
 
-    let result = LoginShellRunner.run("\(tool.executableName) --version", timeout: 10)
+    let result = LoginShellRunner.run(tool.versionCommand, timeout: 10)
 
     if result.exitCode == 0 {
       let trimmed = result.stdout.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -53,7 +53,7 @@ struct CLIDetector {
 
   /// Check if a CLI tool is installed (simple boolean check)
   static func isInstalled(_ tool: CLITool) -> Bool {
-    LoginShellRunner.isInstalled(tool.executableName)
+    tool == .grok ? GrokProvider.isInstalled : LoginShellRunner.isInstalled(tool.executableName)
   }
 
   /// Run an arbitrary debug command via login shell
@@ -70,10 +70,8 @@ struct CLIDetector {
 }
 
 struct ChatCLIDetectionStepView: View {
-  let codexStatus: CLIDetectionState
-  let codexReport: CLIDetectionReport?
-  let claudeStatus: CLIDetectionState
-  let claudeReport: CLIDetectionReport?
+  let statuses: [CLITool: CLIDetectionState]
+  let reports: [CLITool: CLIDetectionReport]
   let isChecking: Bool
   let onRetry: () -> Void
   let onInstall: (CLITool) -> Void
@@ -85,26 +83,23 @@ struct ChatCLIDetectionStepView: View {
   var body: some View {
     VStack(alignment: .leading, spacing: 24) {
       Text(
-        "Dayframe can talk to ChatGPT (via the Codex CLI) or Claude Code. You only need one installed and signed in on this Mac. After installing, run `codex auth` or `claude login` in Terminal to connect it to your account."
+        "Dayframe can talk to ChatGPT (via the Codex CLI), Claude Code or Grok. You only need one installed and signed in on this Mac. After installing, run `codex auth`, `claude login` or `grok login` in Terminal to connect it to your account."
       )
       .font(.custom("Figtree", size: 16))
       .foregroundColor(Color(hex: "333333"))
 
       HStack(alignment: .top, spacing: 18) {
-        ChatCLIToolStatusRow(
-          tool: .codex,
-          status: codexStatus,
-          onInstall: { onInstall(.codex) }
-        )
-        ChatCLIToolStatusRow(
-          tool: .claude,
-          status: claudeStatus,
-          onInstall: { onInstall(.claude) }
-        )
+        ForEach(CLITool.allCases, id: \.self) { tool in
+          ChatCLIToolStatusRow(
+            tool: tool,
+            status: statuses[tool] ?? .unknown,
+            onInstall: { onInstall(tool) }
+          )
+        }
       }
 
       Text(
-        "Tip: Once both are installed, you can choose which provider Dayframe uses from Settings → AI Provider."
+        "Tip: With more than one installed, you can choose which provider Dayframe uses from Settings → AI Provider."
       )
       .font(.custom("Figtree", size: 16))
       .foregroundColor(Color(hex: "333333"))
@@ -166,14 +161,7 @@ struct ChatCLIDetectionStepView: View {
   }
 
   func isToolAvailable(_ tool: CLITool) -> Bool {
-    switch tool {
-    case .codex:
-      if codexStatus.isInstalled { return true }
-      return codexReport?.resolvedPath != nil
-    case .claude:
-      if claudeStatus.isInstalled { return true }
-      return claudeReport?.resolvedPath != nil
-    }
+    (statuses[tool]?.isInstalled ?? false) || reports[tool]?.resolvedPath != nil
   }
 
   @ViewBuilder

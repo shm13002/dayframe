@@ -290,6 +290,14 @@ final class LLMService: LLMServicing {
           generateActivityCards: provider.generateActivityCards
         ), fallbackState: nil
       )
+    case .grok:
+      let provider = GrokProvider()
+      return (
+        actions: BatchProviderActions(
+          transcribeScreenshots: provider.transcribeScreenshots,
+          generateActivityCards: provider.generateActivityCards
+        ), fallbackState: nil
+      )
     }
   }
 
@@ -578,6 +586,14 @@ final class LLMService: LLMServicing {
       )
     case .claude:
       let provider = ClaudeProvider()
+      return TextProviderActions(
+        generateText: { prompt in
+          try await provider.generateText(prompt: prompt)
+        },
+        generateTextStreaming: provider.generateTextStreaming
+      )
+    case .grok:
+      let provider = GrokProvider()
       return TextProviderActions(
         generateText: { prompt in
           try await provider.generateText(prompt: prompt)
@@ -1306,6 +1322,11 @@ final class LLMService: LLMServicing {
       )
     case .claude:
       return ClaudeProvider().generateChatStreaming(
+        prompt: request.prompt,
+        sessionId: request.sessionId
+      )
+    case .grok:
+      return GrokProvider().generateChatStreaming(
         prompt: request.prompt,
         sessionId: request.sessionId
       )

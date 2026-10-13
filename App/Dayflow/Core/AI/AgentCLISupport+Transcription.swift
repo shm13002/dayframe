@@ -3,6 +3,47 @@ import Foundation
 extension AgentCLISupporting {
   // MARK: - Shared transcription output contract
 
+  /// Turns validated segments into timeline observations, clamped to the batch's length.
+  func observations(
+    from segments: [SegmentMergeResponse.Segment],
+    durationSeconds: Int,
+    batchStartTime: Date,
+    batchId: Int64?,
+    model: String
+  ) -> [Observation] {
+    let ordered = segments.sorted {
+      parseVideoTimestamp($0.start) < parseVideoTimestamp($1.start)
+    }
+    return ordered.compactMap { segment in
+      let startSeconds = TimeInterval(parseVideoTimestamp(segment.start))
+      let endSeconds = TimeInterval(parseVideoTimestamp(segment.end))
+      let clampedStart = max(0, startSeconds)
+      let clampedEnd = min(endSeconds, TimeInterval(durationSeconds))
+      guard clampedEnd > clampedStart else { return nil }
+
+      let description = segment.description.trimmingCharacters(in: .whitespacesAndNewlines)
+      guard !description.isEmpty else { return nil }
+
+      let startEpoch = Int(
+        batchStartTime.addingTimeInterval(clampedStart).timeIntervalSince1970
+      )
+      let endEpoch = max(
+        startEpoch + 1,
+        Int(batchStartTime.addingTimeInterval(clampedEnd).timeIntervalSince1970)
+      )
+      return Observation(
+        id: nil,
+        batchId: batchId ?? -1,
+        startTs: startEpoch,
+        endTs: endEpoch,
+        observation: description,
+        metadata: nil,
+        llmModel: model,
+        createdAt: Date()
+      )
+    }
+  }
+
   func parseSegments(from output: String, stderr: String) throws -> [SegmentMergeResponse
     .Segment]
   {

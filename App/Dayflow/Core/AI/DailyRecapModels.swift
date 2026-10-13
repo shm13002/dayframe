@@ -6,6 +6,7 @@ enum DailyRecapProvider: String, Codable, CaseIterable, Sendable {
   case gemini
   case chatgpt
   case claude
+  case grok
   case none
 
   private static let storageKey = "dailyRecapProvider_v1"
@@ -14,6 +15,7 @@ enum DailyRecapProvider: String, Codable, CaseIterable, Sendable {
     .local,
     .claude,
     .chatgpt,
+    .grok,
     .none,
   ]
 
@@ -53,6 +55,8 @@ enum DailyRecapProvider: String, Codable, CaseIterable, Sendable {
       return .chatgpt
     case .claude:
       return .claude
+    case .grok:
+      return .grok
     case .local:
       return .local
     case .openAICompatible:
@@ -76,6 +80,8 @@ enum DailyRecapProvider: String, Codable, CaseIterable, Sendable {
       return String(localized: "ChatGPT")
     case .claude:
       return String(localized: "Claude")
+    case .grok:
+      return String(localized: "Grok")
     case .none:
       return String(localized: "No provider")
     }
@@ -93,6 +99,8 @@ enum DailyRecapProvider: String, Codable, CaseIterable, Sendable {
       return String(localized: "GPT-6 Astra")
     case .claude:
       return String(localized: "Claude Opus")
+    case .grok:
+      return String(localized: "Grok 4.5")
     case .none:
       return String(localized: "No provider selected (Daily off)")
     }
@@ -111,6 +119,8 @@ enum DailyRecapProvider: String, Codable, CaseIterable, Sendable {
       return String(localized: "GPT-6 Astra")
     case .claude:
       return String(localized: "Claude Opus")
+    case .grok:
+      return String(localized: "Grok 4.5")
     case .none:
       return String(localized: "Turns off Daily recap generation until you pick another provider.")
     }
@@ -124,7 +134,7 @@ enum DailyRecapProvider: String, Codable, CaseIterable, Sendable {
       return "local_llm"
     case .gemini:
       return "gemini_direct"
-    case .chatgpt, .claude:
+    case .chatgpt, .claude, .grok:
       return "chat_cli"
     case .none:
       return "disabled"
@@ -143,6 +153,8 @@ enum DailyRecapProvider: String, Codable, CaseIterable, Sendable {
       return "gpt-6-astra"
     case .claude:
       return "opus"
+    case .grok:
+      return "grok-4.5"
     case .none:
       return nil
     }
@@ -219,6 +231,8 @@ struct DailyStandupGenerationMetadata: Codable, Equatable, Sendable {
         ? String(localized: "GPT-5.6 Sol") : String(localized: "GPT-6 Astra")
     case .claude:
       return String(localized: "Claude Opus")
+    case .grok:
+      return String(localized: "Grok 4.5")
     case .none:
       return String(localized: "No provider")
     }
