@@ -24,6 +24,22 @@ Entry template:
 
 ## 2026-10-13 (Tue)
 
+### 14:51: START-HERE brought up to date, one to-do list, version v1.0 saved
+- **What:**
+  - **START-HERE.md** now covers everything up to today:
+    - Grok: sign-in, provider, briefing writer, MCP.
+    - Start of day's Focus and the Today's apps row.
+    - The ring icon and where it's drawn, the `Web/` folder, and the Chat pills.
+    - Section 4 corrected: Claude, ChatGPT and Grok are back as plan-based options. The island, Start of day and the safeguards are listed.
+    - Known issues: all tests pass, and the inherited failures were fixed in c874439.
+  - **Section 6 is the one to-do list:** what only the user can do, what's left for an AI session, and what's done.
+  - **New "Saved versions" table (section 5):** each version gets a git tag, a backup in `~/Documents/Projects/Dayframe Versions/<version>/` (app zip + source zip) and a GitHub push.
+  - This commit is tagged `v1.0`. The app's own version number stays Dayflow's 2.6.0 (`MARKETING_VERSION`), left unchanged.
+- **Files:** `START-HERE.md`
+- **Why:** The user asked to "save this as the latest copy of Dayframe and organize everything", and chose a version tag, a backup copy, a GitHub push, and tidying the project.
+- **Checked:** Every claim in the new text was checked against the code and CHANGELOG (test counts from the 14:15 run, the c874439 fixes, file names). No code changed.
+- **Commit:** this entry's title is the commit subject.
+
 ### 14:17: Installed 338a31b: today's Grok, icon, Focus, Today's apps and review fixes are in the app
 - **What:** `./build-and-install.sh` at 14:16. It ships everything since the 11:41 install: Grok as a provider and an MCP client, the ring app icon and palette Dock icon, Start of day Focus, the Today's apps row, and the review fixes.
 - **Files:** none (install only)

@@ -23,6 +23,7 @@ Everything lives in this one folder: `~/Documents/Projects/Dayframe`.
 | `App/` | The Mac app's source code (Xcode project, Swift) | Yes: looks, tabs, behavior |
 | `App/Dayflow/` | The app's Swift files (folder name kept from the original) | Yes |
 | `App/Dayflow.xcodeproj` | Open this in Xcode to browse or edit visually | Optional |
+| `Web/` | The web pages inside the app: the React Briefing, the notch island show, the opening animation, the UI-kit gallery (`kit.html`). The build script builds them | Yes |
 | `Briefing/` | The briefing service: daily briefings, memory, dashboard page, Clicky orb | Yes |
 | `Briefing/briefing.py` | Briefing logic: what it writes, when, and which AI it talks to | Yes |
 | `Briefing/dashboard.html` | The page shown in the Briefing tab | Yes |
@@ -98,6 +99,8 @@ Everything is in the app under **Settings → Start of day**. Code lives in `App
 | **When** it plays (login once per session; unlock after N min away) | `App/Dayflow/Welcome/WelcomeController.swift` | `WelcomeLoginGate`, `WelcomeEventGate` (unit-tested in `WelcomeEventGateTests`) |
 | The **wallpaper** look (sky, glow, dunes; no text) | `App/Dayflow/Welcome/WallpaperManager.swift` | `WallpaperArt`. Files go to `~/Library/Application Support/Dayframe/Wallpaper/` |
 | What happens **after login** (Briefing, apps, layout, hide others) | `App/Dayflow/Welcome/StartOfDay.swift` | `run(reason:)`. Moving other apps' windows needs Accessibility, which you allow in System Settings |
+| Turn on a **Focus** at start of day | In the app: Settings → Start of day → Focus. Code: `App/Dayflow/Welcome/FocusShortcut.swift` | macOS has no Focus API, so it runs a Shortcut you make once (Set Focus → Work → On) |
+| The **Today's apps** row on Briefing (click to open, "Set up my day") | `Web/src/briefing/briefing-page.tsx` (`TodaysApps`) and `BriefingView.swift` (`todaysApps`) | It only opens apps on your Start of day list |
 
 ### Tabs and screens
 | Change | File | Where |
@@ -121,7 +124,7 @@ Everything is in the app under **Settings → Start of day**. Code lives in `App
 ### Chat (ask about your day)
 | Change | Where |
 |---|---|
-| Which AI answers | The pills above the chat box: **Qwen** (default, on this Mac, free) · Codex · Claude. Your pick is remembered. |
+| Which AI answers | The pills above the chat box: **Qwen** (default, on this Mac, free) · Codex · Claude · Grok. Your pick is remembered. |
 | Qwen's chat prompt | `App/Dayflow/Core/AI/ChatPromptBuilder.swift` → `localSystemPrompt()` |
 | How Qwen chat talks to Ollama (tool loop, streaming) | `App/Dayflow/Core/AI/OllamaProvider+DashboardChat.swift` |
 | What the tools return to Qwen (one line per card, minutes, total, 6,000-char cap) | `App/Dayflow/Core/AI/DashboardChatTools.swift` → `compactResult` |
@@ -129,18 +132,20 @@ Everything is in the app under **Settings → Start of day**. Code lives in `App
 
 Ollama gives Qwen a 4,096-token window, so Qwen chat keeps the last 6 messages and gets compact tool results. Dayframe never asks Ollama for a bigger window, because that would reload the model and stall the timeline. Questions about one day work best; for a whole week, ask for a summary.
 
-### Claude & ChatGPT (your own plans, no API keys)
+### Claude, ChatGPT & Grok (your own plans, no API keys)
 | Change | Where |
 |---|---|
 | Sign in to Claude | Terminal: `claude`, then type `/login` (once) |
 | Sign in to ChatGPT | Install once: `brew install codex`, then `codex login` |
-| Which AI analyzes your screen (Claude / ChatGPT / Qwen) | In the app: **Settings → Providers** (primary + fallback) |
-| Which AI writes your briefings | Briefing tab → **⋯** → "Briefings are written by", or `~/Briefing/config.json` → `"llm_backend": "claude_cli"` / `"codex_cli"` / `"ollama"` |
+| Sign in to Grok | Terminal: `~/.grok/bin/grok login` (once), then Settings → Providers → Grok → Test |
+| Which AI analyzes your screen (Claude / ChatGPT / Grok / Qwen) | In the app: **Settings → Providers** (primary + fallback). Grok reads the screenshots' on-screen text, not the images |
+| Which AI writes your briefings | Briefing tab → **⋯** → "Briefings are written by", or `~/Briefing/config.json` → `"llm_backend": "claude_cli"` / `"codex_cli"` / `"grok_cli"` / `"ollama"` |
+| Let Grok read your Dayframe data (MCP) | Settings → MCP / CLI → Grok CLI → Connect. The Grok Bot desktop app can't take local MCP servers yet |
 | Pick a specific Claude/ChatGPT model for briefings | `~/Briefing/config.json` → `"cli_model": ""` (blank = default) |
 | See how much AI you've used | In the app: **Settings → Providers → AI usage** (links to the official "plan remaining" pages) |
-| Code for this | `Briefing/briefing.py` → `cli_chat()`; app: `App/Dayflow/Core/AI/ClaudeProvider*.swift`, `CodexProvider*.swift`; usage: `App/Dayflow/Views/UI/Settings/AIUsageSection.swift` |
+| Code for this | `Briefing/briefing.py` → `cli_chat()`; app: `App/Dayflow/Core/AI/ClaudeProvider*.swift`, `CodexProvider*.swift`, `GrokCLI.swift`, `GrokProvider*.swift`, shared `AgentCLISupport*.swift`; usage: `App/Dayflow/Views/UI/Settings/AIUsageSection.swift` |
 
-If Claude or ChatGPT fails (signed out, offline, limit hit), Briefing automatically falls back to Qwen on your Mac.
+If Claude, ChatGPT or Grok fails (signed out, offline, limit hit), Briefing automatically falls back to Qwen on your Mac.
 
 ### Briefing schedule and behavior (no rebuild needed)
 Edit `~/Briefing/config.json`. Changes apply on the next run.
@@ -158,7 +163,7 @@ Edit `~/Briefing/config.json`. Changes apply on the next run.
 | Change | File |
 |---|---|
 | App name and bundle ID | `App/Dayflow.xcodeproj/project.pbxproj`: `PRODUCT_NAME = Dayframe`, `PRODUCT_BUNDLE_IDENTIFIER = local.dayframe.app` |
-| App icon | `App/Dayflow/Assets.xcassets/AppIcon.appiconset/` (still Dayflow's; to do) |
+| App icon (the eclipse ring from the opening animation) | Drawn by `App/Dayflow/Welcome/AppIconArt.swift`. The Dock redraws it in your palette while Dayframe runs (`AppIconManager`). The bundled PNGs in `App/Dayflow/Assets.xcassets/AppIcon.appiconset/` come from `AppIconTests.testWriteBundledAppIcon` (see CHANGELOG 2026-10-13 13:51). If the Dock shows an old icon: `killall Dock` |
 | Dock | Already pinned. To unpin: right-click the icon → Options → uncheck Keep in Dock |
 
 ---
@@ -167,12 +172,16 @@ Edit `~/Briefing/config.json`. Changes apply on the next run.
 
 - **Renamed** to Dayframe everywhere you see text, with its own app ID. Your data folder is unchanged.
 - **Removed:** usage analytics (PostHog), crash reporting (Sentry) and auto-updates (Sparkle), all deleted from the build. Stand-ins that do nothing are in `App/Dayflow/System/TelemetryStubs.swift`. Nothing is sent anywhere.
-- **Removed:** the cloud AI options (Dayflow Pro, ChatGPT, Claude, Gemini, OpenRouter). Setup is local-only.
+- **Removed:** the paid cloud options (Dayflow Pro, Gemini, OpenRouter). AI runs on Qwen on this Mac, or on your own Claude / ChatGPT / Grok plans through their command-line tools. No API keys.
 - **Removed:** the Flow waitlist, Agents and Support tabs, the launch video, and the GitHub-star and survey popups.
 - **Fixed:** the Ollama "thinking bug". Qwen now answers in about 6 s instead of 20–46 s.
 - **Added:** Qwen 3.5 4B as the default model (it can read screenshots).
 - **Added:** six color palettes with an "ink spread" switch (Settings → Other → Colors).
-- **Added:** a Briefing tab built into the sidebar.
+- **Added:** a Briefing tab (React page, with a native fallback) and Chat on Qwen.
+- **Added:** the notch island: a pill around the notch and a welcome-back show (Settings → Other → Notch island).
+- **Added:** Start of day: the opening animation, wallpaper, your day's apps, an optional Focus.
+- **Added:** Grok as a fourth AI, and the eclipse-ring app icon.
+- **Added:** recording safeguards (section 7).
 
 See every change with:
 
@@ -194,17 +203,42 @@ git -C ~/Documents/Projects/Dayframe checkout -- <file> # throw away unsaved edi
 
 The first commit is the untouched Dayflow v2.6.0, so you can always compare against the original.
 
+### Saved versions
+
+Each finished version gets a git tag, a backup copy, and a push to GitHub.
+
+| Version | Date | What it is |
+|---|---|---|
+| `v1.0` | 2026-10-13 | Grok, the ring icon, Start of day with Focus and Today's apps, the notch island, the React Briefing |
+
+- **List them:** `git -C ~/Documents/Projects/Dayframe tag -n`
+- **Look at one** (read-only): `git -C ~/Documents/Projects/Dayframe checkout v1.0`. Come back with `git -C ~/Documents/Projects/Dayframe checkout main`.
+- **Backup copies:** `~/Documents/Projects/Dayframe Versions/<version>/`. Each holds `Dayframe.app.zip` (the installed app, signature kept: unzip and drag to Applications) and `Dayframe-source.zip` (the code at that tag).
+
 ---
 
 ## 6. To do
 
-- [x] Window title and permission prompts say Dayframe.
+**Only you can do these** (Dayframe is waiting on them):
+- [ ] Sign in to Grok: `~/.grok/bin/grok login`. Then Settings → Providers → Grok → Test, and Settings → MCP / CLI → Grok CLI → Connect.
+- [ ] In Shortcuts, make "Work Focus" (Set Focus → Work → On). Then pick it in Settings → Start of day → Focus.
+- [ ] Add your day's apps: Settings → Start of day → Add app…
+- [ ] Allow Accessibility for Dayframe (System Settings → Privacy & Security → Accessibility), so Start of day can place windows.
+- [ ] Test the real triggers: log out and back in (opening animation), and lock the Mac for 10+ minutes (daily wake and the welcome-back show).
+- [ ] Save the design system: in a terminal `claude` session in `Web/`, run `/design-login`, then `/design-sync Dayframe Design System`.
+
+**For an AI session** (tickets in `.scratch/`):
+- [ ] After `grok login`: test whether Grok accepts screenshots, not just their text (`.scratch/grok/issues/05-grok-images.md`).
 - [ ] Merge the **Clicky orb** (`Briefing/Companion.swift`) into the app, so it's one app with one permission.
-- [x] Briefing tab rebuilt natively in Dayflow's style (advanced pages still use `Briefing/dashboard.html`).
-- [ ] New **app icon** (the intro video still says "Dayflow"). The opening animation is done (Start of day, Oct 12); the icon should reuse its ring mark.
+- [ ] The first-run intro video still says "Dayflow".
+
+**Done:**
+- [x] Window title and permission prompts say Dayframe.
+- [x] Briefing tab rebuilt (React page plus native fallback; advanced pages still use `Briefing/dashboard.html`).
+- [x] New app icon: the opening animation's eclipse ring (2026-10-13).
 - [x] "How did you hear about us?" step skipped in first-run setup.
 - [x] Stable signing, so rebuilds keep the Screen Recording permission (section 7).
-- [x] Chat uses Qwen on this Mac by default (Claude and Codex optional).
+- [x] Chat uses Qwen on this Mac by default (Claude, Codex and Grok optional).
 
 ## 7. Recording: how it stays on (and what to do if it ever stops)
 
@@ -241,6 +275,5 @@ sqlite3 ~/Library/Application\ Support/Dayflow/chunks.sqlite "select datetime(ma
 ## 8. Known issues
 
 - Never run the old **Dayflow** app at the same time. Both use the same data folder.
-- The build needs about 3 GB of free disk. The script checks first.
-- One Briefing test (`test_code_candidate_from_model_goes_through_gate`) was already failing in the original zip. It isn't caused by Dayframe.
-- One app unit test (`OpenAICompatibleProviderTests.testCardRetryRetainsFullContextAndReturnsDetailedCards`) already fails in upstream Dayflow. Run the tests with `xcodebuild test -project App/Dayflow.xcodeproj -scheme Dayflow -derivedDataPath build -destination 'platform=macOS' -only-testing:DayflowTests`.
+- The build needs about 3 GB of free disk. The script checks first. `build/` is only build output: deleting it frees about 1.4 GB, and the next build recreates it (the first build after that is slower).
+- All tests pass (as of 2026-10-13: 251 app, 95 Briefing, 24 web). Run them all with `./check.sh --app`. The two failures inherited from Dayflow and the Briefing zip were fixed on 2026-10-13 (CHANGELOG, commit c874439).
