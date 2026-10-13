@@ -14,6 +14,12 @@ Everything lives in this one folder: `~/Documents/Projects/Dayframe`.
 |---|---|---|
 | `START-HERE.md` | This guide | Yes, keep notes here |
 | `build-and-install.sh` | One command to rebuild the app and put it in Applications | Just run it |
+| `check.sh` | The clean-code gate every change must pass (style, types, tests) | Just run it |
+| `logs.sh` | Shows Dayframe's own log lines (why the welcome did or didn't play, etc.) | Just run it |
+| `AGENTS.md` | How any AI (Claude, Grok, Codex) must work here: the loop, standards, guardrails. `CLAUDE.md` points to it | Rarely |
+| `CONTEXT.md` | The glossary: the one word for each thing (card, show, welcome, slot…) | When a new idea needs a name |
+| `docs/adr/` | Short records of decisions that are hard to undo, and why they were made | When making one |
+| `.scratch/` | Tickets: one folder per feature, one file per step, each with a `Status:` line | Yes |
 | `App/` | The Mac app's source code (Xcode project, Swift) | Yes: looks, tabs, behavior |
 | `App/Dayflow/` | The app's Swift files (folder name kept from the original) | Yes |
 | `App/Dayflow.xcodeproj` | Open this in Xcode to browse or edit visually | Optional |
@@ -44,7 +50,9 @@ These are created when the app runs, so leave them where they are.
 
 ## Change log (read this first if you're an AI picking up the project)
 
-`CHANGELOG.md` records every change with date, time, what, files, why and how it was checked. Newest is first. **Add an entry for every change.** A git hook blocks commits that don't update it.
+`CHANGELOG.md` records every change with date, time, what, files, why and how it was checked. Newest is first. **Add an entry for every change.** The rules for AIs working here are in `AGENTS.md`.
+
+Every commit goes through `.githooks/pre-commit`, which runs `./check.sh --staged`. The commit is refused unless today's CHANGELOG entry has What/Files/Why/Checked, no Swift file gained swift-format warnings, and the web and Briefing checks and tests pass for what changed. After a fresh clone, turn the hook on once with `git config core.hooksPath .githooks`.
 
 ---
 
@@ -55,6 +63,8 @@ Run these in Terminal.
 ```bash
 cd ~/Documents/Projects/Dayframe && ./build-and-install.sh          # rebuild + install + relaunch the app
 cd ~/Documents/Projects/Dayframe && ./build-and-install.sh --build  # just check it still compiles
+cd ~/Documents/Projects/Dayframe && ./check.sh                      # is everything clean? (add --app to also build + run the unit tests)
+cd ~/Documents/Projects/Dayframe && ./logs.sh 1h welcome            # what Dayframe logged in the last hour (one area, or leave it off for all)
 cd ~/Documents/Projects/Dayframe/Briefing && ./install.sh           # re-install Briefing after editing it
 python3 ~/Briefing/app/briefing.py doctor                            # health check: what's working, what's not
 python3 ~/Briefing/app/briefing.py brief --force                     # make a new briefing now

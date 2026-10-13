@@ -1,0 +1,3 @@
+# Ad-hoc signing with a fixed designated requirement
+
+`build-and-install.sh` ad-hoc signs every build with the designated requirement `identifier "local.dayframe.app"`, and the build fails if that ever changes. On 2026-10-12 the app was signed three different ways in one day. macOS kept the Screen Recording permission for an old signature, and recording stopped silently for about an hour (tccd: "Failed to match existing code requirement"). A certificate in the keychain was tried and dropped because it prompts for a password. The trade-off: any app that calls itself `local.dayframe.app` would match the requirement.

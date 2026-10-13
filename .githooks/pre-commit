@@ -1,0 +1,5 @@
+#!/bin/bash
+# Dayframe pre-commit: the staged change must pass the clean-code gate, which also
+# requires a dated CHANGELOG.md entry with What/Files/Why/Checked.
+# Installed by: git config core.hooksPath .githooks
+exec "$(git rev-parse --show-toplevel)/check.sh" --staged

@@ -15,13 +15,8 @@ scripts/release.env
 Dayflow/Config/LocalSecrets.xcconfig
 signed/
 
-# Ignore Claude prompt notes
-CLAUDE.md
-claude.md
-
 # Tauri migration (WIP)
 dayflow-tauri/
-agents.md
 
 # Internal tools
 tools/*

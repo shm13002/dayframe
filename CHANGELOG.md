@@ -24,6 +24,33 @@ Entry template:
 
 ## 2026-10-12 (Mon)
 
+### 23:54: Clean-code groundwork: Matt Pocock's skills, AGENTS.md, check.sh gate, tracked hooks
+- **What:**
+  - **Matt Pocock's skills** (`mattpocock-skills` from the official Claude plugin marketplace) installed for the user, and the repo set up the way its `setup-matt-pocock-skills` describes: tickets as local markdown in `.scratch/<feature>/issues/` with a `Status:` line, the default triage labels, single-context domain docs.
+  - **`AGENTS.md`** (new): the rules any AI (Claude, Grok, Codex) follows here: read order, the iteration loop (ticket → red/green test → `./check.sh` → CHANGELOG → one commit), code standards, guardrails. `CLAUDE.md` just imports it.
+  - **`CONTEXT.md`** (new): the glossary (card, batch, show, welcome, first launch, daily wake, slot, palette…).
+  - **`docs/adr/0001–0007`** (new): the decisions that are hard to undo: forking Dayflow, stable signing, no API keys, Qwen's small context, web surfaces in WebKit, login-session detection, the shared data folder.
+  - **`./check.sh`** (new), the gate:
+    - Swift: no file may have more swift-format warnings than Dayflow's original (new Dayframe files: zero). The config `.swift-format` pins Apple's defaults, which Dayflow's own code already follows.
+    - Web: typecheck, Prettier, Vitest.
+    - Briefing: unittest.
+    - The newest CHANGELOG entry must be dated today and have What/Files/Why/Checked.
+    - `--staged` checks only what's staged; `--app` also builds and runs the app's unit tests.
+  - **`.githooks/pre-commit`** runs `./check.sh --staged`. Git uses it through `core.hooksPath`, and it replaces the untracked `.git/hooks/pre-commit`, so the hook is now versioned.
+  - **`./logs.sh`** (new): Dayframe's own log lines for the last N hours, optionally for one area.
+  - **Web:** Prettier 3.9.10 (print width 120, closest to the existing style) and Vitest 4.1.11 as pinned dev dependencies. New scripts `test`, `format`, `format:check`, `check`. First tests: `src/welcome/scene.test.ts` checks the welcome's timeline against the Aether cue sheet.
+  - **`.gitignore`:** stopped ignoring `CLAUDE.md` and `agents.md`, rules inherited from Dayflow that would have silently kept the agent docs out of git (macOS ignores case).
+  - **Tickets** for the rest of this pass: `.scratch/clean-code/` (6), `.scratch/grok/` (4), `.scratch/start-of-day-extras/` (4, one for the user).
+  - `START-HERE.md`: lists the new files and commands.
+- **Files:** `AGENTS.md`, `CLAUDE.md`, `CONTEXT.md`, `docs/adr/*`, `docs/agents/*`, `.scratch/**`, `check.sh`, `logs.sh`, `.githooks/pre-commit`, `.swift-format`, `.gitignore`, `START-HERE.md`, `Web/{package.json,package-lock.json,.prettierrc.json,vitest.config.ts,tsconfig.json}`, `Web/src/welcome/scene.test.ts`
+- **Why:** The user wants every iteration clean and logged, using Matt Pocock's techniques (deep modules, test first, small steps, a shared glossary, review against standards), so the app is easier to keep building.
+- **Checked:**
+  - Vitest: 7 pass. Typecheck clean.
+  - `./check.sh` runs end to end and reports today's starting point honestly: 41 Swift files over their limit, 18 web files not Prettier-formatted, and the known Briefing failure `test_code_candidate_from_model_goes_through_gate` (88 run). The next tickets fix these.
+  - This commit passes `./check.sh --staged` (no Swift staged).
+  - First attempt caught a gate bug: the CHANGELOG check read the template inside the code block at the top of this file instead of the newest real entry, so an empty entry would have passed. It now reads the first `###` under the first dated `##` heading. The hook also refused the amend until this file was updated, as intended.
+- **Commit:** this entry's title is the commit subject.
+
 ### 23:34: Start of day: on-brand Aether opening, Dayframe wallpaper, Dayframe as the hub
 - **What:**
   - **Opening animation, rebuilt natively** from the Aether Pulse "System Awakening" cut, in the active palette (`Web/src/welcome/`, bundled as `App/Dayflow/Welcome/Resources/welcome.html`).
