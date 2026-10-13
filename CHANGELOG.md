@@ -24,6 +24,26 @@ Entry template:
 
 ## 2026-10-13 (Tue)
 
+### 13:47: Grok can read Dayframe (MCP); Grok Bot can't yet, and why
+- **What:**
+  - **Settings › MCP / CLI lists "Grok CLI".** Connect registers Dayframe's MCP server through Grok's own command, so Dayframe never edits `~/.grok/config.toml` itself: `grok mcp add dayflow --scope user -- <bundled dayflow> mcp` (`remove` to disconnect).
+    - Status comes from `grok mcp list --json`, run from the home folder so a project's own Grok config can't change the answer. A different path or a switched-off entry counts as stale.
+    - `repairStaleRegistrations()` repoints Grok at launch if the app moved.
+  - New `GrokMCPRegistration` with an injectable command runner, like `CodexMCPRegistration`.
+  - **Grok Bot (`/Applications/Grok Bot.app`), checked and not possible today:**
+    - It keeps no local MCP configuration. Its Application Support has only Electron state, and its bundle has no "install MCP server" link.
+    - Its only MCP link is `grokbot://mcp/oauth/callback`, which is for signing in to remote servers.
+    - Dayframe's server is local (stdio), so there is nothing Dayframe can register. Ticket grok/04 records this.
+  - `check.sh --app` gains a low-disk mode. `DAYFRAME_LOW_DISK_OK=1` allows an incremental build with 1 GB+ free, while a watchdog stops it below 600 MB. It formalizes the run the user approved at 13:42.
+- **Files:** `App/Dayflow/Core/AgentAccess/{GrokMCPRegistration,AgentClientRegistration}.swift`, `App/Dayflow/Views/UI/Settings/SettingsAgentAccessTabView.swift`, `App/DayflowTests/GrokMCPRegistrationTests.swift`, `check.sh`, `.scratch/grok/issues/04-grok-reads-dayframe.md`
+- **Why:** The user asked to connect "grok bot and grok"; this is the "Grok reads Dayframe" half. Ticket grok/04.
+- **Checked:**
+  - Ran `grok mcp add/list/remove` once in a throwaway folder at project scope to see the exact config and JSON. The user's `~/.grok/config.toml` was untouched.
+  - 5 new tests: status from Grok's list (not installed / available / connected / stale), the exact add arguments with the user's other servers untouched, the error message, remove only when present, repair after a move.
+  - `DAYFRAME_LOW_DISK_OK=1 ./check.sh --app`: all clean, **244 tests, 0 failures**.
+  - Not yet: connecting for real. It needs the new build installed; then Settings › MCP / CLI › Grok CLI › Connect.
+- **Commit:** this entry's title is the commit subject.
+
 ### 13:42: Grok as a full app provider (timeline, Chat, daily recap), with shared CLI code instead of copies
 - **What:**
   - **Grok is a fourth AI provider** next to Qwen, Claude and ChatGPT. It runs xAI's Grok CLI signed in with the user's own plan (`grok login`, no API key, ADR 0003). It's chosen in onboarding, Settings › Providers (routing, connection test, "Grok CLI detected") and the Chat pill, and it can write the daily recap.

@@ -19,6 +19,7 @@ enum AgentClient: String, CaseIterable, Identifiable {
   case codex
   case claudeCode
   case claudeDesktop
+  case grok
   case cursor
   case vsCode
 
@@ -29,6 +30,7 @@ enum AgentClient: String, CaseIterable, Identifiable {
     case .codex: return String(localized: "Codex")
     case .claudeCode: return String(localized: "Claude Code")
     case .claudeDesktop: return String(localized: "Claude Desktop")
+    case .grok: return String(localized: "Grok CLI")
     case .cursor: return String(localized: "Cursor")
     case .vsCode: return String(localized: "VS Code")
     }
@@ -77,6 +79,8 @@ enum AgentClientRegistration {
     case .claudeDesktop:
       return fileManager.fileExists(
         atPath: claudeDesktopConfigURL.deletingLastPathComponent().path)
+    case .grok:
+      return GrokProvider.isInstalled
     case .cursor:
       return fileManager.fileExists(atPath: "/Applications/Cursor.app")
     case .vsCode:
@@ -95,6 +99,8 @@ enum AgentClientRegistration {
       return dayflowEntry(inConfigAt: claudeCodeConfigURL) != nil
     case .claudeDesktop:
       return dayflowEntry(inConfigAt: claudeDesktopConfigURL) != nil
+    case .grok:
+      return GrokMCPRegistration(cliPath: cliPath).status() == .connected
     case .cursor, .vsCode:
       return false
     }
@@ -121,6 +127,8 @@ enum AgentClientRegistration {
       return writeDayflowEntry(configAt: claudeCodeConfigURL)
     case .claudeDesktop:
       return writeDayflowEntry(configAt: claudeDesktopConfigURL)
+    case .grok:
+      return GrokMCPRegistration(cliPath: cliPath).connect().map { .failed($0) } ?? .connected
     case .cursor:
       let config = ["command": cliPath, "args": ["mcp"]] as [String: Any]
       guard let data = try? JSONSerialization.data(withJSONObject: config),
@@ -149,6 +157,7 @@ enum AgentClientRegistration {
       _ = CodexMCPRegistration(cliPath: cliPath).disconnect()
     case .claudeCode: removeDayflowEntry(configAt: claudeCodeConfigURL)
     case .claudeDesktop: removeDayflowEntry(configAt: claudeDesktopConfigURL)
+    case .grok: GrokMCPRegistration(cliPath: cliPath).disconnect()
     case .cursor, .vsCode: break  // Their config; removed in their UI.
     }
   }
@@ -221,8 +230,10 @@ enum AgentClientRegistration {
     }
 
     let codexRegistration = CodexMCPRegistration(cliPath: cliPath)
+    let grokRegistration = GrokMCPRegistration(cliPath: cliPath)
     Task.detached(priority: .utility) {
       codexRegistration.repairStaleRegistration()
+      grokRegistration.repairIfStale()
     }
   }
 

@@ -148,20 +148,37 @@ check_briefing() {
 
 check_app() {
   section "App build + unit tests (slow)"
-  local free
-  free=$(df -g "$HOME" | awk 'NR==2{print $4}')
-  if ((free < 3)); then
-    fail "Only ${free} GB free; the app build needs about 3 GB."
+  # A clean build needs about 3 GB. An incremental one needs far less, so with
+  # DAYFRAME_LOW_DISK_OK=1 it may run on 1 GB+ while a watchdog stops it below 600 MB.
+  local free_mb
+  free_mb=$(df -m "$HOME" | awk 'NR==2{print $4}')
+  if ((free_mb < 3000)) && ! { [[ ${DAYFRAME_LOW_DISK_OK:-} == 1 ]] && ((free_mb >= 1000)); }; then
+    fail "Only ${free_mb} MB free; the app build needs about 3 GB (or DAYFRAME_LOW_DISK_OK=1 with 1 GB+)."
     return
   fi
   mkdir -p build
-  rm -rf build/Logs/Test # each run leaves a result bundle (~100 MB); keep only the newest
+  rm -rf build/Logs/Test build/watchdog.txt # each run leaves a ~100 MB result bundle
+  (
+    while sleep 2; do
+      pgrep -f "xcodebuild test -project App/Dayflow.xcodeproj" >/dev/null || continue
+      if (($(df -m "$HOME" | awk 'NR==2{print $4}') < 600)); then
+        pkill -f "xcodebuild test -project App/Dayflow.xcodeproj"
+        echo "the disk fell below 600 MB" >build/watchdog.txt
+        break
+      fi
+    done
+  ) &
+  local watchdog=$!
+  disown # stopping it later must not print a job notice
   if without_git_env xcodebuild test -project App/Dayflow.xcodeproj -scheme Dayflow -configuration Debug \
     -derivedDataPath build -destination 'platform=macOS' -only-testing:DayflowTests \
     -parallel-testing-enabled NO -skipPackagePluginValidation -skipMacroValidation \
     >build/last-test.log 2>&1; then
+    kill "$watchdog" 2>/dev/null
     grep -E 'Executed [0-9]+ tests' build/last-test.log | tail -1
   else
+    kill "$watchdog" 2>/dev/null
+    [[ -f build/watchdog.txt ]] && echo "Stopped by the disk watchdog: $(cat build/watchdog.txt)."
     grep -E ': error: |error: -\[|failed \(' build/last-test.log | head -20
     fail "App build/tests (full log: build/last-test.log)"
   fi

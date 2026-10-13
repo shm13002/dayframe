@@ -27,7 +27,7 @@ struct SettingsAgentAccessTabView: View {
       subtitle:
         String(
           localized:
-            "Let Codex, Claude, Cursor, and other AI tools read your Dayframe timeline. Connections are saved to each tool's user configuration, so Dayframe is available across projects on this Mac. Nothing leaves your Mac except what you send in your own conversations."
+            "Let Codex, Claude, Grok, Cursor, and other AI tools read your Dayframe timeline. Connections are saved to each tool's user configuration, so Dayframe is available across projects on this Mac. Nothing leaves your Mac except what you send in your own conversations."
         )
     ) {
       VStack(alignment: .leading, spacing: 0) {
@@ -256,9 +256,11 @@ final class AgentAccessViewModel: ObservableObject {
     var subtitle: String? {
       switch state {
       case .connected:
-        return client == .codex
-          ? String(localized: "Restart Codex to pick up the connection.")
-          : String(localized: "Restart it to pick up the connection.")
+        switch client {
+        case .codex: return String(localized: "Restart Codex to pick up the connection.")
+        case .grok: return String(localized: "New Grok sessions can read your timeline.")
+        default: return String(localized: "Restart it to pick up the connection.")
+        }
       case .failed(let message): return message
       case .openedInstaller: return String(localized: "Approve the install dialog it just showed.")
       default: return nil
