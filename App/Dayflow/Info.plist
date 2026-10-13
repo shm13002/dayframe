@@ -13,6 +13,7 @@
 			<string>teleportlabs.com.Dayflow</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
+				<string>dayframe</string>
 				<string>dayflow</string>
 			</array>
 		</dict>

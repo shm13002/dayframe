@@ -6,7 +6,7 @@ final class AppDeepLinkRouter {
     case startRecording = "start-recording"
     case stopRecording = "stop-recording"
     case referral = "referral"
-    /// dayflow://welcome-preview?variant=dailyWake plays a welcome preview, so its in-app frame
+    /// dayframe://welcome-preview?variant=dailyWake plays a welcome preview, so its in-app frame
     /// rate can be measured from Terminal (`open …`, then `./logs.sh 5m welcome`).
     case welcomePreview = "welcome-preview"
 
@@ -40,7 +40,9 @@ final class AppDeepLinkRouter {
   }
 
   private func resolveAction(from url: URL) -> Action? {
-    guard let scheme = url.scheme, scheme.caseInsensitiveCompare("dayflow") == .orderedSame else {
+    // dayframe:// is Dayframe's own scheme. dayflow:// still works, but macOS may hand it to the
+    // original Dayflow app when that is installed too, so Dayframe's own links use dayframe://.
+    guard let scheme = url.scheme?.lowercased(), ["dayframe", "dayflow"].contains(scheme) else {
       return nil
     }
 

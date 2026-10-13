@@ -24,6 +24,22 @@ Entry template:
 
 ## 2026-10-13 (Tue)
 
+### 11:41: Dayframe gets its own link scheme, dayframe:// (a dayflow:// link opened the original Dayflow app)
+- **What:**
+  - **Incident (caused by this session):** testing the new preview link with `open "dayflow://welcome-preview"` launched the Homebrew **Dayflow.app** (`/Applications/Dayflow.app`, also v2.6.0) instead of Dayframe, because macOS binds the `dayflow:` scheme to Dayflow. The two apps must never run together (ADR 0007).
+    - Dayflow ran for about a minute and was quit with `pkill -TERM -x Dayflow`.
+    - Effect: about 4 extra frames at 11:37 (10 instead of 6). No new cards. Same app version and schema (`user_version` 0). A backup from 11:01 exists.
+    - Dayframe kept recording (latest frame 8 s old when checked).
+  - **Fix:** `Info.plist` also claims `dayframe`, and `AppDeepLinkRouter` accepts `dayframe://` and `dayflow://`. Dayframe's own links use `dayframe://`. The preview is `dayframe://welcome-preview?variant=dailyWake|firstLaunch`.
+  - The in-app `dayflow://category-editor` link is handled inside the app by a SwiftUI `openURL` handler, never by macOS, so it is unaffected.
+- **Files:** `App/Dayflow/Info.plist`, `App/Dayflow/App/AppDeepLinkRouter.swift`
+- **Why:** So a Dayframe link can never start the original app on the shared data folder. Saved as a memory lesson too.
+- **Checked:**
+  - `./check.sh --app`: all clean, 227 tests.
+  - `pgrep -lx Dayflow` is empty. Frames are back to 6 per minute.
+  - **Suggestion for the user:** uninstall the original app with `brew uninstall --cask dayflow`, so nothing can start it.
+- **Commit:** this entry's title is the commit subject.
+
 ### 11:36: Grok in the native Briefing menu and in Settings › AI usage
 - **What:**
   - The native Briefing screen's "Briefings are written by" menu lists Grok (`grok_cli`).
