@@ -39,8 +39,8 @@ Status: **C1–C5** = the chunk that brings it in; **Have** = Dayframe already d
 | Slack, Notion, GitHub, Spotify … | Hermes MCP servers and messaging platforms (Connections page) | C3 |
 | Install coding agents and local-model apps | `electron/catalog/` (Homebrew) | C4 |
 | Studio ("build a website for …" with a live preview) | `src/features/studio/` | C5 |
-| Office: Docs, Sheets, Slides | `src/features/office/` (70k LOC) | Skip |
-| Canvas image editor | `src/features/canvas/` (33k LOC) | Skip |
+| Office: Docs, Sheets, Slides | `src/features/office/` (70k LOC) | Later. Owner asked for Herald's capabilities on 2026-10-14. Do this after C5, in Dayframe's look. See `FOR-CLAUDE-CODE.md`. |
+| Canvas image editor | `src/features/canvas/` (33k LOC) | Later, same as Office. |
 
 ### System
 | Capability | Herald source | Jarvis |

@@ -24,6 +24,13 @@ Entry template:
 
 ## 2026-10-14 (Wed)
 
+### 18:26: Brief for putting Herald's capabilities on Jarvis
+- **What:** `docs/jarvis/FOR-CLAUDE-CODE.md` tells the next session to bring Herald OS's capabilities onto Jarvis, in Dayframe's look. Chunk 1 stays as it is. Chunks 2 through 5 come next. Office and Canvas, previously skipped, are last because the owner asked for the capabilities. The handoff, the capability map, and START-HERE point at that brief.
+- **Files:** `docs/jarvis/FOR-CLAUDE-CODE.md`, `docs/jarvis/HERALD-MAP.md`, `docs/jarvis/HANDOFF.md`, `START-HERE.md`, `CHANGELOG.md`
+- **Why:** The owner wants Herald's capabilities on Jarvis and a file Claude Code can follow.
+- **Checked:** Compared the brief with `HERALD-MAP.md` (chunks, the Skip rows, and the list of what is not taken). No code change, so the app was not rebuilt.
+- **Commit:** this entry's title is the commit subject.
+
 ### 18:09: Alan voice notes moved into the Hermes mix docs
 - **What:** The Alan filler-voice record now lives with the Hermes-and-Dayframe docs, not only in the session handoff. `docs/jarvis/HERALD-MAP.md` describes both voice servers and the live route. `CONTEXT.md` and `START-HERE.md` name Alan and `~/jarvis-piper`.
 - **Files:** `docs/jarvis/HERALD-MAP.md`, `CONTEXT.md`, `START-HERE.md`, `CHANGELOG.md`

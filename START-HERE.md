@@ -255,7 +255,7 @@ Each finished version gets a git tag, a backup copy, and a push to GitHub.
 - [ ] Save the design system: in a terminal `claude` session in `Web/`, run `/design-login`, then `/design-sync Dayframe Design System`.
 
 **For an AI session** (tickets in `.scratch/`):
-- [ ] **Next for Jarvis:** try a real ⌥Space turn with Alan (ticket `.scratch/jarvis/issues/10-fast-jarvis-voice.md` stays open; training a Jarvis Piper voice is deferred). Then chunk 2 (quick panel, "Hey Jarvis", control socket). Plan: `~/.claude/plans/okay-now-that-we-swift-lovelace.md`.
+- [ ] **Next for Jarvis:** bring Herald's capabilities onto Jarvis, starting at chunk 2. Brief: `docs/jarvis/FOR-CLAUDE-CODE.md`. Ticket 10 (a trained Piper voice) stays deferred. Alan is the filler. Plan: `~/.claude/plans/okay-now-that-we-swift-lovelace.md`.
 - [ ] After `grok login`: test whether Grok accepts screenshots, not just their text (`.scratch/grok/issues/05-grok-images.md`).
 - [ ] The first-run intro video still says "Dayflow".
 

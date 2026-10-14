@@ -4,6 +4,8 @@ Read this first. Then read `AGENTS.md` (how to work here), the top of `CHANGELOG
 
 **Where we stopped:** ticket 10 is still open. At 17:02 the owner stopped the training-speed measurement and chose Alan as the filler voice. Gate 2 is **deferred**. Do not run the CPU or MPS probes unless the owner asks. Alan (`en_GB-alan-medium`) is live on 127.0.0.1:5056 (LaunchAgent `local.jarvis.piper`). Live replies go cache, then Alan, then the Mac voice. `./build-and-install.sh` rebuilt and relaunched `/Applications/Jarvis.app` with that route. The version is still 1.4 (not tagged). A real ⌥Space turn has not been tried.
 
+**Next product work:** the owner wants Herald OS's capabilities on Jarvis. The brief for that is `docs/jarvis/FOR-CLAUDE-CODE.md`. Chunk 1 is done. Start at chunk 2.
+
 ## What Jarvis is
 
 Dayframe (the owner's Mac app: screen timeline, Briefing and the notch island) was renamed **Jarvis**. The rename is display only. The bundle ID `local.dayframe.app`, `dayframe://`, the settings keys and the data folder are unchanged.
