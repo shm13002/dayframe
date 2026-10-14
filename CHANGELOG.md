@@ -24,6 +24,23 @@ Entry template:
 
 ## 2026-10-14 (Wed)
 
+### 12:03: Jarvis chunk 1 starts: Herald OS studied and mapped
+- **What:** Dayframe is becoming **Jarvis**, a Chief-of-Staff agent built on Hermes Agent with Herald OS v0.1.0-alpha.4's capabilities.
+  - `docs/jarvis/HERALD-MAP.md` maps every Herald capability to the user's four pillars (Filesystem, Applications, System, Agents) and to the chunk that brings it in. It also holds the Hermes protocol cheat-sheet (backend start, auth and origins, RPC methods and events, REST, the bridge plugin, the control socket).
+  - New tickets: `.scratch/jarvis/spec.md` and `issues/01`–`09`.
+  - Decisions from the owner:
+    - The rename is display only.
+    - Grok (xAI login) is the default brain; ChatGPT and Claude are switchable; Qwen is the offline fallback.
+    - Grok Bot's quick feel.
+    - The Jarvis tab is the HQ, and Chat stays.
+    - Voice is `~/jarvis-voice` on 5055.
+    - The Dayframe palette.
+    - The Jarvis HQ spec, GenUI kit and DayFrameJarvis package are a separate Codex project and are not used.
+- **Files:** `docs/jarvis/HERALD-MAP.md`, `.scratch/jarvis/**`, `CHANGELOG.md`
+- **Why:** The owner asked to study Herald OS, extract every capability and integrate it, in chunks.
+- **Checked:** Read the Herald alpha.4 source (the GitHub API confirms alpha.4 is the newest release, 2026-10-13). Read upstream Hermes `web_server_chat.py` at the pinned sha: WebSocket `Origin` values that are not http(s) (`file://`) are trusted, so the Jarvis page can ship inside the app bundle.
+- **Commit:** this entry's title is the commit subject.
+
 ### 11:23: v1.3 verified and installed; the app now shows version 1.3
 - **What:**
   - Re-checked every file in Gemini's v1.3 (00:11 entry below) against v1.2. The changes are kept as they are.
