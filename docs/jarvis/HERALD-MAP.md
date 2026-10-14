@@ -78,7 +78,7 @@ Status: **C1–C5** = the chunk that brings it in; **Have** = Dayframe already d
 |---|---|---|
 | Push-to-talk (`Alt+Space`) | `src/lib/voice/chained-engine.ts` | C1 |
 | Speech-to-text | Hermes `POST /api/audio/transcribe` (`stt.provider`) | C1 |
-| Speech | Hermes TTS providers | **Replaced** by the Jarvis voice server (`~/jarvis-voice`, 127.0.0.1:5055) |
+| Speech | Hermes TTS providers | **Replaced.** Live lines use a prepared Jarvis phrase, then Alan (Piper, `~/jarvis-piper`, 127.0.0.1:5056). The cloned voice (`~/jarvis-voice`, 5055) is for notices and for filling the phrase cache. |
 | Wake word | Hermes `wake.start/feed`, openWakeWord "hey hermes" | C2, "Hey Jarvis" |
 | Voice fast path, voice approvals | `lib/voice/intents.ts` | C2 |
 | Dictation into any app | `store/dictation.ts` | C4 |
@@ -176,11 +176,13 @@ The gateway client is vendored unchanged from upstream `apps/shared/src` at the 
   - No API keys (ADR 0003).
 - **Feel:** Grok Bot (quick). A study of its UX comes in C2.
 - **Rename:** display only. The bundle ID `local.dayframe.app`, signing (ADR 0002), `dayframe://`, the data folder and the settings keys stay.
-- **Voice:** the Jarvis voice server, `POST http://127.0.0.1:5055/tts`.
-  - Request: `Authorization: Bearer <~/jarvis-voice/service.token>`, no `Origin` header, body `{text ≤400 chars, voice:"jarvis", steps:32}`.
-  - Responses:
-    - a WAV with `X-Jarvis-Verified: true`
-    - 429 when busy
-    - 422 when verification fails
-    - 503 when generation fails
+- **Voice:** Hermes's own TTS providers are not used. Two local servers sit beside the Hermes mix:
+  - **Cloned Jarvis voice** (`~/jarvis-voice`, LaunchAgent `local.jarvis.tts`, `POST http://127.0.0.1:5055/tts`). About 50 s a sentence, so it is not used while someone is waiting.
+    - Request: `Authorization: Bearer <~/jarvis-voice/service.token>`, no `Origin` header, body `{text ≤400 chars, voice:"jarvis", steps:32}`.
+    - Responses: a WAV with `X-Jarvis-Verified: true`, 429 when busy, 422 when verification fails, 503 when generation fails.
+  - **Alan, the fast filler** (`~/jarvis-piper`, LaunchAgent `local.jarvis.piper`, `POST http://127.0.0.1:5056/tts`). Stock Piper voice `en_GB-alan-medium`, standing in until a Jarvis voice is trained. Measured 2026-10-14: "On it." in 292 ms after the model was already loaded (860 ms on the cold call).
+    - Request: `Authorization: Bearer <~/jarvis-piper/service.token>`, no `Origin` header, body `{"text"}` only, 3 s timeout, no retries.
+    - `GET /health` reports `engine: piper`, `voice: en_GB-alan-medium`, `standIn: true`.
+  - **Route:** live (⌥Space) is phrase cache, then Alan, then the Mac's British voice. Notices are phrase cache, then the cloned voice, then Alan, then the Mac voice.
+  - **2026-10-14 notes:** training a Piper Jarvis voice on this Mac was deferred (the GPU probe was already too slow; the CPU probe was not run). The owner asked for Alan in the app instead. Source is `Jarvis/voice/piper_server.py`; `Jarvis/voice/install-voice.sh` copies it to `~/jarvis-piper` (outside ~/Documents, so Hermes does not trip a Documents permission). The installed app was rebuilt the same evening. Version is still 1.4. A real ⌥Space turn has not been tried.
 - **Not used:** the Jarvis HQ spec, the GenUI kit and the `DayFrameJarvis` package belong to a separate project.

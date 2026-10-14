@@ -116,7 +116,7 @@ The `herald-os-bridge` Hermes plugin (from Herald OS) that gives Jarvis's sessio
 The card Jarvis shows before a tool changes something; answers are once, this session, always or deny (destructive actions never offer session or always).
 
 **Voice turn**:
-A request spoken with ⌥Space. Only voice turns are answered out loud, in the Jarvis voice.
+A request spoken with ⌥Space. Only voice turns are answered out loud: a prepared Jarvis phrase if one is ready, otherwise Alan (the fast Piper filler), otherwise the Mac's British voice.
 
 **Presence**:
 What Jarvis is doing (idle, listening, thinking, speaking), shown by the notch eyes.

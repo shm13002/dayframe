@@ -24,6 +24,13 @@ Entry template:
 
 ## 2026-10-14 (Wed)
 
+### 18:09: Alan voice notes moved into the Hermes mix docs
+- **What:** The Alan filler-voice record now lives with the Hermes-and-Dayframe docs, not only in the session handoff. `docs/jarvis/HERALD-MAP.md` describes both voice servers and the live route. `CONTEXT.md` and `START-HERE.md` name Alan and `~/jarvis-piper`.
+- **Files:** `docs/jarvis/HERALD-MAP.md`, `CONTEXT.md`, `START-HERE.md`, `CHANGELOG.md`
+- **Why:** That voice is part of the Hermes mix (Hermes's own TTS is not used). The notes belong next to the rest of that map.
+- **Checked:** Read the voice sections of those three files and rewrote them to match the installed Alan server (port 5056, measured 292 ms). No code change, so the app was not rebuilt.
+- **Commit:** this entry's title is the commit subject.
+
 ### 18:03: Alan stands in as the fast Jarvis voice
 - **What:** The owner stopped the Piper training measurement at 17:02 and asked for a filler voice so work on the app could continue. Alan (`en_GB-alan-medium`) now serves live lines on 127.0.0.1:5056. Gate 2 stays deferred. Ticket 10 stays open.
   - `Jarvis/voice/piper_server.py` loads the voice once. `POST /tts` takes `{"text"}` (at most 400 characters) and returns a WAV plus `X-Jarvis-Generation-Ms`. `GET /health` reports the voice. An Origin header is refused. The bearer token is created at `~/jarvis-piper/service.token` with mode 0600.

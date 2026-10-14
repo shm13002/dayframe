@@ -4,7 +4,7 @@ Jarvis is your Mac app and your chief-of-staff agent. It records your screen, tu
 
 **Picking Jarvis up? Read `docs/jarvis/HANDOFF.md` first.**
 
-**Jarvis in one paragraph:** the Jarvis tab (first in the sidebar) is the HQ. Swift starts `hermes serve` (`App/Dayflow/Core/Jarvis/HermesBackend.swift`), the page (`Web/src/jarvis`, bundled as `App/Dayflow/Jarvis/Resources/jarvis.html`) talks to it over a WebSocket, system actions go through the vendored plugin in `Jarvis/bridge/` (approval cards for anything that changes something), ⌥Space talks, and answers to voice turns are spoken in the Jarvis voice (`~/jarvis-voice`, port 5055). The Herald OS study and capability map are in `docs/jarvis/HERALD-MAP.md`; tickets in `.scratch/jarvis/`.
+**Jarvis in one paragraph:** the Jarvis tab (first in the sidebar) is the HQ. Swift starts `hermes serve` (`App/Dayflow/Core/Jarvis/HermesBackend.swift`), the page (`Web/src/jarvis`, bundled as `App/Dayflow/Jarvis/Resources/jarvis.html`) talks to it over a WebSocket, system actions go through the vendored plugin in `Jarvis/bridge/` (approval cards for anything that changes something), ⌥Space talks, and answers to voice turns are spoken from the phrase cache, then Alan the fast Piper filler (`~/jarvis-piper`, port 5056), then the Mac's British voice. The slow cloned voice stays on `~/jarvis-voice`, port 5055, for notices and for filling that cache. The Herald OS study and capability map are in `docs/jarvis/HERALD-MAP.md`; tickets in `.scratch/jarvis/`.
 
 It's built from **Dayflow** (MIT license, © 2025 Jerry Liu, github.com/JerryZLiu/Dayflow) plus your **Briefing** add-on.
 
@@ -48,7 +48,8 @@ These are created when the app runs, so leave them where they are.
 |---|---|
 | `/Applications/Jarvis.app` | The installed app (pinned to your Dock; it was `Dayframe.app` until 2026-10-14) |
 | `~/.hermes/` | Hermes Agent: its install (`hermes-agent/`), config, memories, sessions and sign-ins. Jarvis's audit log and permission policy are in `~/.hermes/herald-os/` |
-| `~/jarvis-voice/` | The Jarvis voice server (OmniVoice clone, `127.0.0.1:5055`, LaunchAgent `local.jarvis.tts`) |
+| `~/jarvis-voice/` | The cloned Jarvis voice (OmniVoice, `127.0.0.1:5055`, LaunchAgent `local.jarvis.tts`). Slow; used for notices and the phrase cache |
+| `~/jarvis-piper/` | Alan, the fast filler voice (Piper, `127.0.0.1:5056`, LaunchAgent `local.jarvis.piper`). Outside this project on purpose, so Hermes does not read ~/Documents |
 | `~/Library/Application Support/Dayflow/` | Your recordings and timeline database. The name stays "Dayflow" on purpose, so Briefing can read it |
 | `~/Briefing/` | The *installed* copy of Briefing: `app/`, your memory notes (`memory/`), settings (`config.json`) and logs |
 | `~/Library/LaunchAgents/com.dayflowbriefing.*` | The background jobs that run Briefing on a schedule |
@@ -254,7 +255,7 @@ Each finished version gets a git tag, a backup copy, and a push to GitHub.
 - [ ] Save the design system: in a terminal `claude` session in `Web/`, run `/design-login`, then `/design-sync Dayframe Design System`.
 
 **For an AI session** (tickets in `.scratch/`):
-- [ ] **Next for Jarvis:** `.scratch/jarvis/issues/10-fast-jarvis-voice.md` (train a Piper Jarvis voice; ask before each download), then chunk 2 (quick panel, "Hey Jarvis", control socket). Plan: `~/.claude/plans/okay-now-that-we-swift-lovelace.md`.
+- [ ] **Next for Jarvis:** try a real ⌥Space turn with Alan (ticket `.scratch/jarvis/issues/10-fast-jarvis-voice.md` stays open; training a Jarvis Piper voice is deferred). Then chunk 2 (quick panel, "Hey Jarvis", control socket). Plan: `~/.claude/plans/okay-now-that-we-swift-lovelace.md`.
 - [ ] After `grok login`: test whether Grok accepts screenshots, not just their text (`.scratch/grok/issues/05-grok-images.md`).
 - [ ] The first-run intro video still says "Dayflow".
 
