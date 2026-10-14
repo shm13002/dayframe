@@ -146,6 +146,24 @@ check_briefing() {
   fi
 }
 
+# The fast Piper voice (Alan stands in). Stdlib unittest, so system python3 runs it.
+# The tests inject a fake synthesizer and never load the ONNX model.
+check_jarvis_voice() {
+  section "Jarvis voice tests"
+  if [[ -z $(files 'Jarvis/voice/*.py' 'Jarvis/voice/tests/*') ]]; then
+    echo "No voice changes."
+    return
+  fi
+  local out
+  out=$(cd Jarvis/voice && without_git_env python3 -m unittest discover -s tests -t . 2>&1)
+  grep -E '^Ran [0-9]+ tests' <<<"$out"
+  if ! grep -q '^OK' <<<"$out"; then
+    grep -E '^(FAIL|ERROR): ' <<<"$out" | sed 's/^/    /'
+    grep -qE '^(FAIL|ERROR): ' <<<"$out" || tail -15 <<<"$out" | sed 's/^/    /'
+    fail "Jarvis voice tests"
+  fi
+}
+
 # Jarvis's system-tools plugin (vendored from Herald OS). Its tests stub Hermes, so Xcode's
 # python3 with pytest runs them. They run on the working copy, also in --staged mode.
 check_jarvis_bridge() {
@@ -204,6 +222,7 @@ check_swift
 check_web
 check_briefing
 check_jarvis_bridge
+check_jarvis_voice
 [[ $MODE == --app ]] && check_app
 
 echo

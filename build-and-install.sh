@@ -100,6 +100,12 @@ if [[ -x "$HOME/.hermes/hermes-agent/.hermes/bin/hermes" ]] || command -v hermes
   Jarvis/install-bridge.sh || echo "Jarvis bridge setup failed (see above); the app still works."
 fi
 
+# Fast voice: Alan is already on disk, so the stand-in server is installed with the app.
+# A trained en_GB-jarvis-medium file, once it exists, is what the server should load later.
+if [[ -f "$HOME/jarvis-piper/stock/en_GB-alan-medium.onnx" || -f "$HOME/jarvis-piper/voice/en_GB-jarvis-medium.onnx" ]]; then
+  Jarvis/voice/install-voice.sh || echo "Jarvis voice setup failed (see above); the app still works."
+fi
+
 # Keep-alive agent: reopens Jarvis (and Ollama) within 2 minutes if either isn't running.
 AGENT=local.dayframe.keepalive
 mkdir -p "$HOME/Library/LaunchAgents"

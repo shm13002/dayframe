@@ -67,6 +67,39 @@ final class JarvisVoiceTests: XCTestCase {
     XCTAssertEqual(body.count, 3)
   }
 
+  func testPiperSendsOnlyTextAndDoesNotRetry() async throws {
+    let (piper, requests) = client(statuses: [429, 200])
+    var fast = piper
+    fast.engine = .piper
+    do {
+      _ = try await fast.wav(for: "Hello there.")
+      XCTFail("expected busy")
+    } catch {
+      XCTAssertEqual(error as? JarvisVoiceClient.Failure, .busy)
+    }
+    let request = try XCTUnwrap(requests().first)
+    XCTAssertEqual(request.url?.port, 5056)
+    XCTAssertEqual(request.timeoutInterval, 3)
+    XCTAssertNil(request.value(forHTTPHeaderField: "Origin"))
+    let body = try JSONSerialization.jsonObject(with: request.httpBody!) as! [String: Any]
+    XCTAssertEqual(body["text"] as? String, "Hello there.")
+    XCTAssertEqual(body.count, 1)
+    XCTAssertEqual(requests().count, 1)
+  }
+
+  func testLiveRouteSkipsTheSlowClone() {
+    XCTAssertEqual(JarvisVoiceRoute.steps(mode: .live), [.cache, .piper, .mac])
+    XCTAssertEqual(
+      JarvisVoiceRoute.steps(mode: .notice), [.cache, .cloned, .piper, .mac])
+  }
+
+  func testFirstAudioIsMeasuredFromSpeakToPlay() {
+    let asked = Date(timeIntervalSince1970: 1_000)
+    let played = asked.addingTimeInterval(0.29)
+    XCTAssertEqual(JarvisVoiceRoute.firstAudioMs(from: asked, to: played), 290)
+    XCTAssertEqual(JarvisVoiceRoute.firstAudioMs(from: played, to: asked), 0)
+  }
+
   func testBusyIsRetriedThenGivesUp() async {
     let (retrying, retryRequests) = client(statuses: [429, 200])
     let wav = try? await retrying.wav(for: "Hi.")

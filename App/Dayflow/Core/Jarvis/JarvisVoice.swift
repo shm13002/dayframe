@@ -2,19 +2,13 @@
 //  JarvisVoice.swift
 //  Jarvis
 //
-//  Jarvis speaks with the owner's cloned Jarvis voice: the local OmniVoice server in
-//  ~/jarvis-voice (LaunchAgent local.jarvis.tts, http://127.0.0.1:5055).
-//    POST /tts {"text": ≤400 chars, "voice": "jarvis", "steps": 32}
-//    Authorization: Bearer <~/jarvis-voice/service.token>; requests with an Origin header are refused
-//    200 WAV (X-Jarvis-Verified: true) · 401 bad token · 429 busy (one at a time)
-//    422 failed its own intelligibility check three times · 503 generation failed
-//  That server takes about 50 s per sentence on this Mac (measured 2026-10-14), so Jarvis never
-//  waits on it while you wait:
-//    .live   (answers to ⌥Space) a line already in the phrase cache plays in the Jarvis voice at
-//            once; anything else is read immediately by the best British Mac voice.
-//    .notice (briefings, notch notices) uses the Jarvis voice even if it takes a while.
-//  Every line the Jarvis voice produces is kept in the phrase cache, and a set of common lines is
-//  prepared in the background when the server is idle. A fast trained voice (Piper) comes next.
+//  Two local voice servers, plus the phrase cache and a British Mac voice:
+//    Cloned Jarvis voice  ~/jarvis-voice  127.0.0.1:5055  ~50 s per sentence (OmniVoice)
+//    Fast filler voice    ~/jarvis-piper  127.0.0.1:5056  Alan (Piper), until a trained voice exists
+//  Both refuse an Origin header and want a bearer token from their service.token.
+//    .live   cache, then Alan, then the Mac voice. Never waits on the cloned voice.
+//    .notice cache, then the cloned voice, then Alan, then the Mac voice.
+//  Every line the cloned voice produces is kept in the phrase cache.
 //
 
 import AVFoundation
@@ -88,8 +82,42 @@ enum JarvisSpeechText {
   }
 }
 
-/// One request to the voice server. `send` is injectable so tests run without the server.
+/// Which server speaks next. Pure, unit-tested. Alan is the fast filler.
+enum JarvisVoiceRoute {
+  enum Mode: Equatable {
+    case live
+    case notice
+  }
+
+  enum Step: Equatable {
+    case cache
+    case piper
+    case cloned
+    case mac
+  }
+
+  static func steps(mode: Mode) -> [Step] {
+    switch mode {
+    case .live: return [.cache, .piper, .mac]
+    case .notice: return [.cache, .cloned, .piper, .mac]
+    }
+  }
+
+  /// Milliseconds from `speak()` until playback starts.
+  static func firstAudioMs(from asked: Date, to played: Date) -> Int {
+    max(0, Int((played.timeIntervalSince(asked) * 1000).rounded()))
+  }
+}
+
+/// One request to a voice server. `send` is injectable so tests run without the server.
 struct JarvisVoiceClient {
+  enum Engine: Equatable {
+    /// OmniVoice clone, port 5055. Slow; retried when busy.
+    case cloned
+    /// Piper (Alan for now), port 5056. One try, 3 s.
+    case piper
+  }
+
   enum Failure: Error, Equatable {
     case noToken
     case unreachable
@@ -101,23 +129,35 @@ struct JarvisVoiceClient {
 
   typealias Send = (URLRequest) async throws -> (Data, HTTPURLResponse)
 
+  var engine: Engine = .cloned
   var endpoint = URL(string: "http://127.0.0.1:5055/tts")!
   var token: () -> String? = JarvisVoiceClient.readToken
   var send: Send = JarvisVoiceClient.urlSessionSend
-  /// How often a busy server (429) is asked again, half a second apart.
+  /// How often a busy cloned server (429) is asked again, half a second apart.
   var busyRetries = 20
+
+  static func makePiper() -> JarvisVoiceClient {
+    var client = JarvisVoiceClient()
+    client.engine = .piper
+    client.token = { JarvisVoiceClient.readToken(at: piperTokenPath) }
+    client.busyRetries = 0
+    return client
+  }
 
   func wav(for text: String) async throws -> Data {
     guard let token = token() else { throw Failure.noToken }
-    var request = URLRequest(url: endpoint)
+    var request = URLRequest(url: requestURL)
     request.httpMethod = "POST"
-    request.timeoutInterval = 120
+    request.timeoutInterval = engine == .piper ? 3 : 120
     request.setValue("application/json", forHTTPHeaderField: "Content-Type")
     request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-    request.httpBody = try JSONSerialization.data(
-      withJSONObject: [
-        "text": String(text.prefix(JarvisSpeechText.maxPiece)), "voice": "jarvis", "steps": 32,
-      ])
+    let spoken = String(text.prefix(JarvisSpeechText.maxPiece))
+    let body: [String: Any] =
+      engine == .piper
+      ? ["text": spoken]
+      : ["text": spoken, "voice": "jarvis", "steps": 32]
+    request.httpBody = try JSONSerialization.data(withJSONObject: body)
+    let retryLimit = engine == .piper ? 0 : busyRetries
     var attempt = 0
     while true {
       let data: Data
@@ -133,18 +173,26 @@ struct JarvisVoiceClient {
       case 422: throw Failure.unverified
       case 429:
         attempt += 1
-        guard attempt <= busyRetries else { throw Failure.busy }
+        guard attempt <= retryLimit else { throw Failure.busy }
         try await Task.sleep(for: .milliseconds(500))
       default: throw Failure.failed(response.statusCode)
       }
     }
   }
 
+  private var requestURL: URL {
+    engine == .piper ? URL(string: "http://127.0.0.1:5056/tts")! : endpoint
+  }
+
   static let tokenPath = FileManager.default.homeDirectoryForCurrentUser
     .appendingPathComponent("jarvis-voice/service.token")
+  static let piperTokenPath = FileManager.default.homeDirectoryForCurrentUser
+    .appendingPathComponent("jarvis-piper/service.token")
 
-  static func readToken() -> String? {
-    guard let raw = try? String(contentsOf: tokenPath, encoding: .utf8) else { return nil }
+  static func readToken() -> String? { readToken(at: tokenPath) }
+
+  static func readToken(at path: URL) -> String? {
+    guard let raw = try? String(contentsOf: path, encoding: .utf8) else { return nil }
     let token = raw.trimmingCharacters(in: .whitespacesAndNewlines)
     return token.count >= 32 ? token : nil
   }
@@ -167,6 +215,7 @@ final class JarvisVoice: NSObject, ObservableObject, AVAudioPlayerDelegate {
 
   enum Source: Equatable {
     case jarvisVoice
+    case piperVoice
     case systemVoice
   }
 
@@ -202,9 +251,10 @@ final class JarvisVoice: NSObject, ObservableObject, AVAudioPlayerDelegate {
   }
 
   var client = JarvisVoiceClient()
+  var piper = JarvisVoiceClient.makePiper()
   let cache = JarvisPhraseCache()
   private let logger = Logger(subsystem: "local.dayframe.app", category: "jarvis")
-  private var queue: [(text: String, mode: Mode)] = []
+  private var queue: [(text: String, mode: Mode, askedAt: Date)] = []
   private var pipeline: Task<Void, Never>?
   private var preparing: Task<Void, Never>?
   private var player: AVAudioPlayer?
@@ -214,7 +264,8 @@ final class JarvisVoice: NSObject, ObservableObject, AVAudioPlayerDelegate {
   /// Speaks the text after anything already queued.
   func speak(_ text: String, mode: Mode = .live) {
     guard isEnabled else { return }
-    queue += JarvisSpeechText.pieces(text).map { ($0, mode) }
+    let askedAt = Date()
+    queue += JarvisSpeechText.pieces(text).map { ($0, mode, askedAt) }
     guard pipeline == nil, !queue.isEmpty else { return }
     pipeline = Task { await run() }
   }
@@ -273,16 +324,57 @@ final class JarvisVoice: NSObject, ObservableObject, AVAudioPlayerDelegate {
       pipeline = nil
     }
     while !Task.isCancelled, !queue.isEmpty {
-      let (piece, mode) = queue.removeFirst()
-      if let wav = cache.wav(for: piece) {
-        lastSource = .jarvisVoice
-        await play(wav)
-      } else if mode == .notice, let wav = await cloned(piece) {
-        lastSource = .jarvisVoice
-        await play(wav)
-      } else {
-        await speakWithSystemVoice(piece)
+      let (piece, mode, askedAt) = queue.removeFirst()
+      let route: JarvisVoiceRoute.Mode = mode == .notice ? .notice : .live
+      for step in JarvisVoiceRoute.steps(mode: route) {
+        switch step {
+        case .cache:
+          if let wav = cache.wav(for: piece) {
+            lastSource = .jarvisVoice
+            logFirstAudio("cache", askedAt: askedAt)
+            await play(wav)
+          } else {
+            continue
+          }
+        case .piper:
+          if let wav = await piperWav(piece) {
+            lastSource = .piperVoice
+            logFirstAudio("piper", askedAt: askedAt)
+            await play(wav)
+          } else {
+            continue
+          }
+        case .cloned:
+          if let wav = await cloned(piece) {
+            lastSource = .jarvisVoice
+            logFirstAudio("cloned", askedAt: askedAt)
+            await play(wav)
+          } else {
+            continue
+          }
+        case .mac:
+          await speakWithSystemVoice(piece, askedAt: askedAt)
+        }
+        break
       }
+    }
+  }
+
+  /// Logged at the moment playback starts, measured from the `speak()` that queued the piece.
+  private func logFirstAudio(_ engine: String, askedAt: Date) {
+    let ms = JarvisVoiceRoute.firstAudioMs(from: askedAt, to: Date())
+    logger.info(
+      "Voice engine=\(engine, privacy: .public) firstAudioMs=\(ms, privacy: .public)")
+  }
+
+  /// Alan (Piper). Not cached: the phrase cache belongs to the cloned Jarvis voice.
+  private func piperWav(_ piece: String) async -> Data? {
+    do {
+      return try await piper.wav(for: piece)
+    } catch {
+      logger.error(
+        "Piper voice fell back: \(String(describing: error), privacy: .public)")
+      return nil
     }
   }
 
@@ -310,9 +402,10 @@ final class JarvisVoice: NSObject, ObservableObject, AVAudioPlayerDelegate {
     }
   }
 
-  private func speakWithSystemVoice(_ piece: String) async {
+  private func speakWithSystemVoice(_ piece: String, askedAt: Date) async {
     guard !Task.isCancelled, isEnabled else { return }
     lastSource = .systemVoice
+    logFirstAudio("mac", askedAt: askedAt)
     let utterance = AVSpeechUtterance(string: piece)
     utterance.voice = Self.bestBritishVoice
     synthesizer.speak(utterance)

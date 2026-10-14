@@ -76,9 +76,16 @@ struct JarvisSettingsView: View {
       SettingsSection(
         title: "Voice",
         subtitle:
-          "After ⌥Space, Jarvis says \"On it.\" and then one summary sentence; the full answer is on screen. Your cloned Jarvis voice takes about 50 s per new sentence on this Mac, so live replies use prepared phrases in that voice plus an instant British voice for the rest. A fast trained Jarvis voice is next."
+          "After ⌥Space, Jarvis says \"On it.\" and then one summary sentence; the full answer is on screen. A prepared Jarvis phrase plays at once. Anything else live is read by Alan, a fast Piper voice, until a Jarvis voice is trained."
       ) {
         VStack(alignment: .leading, spacing: 0) {
+          SettingsRow(
+            label: "Fast Jarvis voice",
+            subtitle:
+              "Alan reads new live sentences on this Mac (port 5056). He stands in until a Jarvis voice is trained. Notices still try the cloned voice first."
+          ) {
+            EmptyView()
+          }
           SettingsRow(
             label: "Jarvis voice phrases",
             subtitle:
@@ -92,7 +99,7 @@ struct JarvisSettingsView: View {
           SettingsRow(
             label: "Instant voice",
             subtitle:
-              "New sentences are read at once by \(JarvisVoice.bestBritishVoice?.name ?? "the Mac's voice"). For a better one, download Jamie (Premium) or Daniel (Enhanced) in System Settings › Accessibility › Spoken Content › System voice › Manage Voices."
+              "Used when Alan doesn't answer. \(JarvisVoice.bestBritishVoice?.name ?? "The Mac's voice") is installed. For a better one, download Jamie (Premium) or Daniel (Enhanced) in System Settings › Accessibility › Spoken Content › System voice › Manage Voices."
           ) {
             EmptyView()
           }
@@ -172,8 +179,9 @@ struct JarvisSettingsView: View {
   private var voiceSourceText: String {
     switch voice.lastSource {
     case .jarvisVoice: return "Last answer: the Jarvis voice."
+    case .piperVoice: return "Last answer: Alan, the fast voice."
     case .systemVoice:
-      return "Last answer: the Mac's voice (the Jarvis voice server didn't answer)."
+      return "Last answer: the Mac's voice (Alan didn't answer)."
     case nil: return "Answers to typed questions stay silent."
     }
   }

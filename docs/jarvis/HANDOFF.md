@@ -1,8 +1,8 @@
-# Jarvis handoff (updated 2026-10-14 16:10, Claude → next AI)
+# Jarvis handoff (updated 2026-10-14 18:03)
 
 Read this first. Then read `AGENTS.md` (how to work here), the top of `CHANGELOG.md`, `HERALD-MAP.md` (this folder) and the ticket `.scratch/jarvis/issues/10-fast-jarvis-voice.md`.
 
-**Where we stopped:** in the middle of ticket 10, the fast Piper Jarvis voice. Gate 1 (Piper speed) passed. Gate 2 (can this Mac train Piper fast enough?) looks like a **fail on the Mac GPU**. The CPU hasn't been measured yet. Nothing in the app has changed for ticket 10 so far. The section "Ticket 10: where it stands" below has the numbers and the exact next steps.
+**Where we stopped:** ticket 10 is still open. At 17:02 the owner stopped the training-speed measurement and chose Alan as the filler voice. Gate 2 is **deferred**. Do not run the CPU or MPS probes unless the owner asks. Alan (`en_GB-alan-medium`) is live on 127.0.0.1:5056 (LaunchAgent `local.jarvis.piper`). Live replies go cache, then Alan, then the Mac voice. `./build-and-install.sh` rebuilt and relaunched `/Applications/Jarvis.app` with that route. The version is still 1.4 (not tagged). A real ⌥Space turn has not been tried.
 
 ## What Jarvis is
 
@@ -25,7 +25,8 @@ Jarvis became the owner's chief-of-staff agent by putting **Herald OS v0.1.0-alp
 | Jarvis tab (first in the sidebar; the HQ) | `Views/UI/Jarvis/JarvisView.swift` hosts `Web/src/jarvis` (React), built into `App/Dayflow/Jarvis/Resources/jarvis.html` and loaded from file:// |
 | Hermes gateway client | `Web/src/jarvis/hermes/upstream/` (vendored unchanged; don't edit) |
 | System tools with approval tiers and an audit log | `Jarvis/bridge/herald-os-bridge` (from Herald, MIT). Changes are listed in `Jarvis/bridge/JARVIS-CHANGES.md`. Installed by `Jarvis/install-bridge.sh`, which **copies** it to `~/.hermes/plugins` |
-| Piper voice training wrapper (new, ticket 10) | `Jarvis/voice/train.py` |
+| Piper voice training wrapper (ticket 10; training is deferred) | `Jarvis/voice/train.py` |
+| Fast filler voice, Alan, 127.0.0.1:5056 | `Jarvis/voice/piper_server.py`, installed by `Jarvis/voice/install-voice.sh` |
 | Settings › Jarvis | `Views/UI/Settings/JarvisSettingsView.swift` |
 | Hermes install, config, sign-ins | `~/.hermes` (model `xai-oauth` / `grok-4.6`) |
 | Jarvis's audit log and permission policy | `~/.hermes/herald-os/` |
@@ -35,11 +36,12 @@ Jarvis became the owner's chief-of-staff agent by putting **Herald OS v0.1.0-alp
 - **Brain:** Grok is the fast default; ChatGPT and Claude can be switched in; Qwen is only the offline fallback. No API keys.
 - **Look and feel:** Grok Bot's quick feel, with Dayframe's palette and brand. Keep the Dayframe icon.
 - **Speed:** never slower than Herald, whose voice starts speaking about 1 s after the reply begins.
-- **Voice:** speak a one-sentence summary, not whole answers. The owner chose to **train a fast Piper Jarvis voice** plus the phrase cache.
+- **Voice:** speak a one-sentence summary, not whole answers. The owner chose to **train a fast Piper Jarvis voice** plus the phrase cache. On 2026-10-14 at 17:02 they paused that training and told us to use Alan as the live filler and keep working on the app. Do not restart the training probes unless they ask.
 - **Ticket 10 choices (2026-10-14):**
   - **Base voice:** start from **Alan** (`en_GB-alan-medium`, RP accent). The owner listened to both stock voices and picked it.
-  - **Dataset run:** overnight, or while the owner is away. Smoke-test on 5 lines first.
-  - **Disk:** caches that rebuild themselves may be cleared, but list them and get an OK first.
+  - **Filler, same day:** use Alan in the app now. Do not keep measuring training speed. A trained Jarvis voice can replace him later.
+  - **Dataset run:** overnight, or while the owner is away. Smoke-test on 5 lines first. Not started.
+  - **Disk:** caches that rebuild themselves may be cleared, but list them and get an OK first. Cursor's staged update and Chrome's web cache were cleared again on 2026-10-14 because the disk hit 116 MB.
 - **Ask the owner before every download**, giving name, source and size.
 - **Off limits:** the Jarvis HQ spec, the GenUI kit and the `DayFrameJarvis` package belong to a separate Codex project.
 - **`~/jarvis-voice`** may be changed, but another agent (Codex) edits it too. Never edit `tts_server.py`; build beside it.
@@ -66,7 +68,12 @@ Jarvis became the owner's chief-of-staff agent by putting **Herald OS v0.1.0-alp
    - keeps **only `last.ckpt`**: Piper's defaults keep up to 11 checkpoints of 846 MB each, which would fill the disk
    - logs every training step's time and peak memory to `--steps-log`
    - turns the MOS metric off, because it would download UTMOS through torch.hub
-6. **Gate 2, training speed on the Mac GPU (MPS): looks like a FAIL.**
+6. **Gate 2, training speed: deferred by the owner at 17:02.** MPS batch 8 looked like a fail (below). The CPU probe was never run. Do not start it, and do not switch approach, unless the owner asks.
+7. **Alan is the live filler** until a trained voice exists. `POST /tts {"text"}` on 127.0.0.1:5056. "On it." came back in 860 ms on a cold call and 292 ms on the next one (`X-Jarvis-Generation-Ms`, 2026-10-14). The token file is `~/jarvis-piper/service.token` (mode 0600). The app binary in `/Applications/Jarvis.app` was rebuilt with this route the same evening. Version number is still 1.4.
+
+The MPS measurement, kept so it is not repeated by accident:
+
+**Gate 2 on the Mac GPU (MPS), measured before the owner deferred it: looks like a FAIL.**
    - Measured with batch 8 at 16:06–16:08 (`~/jarvis-piper/probe/steps-mps.log`):
      - 19.2, 16.8, 82.5 and 28.0 s per batch. The 82 s batch includes the end-of-epoch validation.
      - Peak memory was 937 MB.
@@ -75,7 +82,7 @@ Jarvis became the owner's chief-of-staff agent by putting **Herald OS v0.1.0-alp
 
 ### Next steps for ticket 10, in order
 
-**1. Finish gate 2.**
+**1. Gate 2 is deferred.** The owner said so at 17:02. Do not run the CPU probe or a larger MPS batch unless they ask. The old command and the pass line (a ~400-clip fine-tune in about 24 h) stay here so the numbers are not lost.
 - Run the same probe on the CPU, from `~/jarvis-piper`, with nothing else heavy running:
   ```bash
   .venv/bin/python ~/Documents/Projects/Dayframe/Jarvis/voice/train.py --steps-log probe/steps-cpu.log --checkpoint-every 0 fit --data.voice_name probe --data.csv_path probe/metadata.csv --data.audio_dir probe/wavs --model.sample_rate 22050 --data.espeak_voice en-gb-x-rp --data.cache_dir probe/cache --data.config_path probe/config.json --data.batch_size 8 --trainer.max_epochs 4 --trainer.accelerator cpu --trainer.logger false --trainer.default_root_dir probe/run-cpu
@@ -128,27 +135,15 @@ Jarvis became the owner's chief-of-staff agent by putting **Herald OS v0.1.0-alp
 - The owner listens to the cloned voice against Piper. Shipping is the owner's call.
 - After asking, delete the checkpoints and the cache.
 
-**6. Server and Swift.** This can be built earlier, with Alan standing in.
+**6. Server and Swift. Done for the Alan stand-in (2026-10-14 18:03).** A trained voice later replaces the ONNX file; the route stays.
 
-- **`Jarvis/voice/piper_server.py`:**
-  - Loads the voice once and listens on 127.0.0.1:**5056**.
-  - Bearer token in `~/jarvis-piper/service.token` (0600, created on first run). Refuses any request with an Origin header.
+- **`Jarvis/voice/piper_server.py`:** loads Alan once and listens on 127.0.0.1:**5056**. Tests inject `create_app` and do not load the model.
+  - Bearer token in `~/jarvis-piper/service.token` (0600, created on first run). Any Origin header is refused.
   - `POST /tts {"text"}` (≤ 400 chars) returns a WAV and `X-Jarvis-Generation-Ms`. `GET /health` reports status.
-  - Built as an injectable `create_app` with tests, like `tts_server.py`.
-- **Install:**
-  - LaunchAgent `local.jarvis.piper`.
-  - `Jarvis/voice/install-voice.sh` copies the server and the voice to `~/jarvis-piper`.
-  - `build-and-install.sh` calls it only once a trained voice exists.
-  - Add a `check_jarvis_voice` section to `check.sh`, modeled on `check_jarvis_bridge`.
-- **Swift** (`JarvisVoice.swift`):
-  - `JarvisVoiceClient` gets an engine setting. Piper uses port 5056, `{"text"}`, a 3 s timeout and no retries.
-  - A pure, tested `JarvisVoiceRoute.steps(mode:)`:
-    - `.live` → cache, Piper, Mac voice
-    - `.notice` → cache, cloned voice, Piper, Mac voice
-  - `Source.piperVoice` is added.
-  - Each spoken piece logs its engine and its first-audio ms (from `speak()` to `play()`).
-- **Settings › Jarvis:** a "Fast Jarvis voice" row, and new wording for the voice text.
-- **Checks:** `swift-format`, then `./check.sh --app`.
+- **Install:** LaunchAgent `local.jarvis.piper` is running. `Jarvis/voice/install-voice.sh` copies the server and clones Alan into `~/jarvis-piper/voice/`. `build-and-install.sh` calls it because this stand-in is already on disk. `check.sh` has `check_jarvis_voice`.
+- **Swift** (`JarvisVoice.swift`): `JarvisVoiceClient` has a Piper engine (port 5056, body `{"text"}`, 3 s, no retries). `JarvisVoiceRoute.steps(mode:)` is `.live` → cache, Piper, Mac voice and `.notice` → cache, cloned voice, Piper, Mac voice. `Source.piperVoice` is logged with first-audio ms from `speak()` to `play()`.
+- **Settings › Jarvis:** a "Fast Jarvis voice" row, and the voice text now describes Alan.
+- **Not in the installed app yet.** `/Applications/Jarvis.app` is still v1.4 until `./build-and-install.sh`.
 
 **7. Measure and close.**
 - In the installed app: Settings › Jarvis › Test, plus 10 one-sentence lines. Read first-audio ms with `./logs.sh`. **Target: median and max ≤ 1 s.**
@@ -183,6 +178,7 @@ Jarvis became the owner's chief-of-staff agent by putting **Herald OS v0.1.0-alp
 
 - A real ⌥Space voice turn. The ChatGPT app may own ⌥Space; Settings › Jarvis shows whether it registered.
 - The Jarvis tab UI in person.
+- First-audio ms inside the installed app (Settings › Jarvis › Test, then `./logs.sh`). The server itself spoke "On it." in 860 ms. The installed binary is still v1.4.
 
 ## Gotchas
 

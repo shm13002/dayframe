@@ -24,6 +24,22 @@ Entry template:
 
 ## 2026-10-14 (Wed)
 
+### 18:03: Alan stands in as the fast Jarvis voice
+- **What:** The owner stopped the Piper training measurement at 17:02 and asked for a filler voice so work on the app could continue. Alan (`en_GB-alan-medium`) now serves live lines on 127.0.0.1:5056. Gate 2 stays deferred. Ticket 10 stays open.
+  - `Jarvis/voice/piper_server.py` loads the voice once. `POST /tts` takes `{"text"}` (at most 400 characters) and returns a WAV plus `X-Jarvis-Generation-Ms`. `GET /health` reports the voice. An Origin header is refused. The bearer token is created at `~/jarvis-piper/service.token` with mode 0600.
+  - `Jarvis/voice/install-voice.sh` clones Alan into `~/jarvis-piper/voice/` and installs LaunchAgent `local.jarvis.piper`. `build-and-install.sh` calls it because that stand-in is already on disk. `check.sh` runs the voice unit tests.
+  - Live speech tries the phrase cache, then Piper, then the Mac voice. Notices try the cloned voice before Piper. Each piece logs its engine and the milliseconds from `speak()` to playback. Settings › Jarvis has a Fast Jarvis voice row.
+- **Files:** `Jarvis/voice/piper_server.py`, `Jarvis/voice/tests/test_piper_server.py`, `Jarvis/voice/install-voice.sh`, `Jarvis/voice/tests/__init__.py`, `check.sh`, `build-and-install.sh`, `App/Dayflow/Core/Jarvis/JarvisVoice.swift`, `App/DayflowTests/JarvisVoiceTests.swift`, `App/Dayflow/Views/UI/Settings/JarvisSettingsView.swift`, `docs/jarvis/HANDOFF.md`, `.scratch/jarvis/issues/10-fast-jarvis-voice.md`, `CHANGELOG.md`
+- **Why:** A trained Jarvis voice cannot be judged until training is fast enough, and the owner chose not to wait on that measurement.
+- **Checked:**
+  - No `train.py` process was running.
+  - `python3 -m unittest discover -s tests` in `Jarvis/voice`: 7 tests, OK.
+  - The LaunchAgent is running. `GET /health` returned Alan, sample rate 22050, `standIn` true. An Origin header got 401. `POST /tts` of "On it." returned a WAV; `X-Jarvis-Generation-Ms` was 860 on the first call and 292 on the next. The token file is mode 0600.
+  - `xcrun swift-format`, then `DAYFRAME_LOW_DISK_OK=1 ./check.sh --app`: all clean. App unit tests: 287 executed, 0 failures. Free disk dipped under 3 GB during the run, so the low-disk flag was set.
+  - `./build-and-install.sh` rebuilt and relaunched `/Applications/Jarvis.app`. One `launchctl bootstrap` reported an I/O error while the agent was already loaded; the agent was running afterward. `install-voice.sh` now kickstarts the agent if bootstrap fails.
+  - **Not verified:** a real ⌥Space turn, and Settings › Jarvis › Test in the relaunched app.
+- **Commit:** this entry's title is the commit subject.
+
 ### 16:10: Ticket 10 paused: Piper benchmark passed, Mac GPU training too slow so far; handoff updated
 - **What:**
   - Ticket 10 (fast Piper Jarvis voice) started and paused so the owner can continue with another AI.
