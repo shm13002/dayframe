@@ -40,7 +40,7 @@ struct SettingsOtherTabView: View {
           label: String(localized: "App language"),
           subtitle: String(
             localized:
-              "Choose a language for Dayframe only. Quit and reopen the app to apply a change.")
+              "Choose a language for Jarvis only. Quit and reopen the app to apply a change.")
         ) {
           Picker("App language", selection: $appLanguage) {
             ForEach(AppLanguage.allCases) { language in
@@ -74,7 +74,7 @@ struct SettingsOtherTabView: View {
         }
 
         SettingsRow(
-          label: String(localized: "Launch Dayframe at login"),
+          label: String(localized: "Launch Jarvis at login"),
           subtitle:
             String(
               localized:
@@ -91,7 +91,7 @@ struct SettingsOtherTabView: View {
 
         SettingsRow(
           label: String(localized: "Show Dock icon"),
-          subtitle: String(localized: "When off, Dayframe runs as a menu bar-only app.")
+          subtitle: String(localized: "When off, Jarvis runs as a menu bar-only app.")
         ) {
           SettingsToggle(isOn: $viewModel.showDockIcon)
         }
@@ -108,7 +108,7 @@ struct SettingsOtherTabView: View {
           subtitle:
             String(
               localized:
-                "When off, Dayframe won't automatically open goal setup or yesterday's review after 4am."
+                "When off, Jarvis won't automatically open goal setup or yesterday's review after 4am."
             )
         ) {
           SettingsToggle(isOn: $viewModel.showDailyGoalPopups)

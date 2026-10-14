@@ -20,6 +20,6 @@ final class UpdaterManager: NSObject, ObservableObject {
   private override init() { super.init() }
 
   func checkForUpdates(showUI: Bool = false) {
-    statusText = "Dayframe is a local build: pull and rebuild to update"
+    statusText = "Jarvis is a local build: pull and rebuild to update"
   }
 }

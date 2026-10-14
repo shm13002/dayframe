@@ -114,9 +114,9 @@ struct DayGoalHeader: View {
     case .active:
       return String(localized: "Tracking progress from your focus and distraction categories.")
     case .pausedTimed, .pausedIndefinite:
-      return String(localized: "Dayframe is paused. Resume to continue tracking your progress.")
+      return String(localized: "Jarvis is paused. Resume to continue tracking your progress.")
     case .stopped:
-      return String(localized: "Start Dayframe to continue tracking your progress.")
+      return String(localized: "Start Jarvis to continue tracking your progress.")
     }
   }
 

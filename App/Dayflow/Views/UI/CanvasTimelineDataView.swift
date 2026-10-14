@@ -548,7 +548,7 @@ struct CanvasTimelineDataView: View {
     statusText(
       iconName: "pause.fill",
       message: String(
-        localized: "Dayframe is paused. Click 'Resume' to generate new activity cards.")
+        localized: "Jarvis is paused. Click 'Resume' to generate new activity cards.")
     )
   }
 
@@ -556,7 +556,7 @@ struct CanvasTimelineDataView: View {
     statusText(
       iconName: "play.fill",
       message: String(
-        localized: "Dayframe isn't recording. Click 'Resume' to generate new activity cards.")
+        localized: "Jarvis isn't recording. Click 'Resume' to generate new activity cards.")
     )
   }
 

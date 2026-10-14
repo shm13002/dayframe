@@ -330,7 +330,7 @@ struct SupportChatWebView: NSViewRepresentable {
           )
           : String(
             localized:
-              "Hey there! Found a bug, have an idea, or just confused about something? Drop it here and a real person on the Dayframe team will get back to you in this chat."
+              "Hey there! Found a bug, have an idea, or just confused about something? Drop it here and a real person on the Jarvis team will get back to you in this chat."
           ),
         "emailRequired": String(localized: "Add your email so we can reply."),
         "unavailable": String(localized: "Support is not available right now."),

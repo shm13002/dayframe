@@ -258,7 +258,7 @@ struct OnboardingFlow: View {
     } catch {
       if presentsError {
         routingSaveErrorMessage = String(
-          localized: "Dayframe couldn't save this provider. Please try again.")
+          localized: "Jarvis couldn't save this provider. Please try again.")
       }
       AnalyticsService.shared.capture(
         "llm_provider_routing_save_failed",
@@ -637,7 +637,7 @@ struct OnboardingPrototypeReferralStep: View {
 
       VStack(spacing: 20) {
         ReferralSurveyView(
-          prompt: String(localized: "Where did you first hear about Dayframe?"),
+          prompt: String(localized: "Where did you first hear about Jarvis?"),
           showSubmitButton: false,
           selectedReferral: $selectedReferral,
           customReferral: $referralDetail
@@ -696,7 +696,7 @@ struct OnboardingPersonalGoalStep: View {
       Spacer()
         .frame(height: 39)
 
-      Text("Dayframe adapts to what you need")
+      Text("Jarvis adapts to what you need")
         .font(.custom("InstrumentSerif-Regular", size: 40))
         .tracking(-1.2)
         .multilineTextAlignment(.center)
@@ -707,7 +707,7 @@ struct OnboardingPersonalGoalStep: View {
       Spacer()
         .frame(height: 12)
 
-      Text("Tell Dayframe what you're hoping to get out of it.")
+      Text("Tell Jarvis what you're hoping to get out of it.")
         .font(.custom("Figtree", size: 18))
         .foregroundColor(Color(hex: "89380E").opacity(0.78))
         .multilineTextAlignment(.center)
@@ -822,7 +822,7 @@ struct CompletionView: View {
           .foregroundColor(.black.opacity(0.9))
 
         Text(
-          "To get useful insights, let Dayframe run in the background for an hour or two to gather enough context, then check back in."
+          "To get useful insights, let Jarvis run in the background for an hour or two to gather enough context, then check back in."
         )
         .font(.custom("Figtree", size: 15))
         .foregroundColor(.black.opacity(0.6))
@@ -835,7 +835,7 @@ struct CompletionView: View {
           onFinish()
         },
         content: {
-          Text("Launch Dayframe")
+          Text("Launch Jarvis")
             .font(.custom("Figtree", size: 16))
             .fontWeight(.semibold)
         },

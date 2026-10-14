@@ -382,7 +382,7 @@ struct BriefingView: View {
             .foregroundStyle(theme.textMuted)
         }
         if cards.isEmpty {
-          Text("Activity shows up here as Dayframe records your day.")
+          Text("Activity shows up here as Jarvis records your day.")
             .font(.custom("Figtree", size: 14))
             .foregroundStyle(theme.textMuted)
         } else {

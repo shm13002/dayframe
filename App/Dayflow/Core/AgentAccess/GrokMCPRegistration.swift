@@ -60,7 +60,7 @@ struct GrokMCPRegistration {
     }
     return status() == .connected
       ? nil
-      : String(localized: "Grok saved the connection, but Dayframe couldn't verify it.")
+      : String(localized: "Grok saved the connection, but Jarvis couldn't verify it.")
   }
 
   func disconnect() {

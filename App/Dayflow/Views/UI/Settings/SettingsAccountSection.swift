@@ -54,7 +54,7 @@ struct SettingsAccountSection: View {
     ) {
       VStack(alignment: .leading, spacing: 0) {
         SettingsRow(
-          label: String(localized: "Dayframe account"),
+          label: String(localized: "Jarvis account"),
           subtitle: authManager.isSignedIn
             ? authManager.displayIdentity
             : nil,
@@ -91,7 +91,7 @@ struct SettingsAccountSection: View {
   private var currentPlanSection: some View {
     SettingsSection(
       title: String(localized: "Account"),
-      subtitle: String(localized: "Manage your Dayframe account and subscription.")
+      subtitle: String(localized: "Manage your Jarvis account and subscription.")
     ) {
       ActiveProCard(
         entitlement: authManager.entitlements,
@@ -301,7 +301,7 @@ private struct ActiveProCard: View {
     }
 
     return String(
-      localized: "Your Pro access is active on this Mac and attached to your Dayframe account.")
+      localized: "Your Pro access is active on this Mac and attached to your Jarvis account.")
   }
 
   private var dateLabel: String {
@@ -581,7 +581,7 @@ private struct ReferralProgramCard: View {
           .foregroundColor(theme.textPrimary)
 
         Text(
-          "Referral credits are tied to your Dayframe account so we can credit you when friends join."
+          "Referral credits are tied to your Jarvis account so we can credit you when friends join."
         )
         .font(.custom("Figtree", size: 11))
         .foregroundColor(theme.textSecondary)

@@ -31,7 +31,7 @@ enum LocalModelPreset: String, CaseIterable, Codable {
     switch self {
     case .qwen35Model4B:
       return [
-        "Dayframe default: sees screenshots and writes briefings",
+        "Jarvis default: sees screenshots and writes briefings",
         "One model for everything (thinking turned off for speed)",
         "Fits on 16GB Apple Silicon (≈4GB)",
       ]
@@ -100,7 +100,7 @@ enum LocalModelPreset: String, CaseIterable, Codable {
         buttonTitle: "Open download in LM Studio",
         buttonURL: lmStudioDownloadURL,
         note:
-          "Tip: enable \"Launch local server\" so Dayframe can talk to LM Studio at \(LocalEngine.lmstudio.defaultBaseURL)."
+          "Tip: enable \"Launch local server\" so Jarvis can talk to LM Studio at \(LocalEngine.lmstudio.defaultBaseURL)."
       )
     }
   }

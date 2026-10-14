@@ -116,7 +116,7 @@ struct EditableCategoryCard: View {
 
         Text(
           category.details.isEmpty
-            ? String(localized: "Add a description to help Dayframe understand your workflow.")
+            ? String(localized: "Add a description to help Jarvis understand your workflow.")
             : category.details
         )
         .font(Font.custom("Figtree", size: 12).weight(.medium))

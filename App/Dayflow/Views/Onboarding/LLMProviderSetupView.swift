@@ -209,7 +209,7 @@ struct LLMProviderSetupView: View {
             .fontWeight(.semibold)
             .foregroundColor(Color(hex: "333333"))
           Text(
-            "Dayframe runs on Ollama with Qwen 3.5 by default. Its thinking mode is switched off, so it's fast. LM Studio works too."
+            "Jarvis runs on Ollama with Qwen 3.5 by default. Its thinking mode is switched off, so it's fast. LM Studio works too."
           )
           .font(.custom("Figtree", size: 14))
           .foregroundColor(Color(hex: "333333"))
@@ -434,7 +434,7 @@ struct LLMProviderSetupView: View {
             .fontWeight(.semibold)
             .foregroundColor(Color(hex: "333333"))
 
-          Text("This model enables Dayframe to understand what's on your screen")
+          Text("This model enables Jarvis to understand what's on your screen")
             .font(.custom("Figtree", size: 14))
             .foregroundColor(Color(hex: "333333"))
         }
@@ -628,7 +628,7 @@ struct LLMProviderSetupView: View {
             .foregroundColor(Color(hex: "333333"))
 
           Text(
-            "allows you to run Dayframe for free. All you need is a Google account - no credit card required."
+            "allows you to run Jarvis for free. All you need is a Google account - no credit card required."
           )
           .font(.custom("Figtree", size: 14))
           .foregroundColor(Color(hex: "333333"))
@@ -756,7 +756,7 @@ struct LLMProviderSetupView: View {
         setupState.saveErrorMessage =
           String(
             localized:
-              "Dayframe couldn't save this endpoint configuration. Your previous configuration is still active."
+              "Jarvis couldn't save this endpoint configuration. Your previous configuration is still active."
           )
         return false
       }
@@ -767,7 +767,7 @@ struct LLMProviderSetupView: View {
       return true
     } catch {
       setupState.saveErrorMessage =
-        String(localized: "Dayframe couldn't finish saving this provider. Please try again.")
+        String(localized: "Jarvis couldn't finish saving this provider. Please try again.")
       return false
     }
   }
@@ -778,7 +778,7 @@ struct LLMProviderSetupView: View {
       setupState.saveErrorMessage =
         String(
           localized:
-            "The provider is configured, but Dayframe couldn't update your routing. Your previous selection is still active."
+            "The provider is configured, but Jarvis couldn't update your routing. Your previous selection is still active."
         )
       return
     }

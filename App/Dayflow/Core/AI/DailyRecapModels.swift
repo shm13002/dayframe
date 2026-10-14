@@ -71,7 +71,7 @@ enum DailyRecapProvider: String, Codable, CaseIterable, Sendable {
   var displayName: String {
     switch self {
     case .dayflow:
-      return String(localized: "Dayframe backend")
+      return String(localized: "Jarvis backend")
     case .local:
       return String(localized: "Local")
     case .gemini:
@@ -90,7 +90,7 @@ enum DailyRecapProvider: String, Codable, CaseIterable, Sendable {
   var selectionLabel: String {
     switch self {
     case .dayflow:
-      return String(localized: "Dayframe backend")
+      return String(localized: "Jarvis backend")
     case .local:
       return String(localized: "Local")
     case .gemini:
@@ -109,7 +109,7 @@ enum DailyRecapProvider: String, Codable, CaseIterable, Sendable {
   var pickerSubtitle: String {
     switch self {
     case .dayflow:
-      return String(localized: "Uses Dayframe's hosted service for best performance.")
+      return String(localized: "Uses Jarvis's hosted service for best performance.")
     case .local:
       return String(
         localized: "Uses Ollama, LM Studio, or another local-compatible server on this Mac.")
@@ -220,7 +220,7 @@ struct DailyStandupGenerationMetadata: Codable, Equatable, Sendable {
   var displayLabel: String {
     switch provider {
     case .dayflow:
-      return String(localized: "Dayframe backend")
+      return String(localized: "Jarvis backend")
     case .local:
       return modelOrTool ?? String(localized: "Local")
     case .gemini:

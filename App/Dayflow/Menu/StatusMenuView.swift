@@ -23,7 +23,7 @@ struct StatusMenuView: View {
       MenuDivider()
 
       MenuRow(
-        title: String(localized: "Open Dayframe"), assetImage: "DayflowLogo", action: openDayflow)
+        title: String(localized: "Open Jarvis"), assetImage: "DayflowLogo", action: openDayflow)
       MenuRow(title: String(localized: "Open Recordings"), action: openRecordingsFolder)
 
       MenuDivider()
@@ -97,7 +97,7 @@ private struct PauseSection: View {
   var body: some View {
     VStack(alignment: .leading, spacing: 6) {
       // Header
-      Text("Pause Dayframe")
+      Text("Pause Jarvis")
         .font(.system(size: 12, weight: .medium))
         .foregroundStyle(.secondary)
         .padding(.horizontal, 5)
@@ -195,7 +195,7 @@ private struct PausedSection: View {
 
       // Resume button
       MenuRow(
-        title: String(localized: "Resume Dayframe"),
+        title: String(localized: "Resume Jarvis"),
         systemImage: "play.circle",
         accent: .accentColor,
         action: onResume
@@ -210,7 +210,7 @@ private struct CountdownBadge: View {
   let remainingTime: String
 
   var body: some View {
-    Text("Dayframe paused for \(remainingTime)")
+    Text("Jarvis paused for \(remainingTime)")
       .font(.system(size: 11, weight: .medium).monospacedDigit())
       .foregroundStyle(.white)
       .padding(.horizontal, 12)

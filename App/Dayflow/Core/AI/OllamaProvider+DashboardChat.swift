@@ -229,7 +229,7 @@ extension OllamaProvider {
       case NSURLErrorCannotConnectToHost, NSURLErrorCannotFindHost,
         NSURLErrorNetworkConnectionLost:
         return
-          "Qwen isn't running. Open Ollama (Dayframe also reopens it within 2 minutes)."
+          "Qwen isn't running. Open Ollama (Jarvis also reopens it within 2 minutes)."
       case NSURLErrorTimedOut:
         return "Qwen took too long to answer. It may be busy with the timeline; try again."
       default:

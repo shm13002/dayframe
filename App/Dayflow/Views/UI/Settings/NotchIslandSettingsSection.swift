@@ -27,7 +27,7 @@ struct NotchIslandSettingsSection: View {
     ) {
       VStack(alignment: .leading, spacing: 0) {
         SettingsRow(
-          label: "Show the notch island", subtitle: "Hidden from Dayframe's own recordings."
+          label: "Show the notch island", subtitle: "Hidden from Jarvis's own recordings."
         ) {
           SettingsToggle(isOn: $enabled)
             .onChange(of: enabled) { IslandController.shared.applySettings() }

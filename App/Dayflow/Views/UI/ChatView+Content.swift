@@ -414,7 +414,7 @@ extension ChatView {
             .frame(width: 42, height: 42)
 
             VStack(alignment: .leading, spacing: 2) {
-              Text("Ask about your Dayframe data")
+              Text("Ask about your Jarvis data")
                 .font(.custom("InstrumentSerif-Regular", size: 30))
                 .foregroundColor(theme.textPrimary)
 
@@ -494,7 +494,7 @@ extension ChatView {
       // Feature description (below title)
       VStack(spacing: 6) {
         Text(
-          "Chat lets you ask questions about your Dayframe activity and get summaries, comparisons, and insights."
+          "Chat lets you ask questions about your Jarvis activity and get summaries, comparisons, and insights."
         )
         .font(.custom("Figtree-Regular", size: 14))
         .foregroundColor(theme.textSecondary)
@@ -531,7 +531,7 @@ extension ChatView {
               .foregroundColor(theme.textPrimary)
 
             Text(
-              "Chat unlocks after Dayframe has analyzed enough activity. \(chatAccessProgressText)"
+              "Chat unlocks after Jarvis has analyzed enough activity. \(chatAccessProgressText)"
             )
             .font(.custom("Figtree-Regular", size: 13))
             .foregroundColor(theme.textSecondary)
@@ -551,7 +551,7 @@ extension ChatView {
               .foregroundColor(theme.textPrimary)
 
             Text(
-              "Chat uses Qwen on this Mac through Ollama. Open Ollama (Dayframe reopens it within 2 minutes). Claude Code also works: run 'claude' and /login in Terminal."
+              "Chat uses Qwen on this Mac through Ollama. Open Ollama (Jarvis reopens it within 2 minutes). Claude Code also works: run 'claude' and /login in Terminal."
             )
             .font(.custom("Figtree-Regular", size: 13))
             .foregroundColor(theme.textSecondary)
@@ -619,7 +619,7 @@ extension ChatView {
           .foregroundColor(theme.textMuted)
 
         Text(
-          "Nothing you ask is sent to Dayframe or anyone else. With Qwen, chats never leave this Mac. If you pick Claude or Codex, that question goes to that service under your own plan."
+          "Nothing you ask is sent to Jarvis or anyone else. With Qwen, chats never leave this Mac. If you pick Claude or Codex, that question goes to that service under your own plan."
         )
         .font(.custom("Figtree-Regular", size: 12))
         .foregroundColor(theme.textMuted)
@@ -657,7 +657,7 @@ extension ChatView {
         text: $inputText,
         isFocused: $isInputFocused,
         focusToken: composerFocusToken,
-        placeholder: String(localized: "Ask about your Dayframe data..."),
+        placeholder: String(localized: "Ask about your Jarvis data..."),
         onSubmit: submitCurrentInputIfAllowed
       )
       .frame(maxWidth: .infinity, alignment: .leading)

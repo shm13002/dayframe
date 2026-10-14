@@ -1095,13 +1095,13 @@ private enum DayflowAuthError: LocalizedError {
       if let detail, !detail.isEmpty {
         return detail
       }
-      return String(localized: "Dayframe sign-in failed (\(statusCode)).")
+      return String(localized: "Jarvis sign-in failed (\(statusCode)).")
     case .busy:
-      return String(localized: "Another Dayframe account request is already running.")
+      return String(localized: "Another Jarvis account request is already running.")
     case .message(let message):
       return message
     case .nonHTTP:
-      return String(localized: "Dayframe returned a non-HTTP response.")
+      return String(localized: "Jarvis returned a non-HTTP response.")
     case .unauthorized:
       return String(localized: "Your session could not be verified.")
     }

@@ -316,7 +316,7 @@ final class StartOfDay: ObservableObject {
     guard let screen = NSScreen.main, let target = dayframeSlot.frame(in: screen.visibleFrame)
     else { return }
     guard let window = MainWindowController.shared.window else {
-      return startLog.notice("[StartOfDay] Dayframe's main window isn't open; not moved")
+      return startLog.notice("[StartOfDay] Jarvis's main window isn't open; not moved")
     }
     window.setFrame(target, display: true, animate: true)
   }

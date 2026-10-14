@@ -237,7 +237,7 @@ private struct DailyAccessHeaderView: View {
 
   var body: some View {
     HStack(alignment: .top, spacing: 4) {
-      Text("Dayframe Daily")
+      Text("Jarvis Daily")
         .font(.custom("InstrumentSerif-Italic", size: 38))
         .foregroundColor(theme.textPrimary)
 
@@ -350,7 +350,7 @@ private struct DailyNotificationPermissionPanelView: View {
         .foregroundColor(theme.textPrimary)
         .multilineTextAlignment(.center)
 
-      Text("Dayframe uses notifications to tell you when your recap is ready.")
+      Text("Jarvis uses notifications to tell you when your recap is ready.")
         .font(.custom("Figtree-SemiBold", size: 16))
         .foregroundColor(theme.textPrimary)
         .multilineTextAlignment(.center)

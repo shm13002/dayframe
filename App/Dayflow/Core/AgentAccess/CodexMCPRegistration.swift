@@ -85,7 +85,7 @@ struct CodexMCPRegistration: @unchecked Sendable {
       return .failed(
         String(
           localized:
-            "Codex updated its configuration, but Dayframe couldn't verify the connection."))
+            "Codex updated its configuration, but Jarvis couldn't verify the connection."))
     }
     return .connected
   }
@@ -113,7 +113,7 @@ struct CodexMCPRegistration: @unchecked Sendable {
 
     guard status(using: executableURL) == .available else {
       return .failed(
-        String(localized: "Codex removed the connection, but Dayframe couldn't verify the change."))
+        String(localized: "Codex removed the connection, but Jarvis couldn't verify the change."))
     }
     return .disconnected
   }
@@ -200,16 +200,16 @@ struct CodexMCPRegistration: @unchecked Sendable {
     switch action {
     case .connect:
       return detail.isEmpty
-        ? String(localized: "Codex couldn't connect to Dayframe.")
-        : String(localized: "Codex couldn't connect to Dayframe: \(detail)")
+        ? String(localized: "Codex couldn't connect to Jarvis.")
+        : String(localized: "Codex couldn't connect to Jarvis: \(detail)")
     case .disconnect:
       return detail.isEmpty
-        ? String(localized: "Codex couldn't disconnect from Dayframe.")
-        : String(localized: "Codex couldn't disconnect from Dayframe: \(detail)")
+        ? String(localized: "Codex couldn't disconnect from Jarvis.")
+        : String(localized: "Codex couldn't disconnect from Jarvis: \(detail)")
     case .check:
       return detail.isEmpty
-        ? String(localized: "Codex couldn't check the Dayframe connection.")
-        : String(localized: "Codex couldn't check the Dayframe connection: \(detail)")
+        ? String(localized: "Codex couldn't check the Jarvis connection.")
+        : String(localized: "Codex couldn't check the Jarvis connection: \(detail)")
     }
   }
 

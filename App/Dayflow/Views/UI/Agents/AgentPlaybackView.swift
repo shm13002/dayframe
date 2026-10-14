@@ -63,7 +63,7 @@ struct AgentPlaybackView: View {
             : String(localized: "See how your agents spend their time")
         )
         .font(.system(size: 28, weight: .semibold))
-        Text("A timeline of your Codex and Claude Code sessions, right here in Dayframe.")
+        Text("A timeline of your Codex and Claude Code sessions, right here in Jarvis.")
           .font(.title3)
           .foregroundStyle(.secondary)
 

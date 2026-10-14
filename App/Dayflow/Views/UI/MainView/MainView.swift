@@ -124,6 +124,14 @@ struct MainView: View {
           selectedIcon = .daily
         }
       }
+      .onReceive(NotificationCenter.default.publisher(for: .navigateToJarvisSettings)) { _ in
+        selectedIcon = .settings
+      }
+      .onReceive(NotificationCenter.default.publisher(for: .navigateToJarvis)) { _ in
+        withAnimation(.spring(response: 0.35, dampingFraction: 0.9)) {
+          selectedIcon = .jarvis
+        }
+      }
       .onReceive(NotificationCenter.default.publisher(for: .navigateToBriefing)) { _ in
         withAnimation(.spring(response: 0.35, dampingFraction: 0.9)) {
           selectedIcon = .briefing

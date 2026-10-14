@@ -196,6 +196,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     // Dayframe: the notch island (resting pill, startup show after time away, small moments).
     IslandController.shared.start()
 
+    // Jarvis: start Hermes (the agent), the ⌥Space hot key and the long-lived Jarvis page.
+    JarvisCoordinator.shared.start()
+
     // Observe recording state
     analyticsSub = AppState.shared.$isRecording
       .removeDuplicates()
@@ -339,6 +342,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
   }
 
   func applicationWillTerminate(_ notification: Notification) {
+    // Jarvis: stop the Hermes backend this app started.
+    JarvisCoordinator.shared.stop()
+
     // Dayframe: close the open video segment so the last minutes of recording aren't lost.
     FrameStore.shared.finishCurrentSegment()
 

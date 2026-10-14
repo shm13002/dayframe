@@ -28,11 +28,14 @@ After a fresh clone, turn the hook on once: `git config core.hooksPath .githooks
 - **TypeScript (`Web/`):** strict `tsc`, Prettier (`npm --prefix Web run format`), Vitest tests next to the code as `*.test.ts`.
 - **Python (`Briefing/`):** stdlib only; `unittest` tests in `Briefing/tests/`.
 - **Deep modules:** give callers a small interface and keep the complexity inside. One value lives in one place; when Swift and the web page must share one (palette stops, show timings), one side sends it to the other, or a test pins the two together.
-- **Logging:** use `os.Logger(subsystem: "local.dayframe.app", category: <area>)`, and log every decision a person might later ask about ("why didn't it play?"). Read them with `./logs.sh` (it calls `/usr/bin/log`, because in zsh plain `log` is a builtin that does nothing). Active categories: `welcome`, `startofday`, `wallpaper`, `island`, `notice`, `briefing`, `recording`, `usage`; give each new area its own category.
+- **Logging:** use `os.Logger(subsystem: "local.dayframe.app", category: <area>)`, and log every decision a person might later ask about ("why didn't it play?"). Read them with `./logs.sh` (it calls `/usr/bin/log`, because in zsh plain `log` is a builtin that does nothing). Active categories: `welcome`, `startofday`, `wallpaper`, `island`, `notice`, `briefing`, `recording`, `usage`, `jarvis`; give each new area its own category.
 - **Settings keys:** `dayframe…` strings in a `Keys` enum on the type that owns them.
 
 ## Guardrails
 
+- The app is displayed as **Jarvis**, but the bundle ID, `dayframe://`, settings keys, logger subsystem and data folder keep "dayframe". Never rename them (recording permission and Briefing depend on them).
+- Jarvis's bridge plugin keeps Herald's internal ids (`herald-os-bridge`, toolset and session source `herald_os`) so its scope check works. Record every change to it in `Jarvis/bridge/JARVIS-CHANGES.md`.
+- The Jarvis HQ spec, GenUI kit and `DayFrameJarvis` package belong to a separate Codex project: don't use them here.
 - Keep how `build-and-install.sh` signs the app exactly as it is (ADR 0002). Recording depends on it.
 - Ollama: send `reasoning_effort: "none"` and leave `num_ctx` unset (ADR 0004).
 - Privacy settings (`tccutil`, System Settings toggles) are the user's to change. Tell them the command.

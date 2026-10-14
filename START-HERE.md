@@ -1,6 +1,8 @@
-# Dayframe: start here
+# Jarvis (formerly Dayframe): start here
 
-Dayframe is your Mac app. It records your screen, turns it into a timeline, and gives you a daily briefing, all on your own Mac.
+Jarvis is your Mac app and your chief-of-staff agent. It records your screen, turns it into a timeline, gives you a daily briefing, and (since 2026-10-14) acts on your Mac for you through **Hermes Agent** with the system tools from **Herald OS**. The rename is display only: the project folder, bundle ID (`local.dayframe.app`), `dayframe://` links, settings keys and data folder keep the Dayframe name.
+
+**Jarvis in one paragraph:** the Jarvis tab (first in the sidebar) is the HQ. Swift starts `hermes serve` (`App/Dayflow/Core/Jarvis/HermesBackend.swift`), the page (`Web/src/jarvis`, bundled as `App/Dayflow/Jarvis/Resources/jarvis.html`) talks to it over a WebSocket, system actions go through the vendored plugin in `Jarvis/bridge/` (approval cards for anything that changes something), ⌥Space talks, and answers to voice turns are spoken in the Jarvis voice (`~/jarvis-voice`, port 5055). The Herald OS study and capability map are in `docs/jarvis/HERALD-MAP.md`; tickets in `.scratch/jarvis/`.
 
 It's built from **Dayflow** (MIT license, © 2025 Jerry Liu, github.com/JerryZLiu/Dayflow) plus your **Briefing** add-on.
 
@@ -25,6 +27,7 @@ Everything lives in this one folder: `~/Documents/Projects/Dayframe`.
 | `App/Dayflow/` | The app's Swift files (folder name kept from the original) | Yes |
 | `App/Dayflow.xcodeproj` | Open this in Xcode to browse or edit visually | Optional |
 | `Web/` | The web pages inside the app: the React Briefing, the notch island show, the opening animation, the UI-kit gallery (`kit.html`). The build script builds them | Yes |
+| `Jarvis/` | Jarvis's system-tools plugin for Hermes (`bridge/`, vendored from Herald OS; what changed is in `bridge/JARVIS-CHANGES.md`) and `install-bridge.sh`, which links it into Hermes (`--undo`, `--test`) | Yes |
 | `Briefing/` | The briefing service: daily briefings, memory, dashboard page | Yes |
 | `Briefing/briefing.py` | Briefing logic: what it writes, when, and which AI it talks to | Yes |
 | `Briefing/dashboard.html` | The page shown in the Briefing tab's advanced views | Yes |
@@ -41,7 +44,9 @@ These are created when the app runs, so leave them where they are.
 
 | Location | What |
 |---|---|
-| `/Applications/Dayframe.app` | The installed app (pinned to your Dock) |
+| `/Applications/Jarvis.app` | The installed app (pinned to your Dock; it was `Dayframe.app` until 2026-10-14) |
+| `~/.hermes/` | Hermes Agent: its install (`hermes-agent/`), config, memories, sessions and sign-ins. Jarvis's audit log and permission policy are in `~/.hermes/herald-os/` |
+| `~/jarvis-voice/` | The Jarvis voice server (OmniVoice clone, `127.0.0.1:5055`, LaunchAgent `local.jarvis.tts`) |
 | `~/Library/Application Support/Dayflow/` | Your recordings and timeline database. The name stays "Dayflow" on purpose, so Briefing can read it |
 | `~/Briefing/` | The *installed* copy of Briefing: `app/`, your memory notes (`memory/`), settings (`config.json`) and logs |
 | `~/Library/LaunchAgents/com.dayflowbriefing.*` | The background jobs that run Briefing on a schedule |
@@ -171,7 +176,7 @@ Edit `~/Briefing/config.json`. Changes apply on the next run.
 ### App identity
 | Change | File |
 |---|---|
-| App name and bundle ID | `App/Dayflow.xcodeproj/project.pbxproj`: `PRODUCT_NAME = Dayframe`, `PRODUCT_BUNDLE_IDENTIFIER = local.dayframe.app` |
+| App name and bundle ID | `App/Dayflow.xcodeproj/project.pbxproj`: `PRODUCT_NAME = Jarvis`, `PRODUCT_BUNDLE_IDENTIFIER = local.dayframe.app` (the bundle ID never changes: Screen Recording permission depends on it) |
 | App icon (the eclipse ring from the opening animation) | Drawn by `App/Dayflow/Welcome/AppIconArt.swift`. The Dock redraws it in your palette while Dayframe runs (`AppIconManager`). The bundled PNGs in `App/Dayflow/Assets.xcassets/AppIcon.appiconset/` come from `AppIconTests.testWriteBundledAppIcon` (see CHANGELOG 2026-10-13 13:51). If the Dock shows an old icon: `killall Dock` |
 | Dock | Already pinned. To unpin: right-click the icon → Options → uncheck Keep in Dock |
 
@@ -232,7 +237,9 @@ Each finished version gets a git tag, a backup copy, and a push to GitHub.
 
 ## 6. To do
 
-**Only you can do these** (Dayframe is waiting on them):
+**Only you can do these** (Jarvis is waiting on them):
+- [ ] Finish Hermes setup (`hermes setup`, choose Full setup) and sign in to Grok: `hermes auth add xai-oauth` (needs SuperGrok or X Premium+). Optional: `hermes auth add openai-codex` (ChatGPT), `hermes auth add anthropic --type oauth` (Claude).
+- [ ] Allow the microphone the first time you press ⌥Space.
 - [ ] Sign in to Grok: `~/.grok/bin/grok login`. Then Settings → Providers → Grok → Test, and Settings → MCP / CLI → Grok CLI → Connect.
 - [ ] In Shortcuts, make "Work Focus" (Set Focus → Work → On). Then pick it in Settings → Start of day → Focus.
 - [ ] Add your day's apps: Settings → Start of day → Add app…

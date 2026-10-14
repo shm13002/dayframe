@@ -10,6 +10,7 @@ import SwiftUI
 
 struct SettingsView: View {
   private enum SettingsTab: String, CaseIterable, Identifiable {
+    case jarvis
     case account
     case storage
     case privacy
@@ -23,11 +24,12 @@ struct SettingsView: View {
 
     /// Dayframe: no Account tab (it only held Dayflow Pro sign-in and upgrade).
     static let visible: [SettingsTab] = [
-      .providers, .storage, .privacy, .aiTools, .data, .startOfDay, .other,
+      .jarvis, .providers, .storage, .privacy, .aiTools, .data, .startOfDay, .other,
     ]
 
     var title: String {
       switch self {
+      case .jarvis: return "Jarvis"
       case .account: return String(localized: "Account")
       case .storage: return String(localized: "Storage")
       case .privacy: return String(localized: "Privacy")
@@ -40,7 +42,7 @@ struct SettingsView: View {
     }
   }
 
-  @State private var selectedTab: SettingsTab = .providers
+  @State private var selectedTab: SettingsTab = .jarvis
 
   @Namespace private var sidebarSelectionNamespace
 
@@ -206,7 +208,7 @@ struct SettingsView: View {
   private var sidebarFooter: some View {
     let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? ""
     return VStack(alignment: .leading, spacing: 8) {
-      Text("Dayframe v\(version)")
+      Text("Jarvis v\(version)")
         .font(.custom("Figtree", size: 11))
         .foregroundColor(SettingsStyle.meta)
 
@@ -274,6 +276,8 @@ struct SettingsView: View {
         SettingsDataTabView(viewModel: otherViewModel)
       case .startOfDay:
         StartOfDaySettingsView()
+      case .jarvis:
+        JarvisSettingsView()
       case .other:
         SettingsOtherTabView(viewModel: otherViewModel, launchAtLoginManager: launchAtLoginManager)
       }

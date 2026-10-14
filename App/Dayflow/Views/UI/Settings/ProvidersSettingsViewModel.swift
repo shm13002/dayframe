@@ -331,7 +331,7 @@ final class ProvidersSettingsViewModel: ObservableObject {
       providerRoutingErrorMessage =
         String(
           localized:
-            "Dayframe couldn't load your provider routing. Your saved providers were left unchanged."
+            "Jarvis couldn't load your provider routing. Your saved providers were left unchanged."
         )
     }
   }
@@ -695,7 +695,7 @@ final class ProvidersSettingsViewModel: ObservableObject {
       providerRoutingErrorMessage =
         String(
           localized:
-            "Dayframe couldn't save your provider routing. Your previous selection is still active."
+            "Jarvis couldn't save your provider routing. Your previous selection is still active."
         )
       return false
     }
@@ -830,7 +830,7 @@ final class ProvidersSettingsViewModel: ObservableObject {
     case .openAICompatible:
       return String(localized: "OpenAI-compatible API")
     case .dayflow:
-      return String(localized: "Dayframe Backend")
+      return String(localized: "Jarvis Backend")
     }
   }
 

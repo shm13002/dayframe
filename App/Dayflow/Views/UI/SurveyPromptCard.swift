@@ -44,7 +44,7 @@ struct SurveyPromptCard: View {
 
         answerArea
 
-        Text("Your answer goes straight to the Dayframe team.")
+        Text("Your answer goes straight to the Jarvis team.")
           .font(.custom("Figtree", size: 11))
           .foregroundStyle(theme.textTertiary)
       }

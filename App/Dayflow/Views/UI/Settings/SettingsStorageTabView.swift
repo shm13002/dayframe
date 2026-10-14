@@ -53,7 +53,7 @@ struct SettingsStorageTabView: View {
 
     return SettingsSection(
       title: String(localized: "Recording status"),
-      subtitle: String(localized: "Ensure Dayframe can capture your screen.")
+      subtitle: String(localized: "Ensure Jarvis can capture your screen.")
     ) {
       VStack(alignment: .leading, spacing: 0) {
         SettingsRow(label: String(localized: "Screen recording permission")) {

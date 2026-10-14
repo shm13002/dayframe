@@ -62,7 +62,7 @@ struct TimelineFailureClassification {
       return TimelineFailureToastContent(
         title: "This provider isn't available",
         body:
-          "Dayframe runs on your own AI (Qwen on Ollama, or Claude / ChatGPT through your plans). Pick one in provider settings. Your recordings are safe; use Retry on the failed cards after.",
+          "Jarvis runs on your own AI (Qwen on Ollama, or Claude / ChatGPT through your plans). Pick one in provider settings. Your recordings are safe; use Retry on the failed cards after.",
         destination: .providers
       )
 
@@ -85,10 +85,10 @@ struct TimelineFailureClassification {
       let body: String
       if let command = reauthCommand(for: provider) {
         body =
-          "Dayframe talks to \(provider) through its CLI but couldn't find it. Reinstall it and run '\(command)' in Terminal, or switch providers in settings."
+          "Jarvis talks to \(provider) through its CLI but couldn't find it. Reinstall it and run '\(command)' in Terminal, or switch providers in settings."
       } else {
         body =
-          "Dayframe couldn't find the command-line tool for \(provider). Reinstall it, or switch providers in settings."
+          "Jarvis couldn't find the command-line tool for \(provider). Reinstall it, or switch providers in settings."
       }
       return TimelineFailureToastContent(
         title: "\(provider)'s command-line tool is missing",
@@ -108,7 +108,7 @@ struct TimelineFailureClassification {
       return TimelineFailureToastContent(
         title: "Can't reach Ollama / LM Studio",
         body:
-          "Open Ollama (or run 'ollama serve' in Terminal). Dayframe picks up again with the next batch; use Retry on any failed cards.",
+          "Open Ollama (or run 'ollama serve' in Terminal). Jarvis picks up again with the next batch; use Retry on any failed cards.",
         destination: .providers
       )
 
@@ -164,7 +164,7 @@ struct TimelineFailureClassification {
       return TimelineFailureToastContent(
         title: "Your selected model isn't available",
         body:
-          "The model Dayframe tried to use isn't available on \(provider). Check the model selection in provider settings, or switch providers.",
+          "The model Jarvis tried to use isn't available on \(provider). Check the model selection in provider settings, or switch providers.",
         destination: .providers
       )
 
@@ -200,7 +200,7 @@ struct TimelineFailureClassification {
     case "claude": return String(localized: "Claude")
     case "grok": return String(localized: "Grok")
     case "local", "ollama": return String(localized: "Ollama/LM Studio")
-    case "dayflow": return String(localized: "Dayframe")
+    case "dayflow": return String(localized: "Jarvis")
     default: return label
     }
   }

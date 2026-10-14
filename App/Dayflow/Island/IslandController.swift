@@ -387,6 +387,11 @@ final class IslandController {
 
   /// dayframe://notice?id=… arrived. Without a pill, nothing is acknowledged, so Briefing falls back
   /// to its own dialog after 3 s.
+  /// Jarvis's state in the notch eyes (listening, thinking, speaking).
+  func setJarvis(_ presence: JarvisPresence) {
+    pill?.model.jarvis = presence
+  }
+
   func presentNotice(id: String) {
     guard started, pill != nil else { return }
     guard let notice = BriefingNoticeInbox.take(id: id) else { return }

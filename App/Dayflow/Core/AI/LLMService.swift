@@ -455,19 +455,19 @@ final class LLMService: LLMServicing {
 
     if rateLimited && !backupConfigured {
       return
-        "Dayframe hit a rate limit and no backup provider is configured. Add a backup in Settings > Providers to avoid interruptions."
+        "Jarvis hit a rate limit and no backup provider is configured. Add a backup in Settings > Providers to avoid interruptions."
     }
 
     switch operation {
     case .transcribing:
       return
-        "Dayframe couldn't transcribe this batch. Check Settings > Providers and configure a backup provider."
+        "Jarvis couldn't transcribe this batch. Check Settings > Providers and configure a backup provider."
     case .generatingCards:
       return
-        "Dayframe couldn't generate timeline cards for this batch. Check Settings > Providers and configure a backup provider."
+        "Jarvis couldn't generate timeline cards for this batch. Check Settings > Providers and configure a backup provider."
     case .none:
       return
-        "Dayframe couldn't finish this batch. Check Settings > Providers and configure a backup provider."
+        "Jarvis couldn't finish this batch. Check Settings > Providers and configure a backup provider."
     }
   }
 

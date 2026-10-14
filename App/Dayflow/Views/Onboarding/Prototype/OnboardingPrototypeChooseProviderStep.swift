@@ -132,7 +132,7 @@ struct OnboardingPrototypeChooseProviderStep: View {
 
   var body: some View {
     VStack(spacing: 0) {
-      Text("How should Dayframe think?")
+      Text("How should Jarvis think?")
         .font(.custom("InstrumentSerif-Regular", size: 40))
         .tracking(-1.2)
         .multilineTextAlignment(.center)

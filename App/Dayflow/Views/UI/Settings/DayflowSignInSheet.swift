@@ -65,14 +65,14 @@ struct DayflowSignInSheet: View {
     VStack(alignment: .leading, spacing: 5) {
       Text(
         step == .email
-          ? String(localized: "Sign in to Dayframe") : String(localized: "Check your email")
+          ? String(localized: "Sign in to Jarvis") : String(localized: "Check your email")
       )
       .font(.custom("InstrumentSerif-Regular", size: 30))
       .foregroundColor(SettingsStyle.text)
 
       Text(
         step == .email
-          ? String(localized: "Enter your email and Dayframe will send a 6 digit code.")
+          ? String(localized: "Enter your email and Jarvis will send a 6 digit code.")
           : String(
             localized:
               "Enter the code sent to \(verificationEmail ?? authManager.pendingEmail ?? emailAddressTrimmed)."

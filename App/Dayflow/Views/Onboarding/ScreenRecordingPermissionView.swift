@@ -106,7 +106,7 @@ struct ScreenRecordingPermissionView: View {
           .font(.custom("InstrumentSerif-Regular", size: 28))
           .foregroundColor(.black)
 
-        Text("Dayframe can help understand your day.")
+        Text("Jarvis can help understand your day.")
           .font(.custom("Figtree-Medium", size: 14))
           .foregroundColor(Color(hex: "5B5B5B"))
           .fixedSize(horizontal: false, vertical: true)
@@ -117,19 +117,19 @@ struct ScreenRecordingPermissionView: View {
             Image(systemName: "shield.fill")
               .font(.system(size: 14))
               .foregroundColor(privacyTextColor)
-            Text("Dayframe is built to be private and secure.")
+            Text("Jarvis is built to be private and secure.")
               .font(.custom("Figtree-Bold", size: 14))
               .foregroundColor(privacyTextColor)
               .fixedSize(horizontal: false, vertical: true)
           }
 
           Text(
-            "Dayframe stores all recordings locally on your Mac, and can process everything privately on your device using local AI models."
+            "Jarvis stores all recordings locally on your Mac, and can process everything privately on your device using local AI models."
           )
           .font(.custom("Figtree-Medium", size: 14))
           .foregroundColor(privacyTextColor)
 
-          Text("You are always in control — you can pause or turn off Dayframe whenever you like.")
+          Text("You are always in control — you can pause or turn off Jarvis whenever you like.")
             .font(.custom("Figtree-Medium", size: 14))
             .foregroundColor(privacyTextColor)
         }
@@ -154,7 +154,7 @@ struct ScreenRecordingPermissionView: View {
               .font(.custom("Figtree", size: 14))
               .foregroundColor(.green)
           case .needsAction:
-            Text("Turn on Screen Recording for Dayframe, then quit and reopen the app to finish.")
+            Text("Turn on Screen Recording for Jarvis, then quit and reopen the app to finish.")
               .font(.custom("Figtree", size: 14))
               .foregroundColor(.orange)
           }

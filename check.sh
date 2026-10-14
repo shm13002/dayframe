@@ -1,6 +1,6 @@
 #!/bin/bash
 # The clean-code gate. Every change must pass it before it is committed.
-#   ./check.sh            Swift style, web typecheck/format/tests, Briefing tests
+#   ./check.sh            Swift style, web typecheck/format/tests, Briefing and Jarvis bridge tests
 #   ./check.sh --staged   only what is staged (the pre-commit hook runs this). The web and Briefing
 #                         tests run on an exact copy of the staged files, so what gets committed is
 #                         what got tested, even when other edits are still unstaged.
@@ -146,6 +146,21 @@ check_briefing() {
   fi
 }
 
+# Jarvis's system-tools plugin (vendored from Herald OS). Its tests stub Hermes, so Xcode's
+# python3 with pytest runs them. They run on the working copy, also in --staged mode.
+check_jarvis_bridge() {
+  section "Jarvis bridge tests"
+  if [[ -z $(files 'Jarvis/bridge/*') ]]; then
+    echo "No bridge changes."
+    return
+  fi
+  local out
+  out=$(cd Jarvis/bridge/herald-os-bridge/tests && without_git_env python3 -m pytest -q -p no:cacheprovider . 2>&1)
+  tail -1 <<<"$out"
+  grep -qE '(failed|error)' <<<"$(tail -1 <<<"$out")" && fail "Jarvis bridge tests"
+  grep -qE 'passed' <<<"$(tail -1 <<<"$out")" || fail "Jarvis bridge tests (did not run)"
+}
+
 check_app() {
   section "App build + unit tests (slow)"
   # A clean build needs about 3 GB. An incremental one needs far less, so with
@@ -188,6 +203,7 @@ check_changelog
 check_swift
 check_web
 check_briefing
+check_jarvis_bridge
 [[ $MODE == --app ]] && check_app
 
 echo

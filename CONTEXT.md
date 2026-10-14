@@ -96,3 +96,27 @@ The textless desktop picture Dayframe renders from the palette. It also shows be
 **Palette**:
 One of six named color sets (Original, Lagoon, Lavender, Matcha, Rose, Ember) that every surface follows. Original is Dayflow's own colors and the default.
 _Avoid_: theme (that is light/dark appearance)
+
+### Jarvis
+
+**Jarvis**:
+The app's name since 2026-10-14 (formerly Dayframe), and the chief-of-staff agent inside it. Display only: identifiers keep "dayframe".
+
+**Hermes**:
+Hermes Agent (Nous Research, MIT), the agent runtime Jarvis thinks and acts through. Jarvis starts `hermes serve` on 127.0.0.1 while it runs.
+
+**Brain**:
+The model a Jarvis conversation uses: Grok (default), ChatGPT, Claude, or Qwen (offline fallback, "limited mode").
+_Avoid_: provider (that is Dayframe's timeline AI in Settings › Providers)
+
+**Bridge**:
+The `herald-os-bridge` Hermes plugin (from Herald OS) that gives Jarvis's sessions the system tools, with permission tiers (read, act, mutate, destructive) and an audit log.
+
+**Approval card**:
+The card Jarvis shows before a tool changes something; answers are once, this session, always or deny (destructive actions never offer session or always).
+
+**Voice turn**:
+A request spoken with ⌥Space. Only voice turns are answered out loud, in the Jarvis voice.
+
+**Presence**:
+What Jarvis is doing (idle, listening, thinking, speaking), shown by the notch eyes.

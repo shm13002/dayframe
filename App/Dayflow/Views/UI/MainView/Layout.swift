@@ -507,7 +507,7 @@ private struct ScreenRecordingPermissionNoticeView: View {
             .foregroundColor(theme.textPrimary)
 
           Text(
-            "Dayframe can't record until macOS allows it. Turn Dayframe on under Screen Recording, then restart Dayframe."
+            "Jarvis can't record until macOS allows it. Turn Jarvis on under Screen Recording, then restart Jarvis."
           )
           .font(.custom("Figtree", size: 12))
           .foregroundColor(theme.textSecondary)
@@ -552,7 +552,7 @@ private struct ScreenRecordingPermissionNoticeView: View {
             HStack(spacing: 6) {
               Image(systemName: "arrow.clockwise")
                 .font(.system(size: 12))
-              Text("Restart Dayframe")
+              Text("Restart Jarvis")
                 .font(.custom("Figtree", size: 12))
                 .fontWeight(.semibold)
             }

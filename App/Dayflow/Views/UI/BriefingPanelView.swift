@@ -56,7 +56,7 @@ struct BriefingPanelView: View {
       Text("Your briefing service isn't running")
         .font(.custom("InstrumentSerif-Regular", size: 28))
         .foregroundColor(theme.textPrimary)
-      Text("Dayframe reads briefings from ~/Briefing. Start it, then try again.")
+      Text("Jarvis reads briefings from ~/Briefing. Start it, then try again.")
         .font(.custom("Figtree", size: 13))
         .foregroundColor(theme.textSecondary)
       Text("launchctl kickstart -k gui/$(id -u)/com.dayflowbriefing.dashboard")

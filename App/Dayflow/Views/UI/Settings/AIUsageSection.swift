@@ -56,7 +56,7 @@ struct AIUsageSection: View {
   var body: some View {
     SettingsSection(
       title: "AI usage",
-      subtitle: "What Dayframe and your briefings used, by provider.",
+      subtitle: "What Jarvis and your briefings used, by provider.",
       trailing: {
         Picker("", selection: $range) {
           ForEach(UsageRange.allCases) { Text($0.title).tag($0) }

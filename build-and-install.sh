@@ -1,5 +1,5 @@
 #!/bin/bash
-# Build Dayframe and install it to /Applications.
+# Build Jarvis (formerly Dayframe) and install it to /Applications.
 #   ./build-and-install.sh            build + install + relaunch
 #   ./build-and-install.sh --build    build only (check that it compiles)
 # Needs ~3 GB free disk while building (or DAYFRAME_LOW_DISK_OK=1 with 1 GB+ for incremental builds).
@@ -48,7 +48,7 @@ echo "Build succeeded."
 # ad-hoc sign with a fixed designated requirement. macOS stores this requirement when
 # you allow Screen Recording, and every build carries the same one, so the permission
 # survives rebuilds. (Trade-off: any app calling itself local.dayframe.app would match.)
-APP_BUILT=build/Build/Products/Debug/Dayframe.app
+APP_BUILT=build/Build/Products/Debug/Jarvis.app
 REQ='designated => identifier "local.dayframe.app"'
 if [[ -d "$APP_BUILT/Contents/Helpers" ]]; then
   for helper in "$APP_BUILT"/Contents/Helpers/*; do
@@ -68,17 +68,37 @@ fi
 touch /tmp/dayframe-installing
 trap 'rm -f /tmp/dayframe-installing' EXIT
 
-# Polite quit first: Dayframe catches SIGTERM, closes the open recording segment and exits.
-if pkill -TERM -x Dayframe 2>/dev/null; then
-  for _ in 1 2 3 4 5 6 7 8 9 10; do pgrep -x Dayframe >/dev/null || break; sleep 0.5; done
-  pkill -KILL -x Dayframe 2>/dev/null || true
+# Polite quit first: the app catches SIGTERM, closes the open recording segment and exits.
+# (Before the rename to Jarvis on 2026-10-14 its process was called Dayframe; quit that too.)
+for name in Jarvis Dayframe; do
+  if pkill -TERM -x "$name" 2>/dev/null; then
+    for _ in 1 2 3 4 5 6 7 8 9 10; do pgrep -x "$name" >/dev/null || break; sleep 0.5; done
+    pkill -KILL -x "$name" 2>/dev/null || true
+  fi
+done
+rm -rf /Applications/Jarvis.app
+cp -R build/Build/Products/Debug/Jarvis.app /Applications/
+# The pre-rename copy shares the same bundle id and data folder: two copies must never run, and
+# dayframe:// links must reach Jarvis. It goes to the Trash (recoverable), not deleted.
+if [[ -d /Applications/Dayframe.app ]]; then
+  mv /Applications/Dayframe.app "$HOME/.Trash/Dayframe (before Jarvis) $(date +%Y%m%d-%H%M%S).app"
+  echo "Moved the old /Applications/Dayframe.app to the Trash."
 fi
-rm -rf /Applications/Dayframe.app
-cp -R build/Build/Products/Debug/Dayframe.app /Applications/
-open /Applications/Dayframe.app
-echo "Installed and launched /Applications/Dayframe.app"
+LSREGISTER=/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister
+"$LSREGISTER" -f /Applications/Jarvis.app >/dev/null 2>&1 || true
+# The Dock pin is path-based: point the Dayframe pin at Jarvis (only if it is there).
+if python3 tools/dock-repoint.py /Applications/Dayframe.app /Applications/Jarvis.app; then
+  killall Dock 2>/dev/null || true
+fi
+open /Applications/Jarvis.app
+echo "Installed and launched /Applications/Jarvis.app"
 
-# Keep-alive agent: reopens Dayframe (and Ollama) within 2 minutes if either isn't running.
+# Jarvis: give Hermes the system tools and the timeline (skipped quietly until Hermes is installed).
+if [[ -x "$HOME/.hermes/hermes-agent/.hermes/bin/hermes" ]] || command -v hermes >/dev/null; then
+  Jarvis/install-bridge.sh || echo "Jarvis bridge setup failed (see above); the app still works."
+fi
+
+# Keep-alive agent: reopens Jarvis (and Ollama) within 2 minutes if either isn't running.
 AGENT=local.dayframe.keepalive
 mkdir -p "$HOME/Library/LaunchAgents"
 AGENT_DST="$HOME/Library/LaunchAgents/$AGENT.plist"

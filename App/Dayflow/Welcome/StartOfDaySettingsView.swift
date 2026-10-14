@@ -38,7 +38,7 @@ private struct OpeningSection: View {
     SettingsSection(
       title: "Opening",
       subtitle:
-        "The System Awakening in your Dayframe colors: a spark, an orbit, ignition, then your day."
+        "The System Awakening in your Jarvis colors: a spark, an orbit, ignition, then your day."
     ) {
       VStack(alignment: .leading, spacing: 0) {
         SettingsRow(label: "Preview", subtitle: "Click or press any key to skip.") {
@@ -71,7 +71,7 @@ private struct OpeningSection: View {
         if enabled {
           SettingsRow(
             label: "After login",
-            subtitle: "The full five seconds, then Dayframe opens your day. Once per login."
+            subtitle: "The full five seconds, then Jarvis opens your day. Once per login."
           ) {
             SettingsToggle(isOn: $login)
               .onChange(of: login) {
@@ -81,7 +81,7 @@ private struct OpeningSection: View {
           }
           if login && !loginManager.isEnabled {
             Text(
-              "Allow Dayframe in System Settings › General › Login Items so it can open at login."
+              "Allow Jarvis in System Settings › General › Login Items so it can open at login."
             )
             .font(.custom("Figtree", size: 11))
             .foregroundColor(SettingsStyle.secondary)
@@ -168,7 +168,7 @@ private struct WallpaperSection: View {
           .fixedSize(horizontal: false, vertical: true)
         }
         .padding(.vertical, 10)
-        SettingsRow(label: "Use the Dayframe wallpaper", showsDivider: false) {
+        SettingsRow(label: "Use the Jarvis wallpaper", showsDivider: false) {
           SettingsToggle(isOn: $enabled)
             .onChange(of: enabled) { manager.setEnabled(enabled) }
         }
@@ -197,7 +197,7 @@ private struct DayAppsSection: View {
   var body: some View {
     SettingsSection(
       title: "Your day",
-      subtitle: "After the login welcome, Dayframe opens on Briefing and sets up the rest."
+      subtitle: "After the login welcome, Jarvis opens on Briefing and sets up the rest."
     ) {
       VStack(alignment: .leading, spacing: 0) {
         SettingsRow(
@@ -214,7 +214,7 @@ private struct DayAppsSection: View {
           SettingsToggle(isOn: $hideOthers)
         }
         if usesLayout {
-          SettingsRow(label: "Dayframe window") {
+          SettingsRow(label: "Jarvis window") {
             slotPicker(selection: $dayframeSlot)
           }
         }
@@ -317,7 +317,7 @@ private struct FocusSection: View {
     SettingsSection(
       title: "Focus",
       subtitle:
-        "Turn on a Focus when your day starts. macOS lets only Shortcuts switch Focus, so Dayframe runs a shortcut you make once."
+        "Turn on a Focus when your day starts. macOS lets only Shortcuts switch Focus, so Jarvis runs a shortcut you make once."
     ) {
       VStack(alignment: .leading, spacing: 0) {
         SettingsRow(
@@ -384,7 +384,7 @@ private struct WindowStyleSection: View {
           SettingsRow(
             label: "Accessibility",
             subtitle: trusted
-              ? "Allowed. Dayframe can move your apps' windows."
+              ? "Allowed. Jarvis can move your apps' windows."
               : "Needed to move other apps' windows. You allow it in System Settings › Privacy & Security › Accessibility.",
             showsDivider: false
           ) {

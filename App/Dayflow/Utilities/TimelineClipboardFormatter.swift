@@ -105,7 +105,7 @@ struct TimelineClipboardFormatter {
   /// "Dayflow timeline · <day or week>" in the current language.
   private static func exportHeader(_ period: String) -> String {
     String(
-      localized: "Dayframe timeline · \(period)",
+      localized: "Jarvis timeline · \(period)",
       comment:
         "First line of the copied/exported timeline. The argument is a formatted day or week range."
     )

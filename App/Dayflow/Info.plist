@@ -23,11 +23,11 @@
 	<key>DayflowBackendURL</key>
 	<string>$(DAYFLOW_BACKEND_URL)</string>
 	<key>NSAppleEventsUsageDescription</key>
-	<string>Dayframe uses Automation to focus or reopen your agent sessions in the terminal.</string>
+	<string>Jarvis uses Automation to focus or reopen your agent sessions in the terminal.</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>Dayframe listens while you talk to Flow about your plan. Audio is only used for that conversation.</string>
+	<string>Jarvis listens only while you talk to it (⌥Space or the mic button). The audio is turned into text on this Mac and not kept.</string>
 	<key>NSScreenCaptureUsageDescription</key>
-	<string>Dayframe uses screen access to create your timeline. Recordings stay on your Mac and you can pause or delete them anytime.</string>
+	<string>Jarvis uses screen access to create your timeline. Recordings stay on your Mac and you can pause or delete them anytime.</string>
 	<key>SUAllowsAutomaticUpdates</key>
 	<true/>
 	<key>SUAutomaticallyUpdate</key>

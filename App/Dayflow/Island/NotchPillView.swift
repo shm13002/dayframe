@@ -36,6 +36,8 @@ final class NotchPillModel: ObservableObject {
   @Published var lookOffset: CGSize = .zero
   /// Briefing's current message, shown as a peek and then as the notice card.
   @Published var notice: BriefingNotice?
+  /// What Jarvis is doing; the eyes open and take the accent while it listens, thinks or speaks.
+  @Published var jarvis: JarvisPresence = .idle
   /// True while the pointer is over the pill (the controller never tucks a peek away under it).
   var isHovering = false
 
@@ -232,8 +234,10 @@ struct NotchPillView: View {
         .position(x: NotchPillLayout.badgeInset + NotchPillLayout.textGap, y: midY)
         .offset(x: textHalfWidth("\(model.stats.focusPercent)%"))
       PillEyes(
-        open: model.recording, blinkSignal: model.blinkSignal, look: model.lookOffset,
-        tint: model.notice == nil ? .white : accent
+        open: model.recording || model.jarvis != .idle, blinkSignal: model.blinkSignal,
+        look: model.lookOffset,
+        tint: model.notice == nil && model.jarvis == .idle ? .white : accent,
+        pulsing: model.jarvis == .thinking
       )
       .position(x: notchRight + NotchPillLayout.eyesInset, y: midY)
       Text(model.stats.trackedMinutes.islandDuration)
@@ -367,7 +371,7 @@ struct NotchPillView: View {
         CardButton(title: model.recording ? "Pause 30 min" : "Resume recording") {
           model.onToggleRecording()
         }
-        CardButton(title: "Open Dayframe") {
+        CardButton(title: "Open Jarvis") {
           model.setMode(.rest)
           model.onOpenApp()
         }
@@ -462,8 +466,11 @@ private struct PillEyes: View {
   let blinkSignal: Int
   let look: CGSize
   var tint: Color = .white
+  /// Jarvis is thinking: the eyes breathe.
+  var pulsing = false
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
   @State private var blinking = false
+  @State private var dim = false
 
   var body: some View {
     HStack(spacing: 4) {
@@ -471,6 +478,18 @@ private struct PillEyes: View {
       eye
     }
     .offset(look)
+    .opacity(pulsing && dim ? 0.35 : 1)
+    .task(id: pulsing) {
+      guard pulsing, !reduceMotion else {
+        dim = false
+        return
+      }
+      while !Task.isCancelled {
+        withAnimation(.easeInOut(duration: 0.6)) { dim.toggle() }
+        try? await Task.sleep(for: .milliseconds(600))
+      }
+      dim = false
+    }
     .animation(.easeOut(duration: 0.18), value: look)
     .animation(.spring(response: 0.25, dampingFraction: 0.7), value: open)
     .task(id: open) { await blinkLoop() }

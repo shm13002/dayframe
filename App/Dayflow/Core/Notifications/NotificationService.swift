@@ -57,7 +57,7 @@ final class NotificationService: NSObject, ObservableObject {
         NotificationBadgeManager.shared.supportUnreadCount > 0
       else { return }
       let content = UNMutableNotificationContent()
-      content.title = String(localized: "New reply from Dayframe")
+      content.title = String(localized: "New reply from Jarvis")
       content.body = String(localized: "You have a new support reply. Open Support to read it.")
       content.sound = .default
       do {
@@ -80,7 +80,7 @@ final class NotificationService: NSObject, ObservableObject {
       }
       guard Self.canScheduleNotifications(for: status) else { return }
       let content = UNMutableNotificationContent()
-      content.title = String(localized: "Dayframe isn't recording")
+      content.title = String(localized: "Jarvis isn't recording")
       content.body = String(
         localized: "macOS is blocking screen recording. Click to fix it in one step.")
       content.sound = .default

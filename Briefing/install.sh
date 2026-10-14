@@ -17,7 +17,7 @@ if [[ "${1:-}" == "--check" ]]; then
   then ok "python3 $("$PYC" -V 2>&1 | cut -d' ' -f2) with sqlite FTS5 ($PYC)"; else no "python3 >= 3.9 missing: xcode-select --install"; fi
   xcode-select -p >/dev/null 2>&1 && ok "Xcode Command Line Tools (git, swiftc)" || no "Command Line Tools missing: xcode-select --install"
   command -v brew >/dev/null 2>&1 || [[ -x /opt/homebrew/bin/brew || -x /usr/local/bin/brew ]] && ok "Homebrew" || warn "Homebrew missing (installer will install it)"
-  [[ -d /Applications/Dayframe.app ]] && ok "Dayframe.app" || warn "Dayframe.app not installed (run ../build-and-install.sh)"
+  [[ -d /Applications/Jarvis.app ]] && ok "Jarvis.app" || warn "Jarvis.app not installed (run ../build-and-install.sh)"
   [[ ! -d /Applications/Dayflow.app ]] && ok "Upstream Dayflow.app not present" || warn "Upstream Dayflow.app is installed; quit/uninstall it so it never shares the database with Dayframe"
   DB="$HOME/Library/Application Support/Dayflow/chunks.sqlite"
   [[ -f "$DB" ]] && ok "Dayframe database found" || warn "no database yet at $DB (open Dayframe and let it record; or set dayflow_db in ~/Briefing/config.json)"
@@ -46,7 +46,7 @@ fi
 # 2) Dependencies (never install upstream Dayflow.app; Dayframe shares its data folder)
 brew list --cask ollama >/dev/null 2>&1 || command -v ollama >/dev/null 2>&1 || brew install --cask ollama
 brew list sleepwatcher >/dev/null 2>&1 || brew install sleepwatcher
-[[ -d /Applications/Dayframe.app ]] || echo "WARN: /Applications/Dayframe.app not found; run ../build-and-install.sh from the repo root."
+[[ -d /Applications/Jarvis.app ]] || echo "WARN: /Applications/Jarvis.app not found; run ../build-and-install.sh from the repo root."
 if [[ -d /Applications/Dayflow.app ]]; then
   echo "WARN: /Applications/Dayflow.app is installed. Never run Dayflow and Dayframe together; consider: brew uninstall --cask dayflow"
 fi

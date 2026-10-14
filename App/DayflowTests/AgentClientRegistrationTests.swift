@@ -170,7 +170,7 @@ final class AgentClientRegistrationTests: XCTestCase {
 
     XCTAssertEqual(
       registration.connect(),
-      .failed("Codex couldn't connect to Dayframe: permission denied")
+      .failed("Codex couldn't connect to Jarvis: permission denied")
     )
   }
 

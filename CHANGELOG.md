@@ -24,6 +24,75 @@ Entry template:
 
 ## 2026-10-14 (Wed)
 
+### 12:26: Jarvis chunk 1 built: Hermes backend, Jarvis tab, system tools, Jarvis voice, ⌥Space, and the rename
+- **What:**
+  - **The app is called Jarvis (display only).**
+    - Changed: `PRODUCT_NAME`, the display name and the test host are now Jarvis; the visible strings (167 lines inside Swift string literals) and the Info.plist / InfoPlist.xcstrings texts say Jarvis. The microphone prompt now describes ⌥Space.
+    - Unchanged: the bundle ID `local.dayframe.app`, signing and the REQ check, `dayframe://`, settings keys, the logger subsystem, the data folder, the wallpaper folder, the sample-card migration and code comments.
+    - The Dayframe icon stays (owner's request).
+    - `build-and-install.sh`:
+      - installs `/Applications/Jarvis.app` and quits both process names
+      - moves the old `Dayframe.app` to the Trash (recoverable; the v1.3 backup also exists), so two copies never run and `dayframe://` reaches Jarvis
+      - re-registers with LaunchServices and repoints the path-based Dock pin (`tools/dock-repoint.py`)
+      - runs `Jarvis/install-bridge.sh` when Hermes exists
+    - The keep-alive and `Briefing/install.sh` look for Jarvis.
+  - **Hermes backend** (`Core/Jarvis/HermesBackend.swift`), a Swift port of Herald OS's `electron/backend`:
+    - Finds Hermes: an override, `~/.hermes/hermes-agent` in either layout, or PATH.
+    - Runs `hermes serve --host 127.0.0.1 --port 0` with a random session token, `HERMES_DESKTOP=1`, `HERALD_OS=1` and the login-shell PATH.
+    - Reads `HERMES_BACKEND_READY port=N` and probes `/api/status`.
+    - Restarts after 1/3/7/15 s; SIGTERM on quit.
+    - Not started under XCTest.
+  - **Jarvis tab** (first in the sidebar; the HQ; Chat stays):
+    - `JarvisCoordinator` owns one long-lived WKWebView, so the conversation survives tab switches.
+    - The page `Web/src/jarvis` is built single-file into `App/Dayflow/Jarvis/Resources/jarvis.html` and loaded from disk. Hermes trusts non-web WebSocket origins.
+    - It reuses Hermes's own gateway client, vendored unchanged from the installed Hermes (`300228d`, MIT), and ports Herald's chat reducer and approval rules.
+    - Page contents:
+      - streaming answers
+      - tool rows with plain names
+      - approval cards (destructive actions only offer once or deny)
+      - clarify questions
+      - a session list
+      - a brain picker (Grok, ChatGPT, Claude, Qwen in limited mode), applied per conversation through `session.create {provider, model}`
+    - Dayframe palette and fonts.
+  - **System tools:** `Jarvis/bridge/herald-os-bridge` is Herald OS alpha.4's plugin (MIT, LICENSE kept).
+    - Herald's ids are kept, so its scope check, tiers, protected paths and audit log work unmodified.
+    - Shell-only tools (`os_ui`, `canvas`, `docs`, `sheets`, `slides`, `system_os`) are not registered.
+    - A new `jarvis` skill (who Jarvis is, which tools, the dayflow MCP, voice, boundaries) is linked from `system_info`'s description.
+    - Every change is listed in `JARVIS-CHANGES.md`.
+    - `Jarvis/install-bridge.sh` links and enables the plugin, turns tool search off (old value saved), and registers Dayframe's `dayflow` MCP server in Hermes. It also takes `--undo` and `--test`.
+  - **Voice** (`JarvisVoice`):
+    - Answers to voice turns go to the Jarvis voice server: `127.0.0.1:5055/tts`, bearer token from `~/jarvis-voice/service.token`, no Origin header.
+    - Text is cleaned of markdown, links and code, and cut into pieces of at most 400 characters. The next piece is generated while the current one plays.
+    - 429 is retried; any failure falls back to the Mac's voice.
+  - **⌥Space push-to-talk:**
+    - `JarvisHotKey` is a Carbon hot key and needs no Accessibility. If another app owns ⌥Space, the failure is logged and the mic button still works.
+    - `JarvisListener`: 16 kHz mono, `JarvisSilenceGate` (1.2 s trailing silence, 6 s no-speech, 45 s cap), then Hermes `POST /api/audio/transcribe`.
+  - **Notch eyes:** they open and take the accent while Jarvis listens, thinks (breathing) or speaks (`NotchPillModel.jarvis`).
+  - **Settings › Jarvis** (first tab):
+    - Hermes status and Restart
+    - whether ⌥Space is available
+    - the default brain, with its sign-in command
+    - voice on/off with Test, and which voice spoke last
+    - "What Jarvis did" from `~/.hermes/herald-os/audit.jsonl`
+  - `check.sh` runs the bridge tests. Docs updated: START-HERE, CONTEXT (Jarvis, Hermes, Brain, Bridge, Approval card, Voice turn, Presence), AGENTS (`jarvis` log category, rename and bridge guardrails).
+- **Files:**
+  - new: `App/Dayflow/Core/Jarvis/{HermesBackend,JarvisCoordinator,JarvisVoice,JarvisListener,JarvisHotKey}.swift`, `App/Dayflow/Views/UI/Jarvis/JarvisView.swift`, `App/Dayflow/Views/UI/Settings/JarvisSettingsView.swift`, `App/Dayflow/Jarvis/Resources/jarvis.html`, `App/DayflowTests/{HermesBackendTests,JarvisVoiceTests,JarvisListenerTests}.swift`
+  - new: `Web/src/jarvis/**`, `Web/vite.jarvis.config.ts`, `Web/.prettierignore`, `Jarvis/**`, `tools/dock-repoint.py`
+  - changed: `MainView/{SidebarView,Layout+Panels,MainView}.swift`, `AppDelegate.swift`, `Island/{NotchPillView,IslandController}.swift`, `SettingsView.swift`, the string-literal renames across `App/Dayflow`, `project.pbxproj`, `Info.plist`, `InfoPlist.xcstrings`, `AgentClientRegistrationTests.swift`, `Web/{package.json,tsconfig.json}`, `build-and-install.sh`, `check.sh`, `Keepalive/local.dayframe.keepalive.plist`, `Briefing/install.sh`, `START-HERE.md`, `CONTEXT.md`, `AGENTS.md`, `.scratch/jarvis/issues/*`
+- **Why:** The owner's chunk 1 of turning Dayframe into Jarvis with Herald OS's capabilities (plan approved 2026-10-14; tickets 02 and 04–09).
+- **Checked:**
+  - `./check.sh --app`: 281 app tests (21 new) with 0 failures, 1 skipped; web 29 tests; Briefing 104 tests.
+  - Bridge: 359 pytest passed (Xcode's python3).
+  - `npm run build:jarvis` → 792 kB single file, bundled in the app's Resources.
+  - New Swift files: 0 swift-format warnings.
+  - The test host no longer starts Hermes.
+  - **Not yet verified (needs the owner):**
+    - installing Jarvis.app and checking that recording continues (tccd 0 "Failed to match", frames advancing)
+    - a live conversation, which waits on the Hermes setup wizard and `hermes auth add xai-oauth`
+    - ⌥Space against the ChatGPT app's shortcut
+    - spoken output through 5055
+- **Commit:** this entry's title is the commit subject.
+
 ### 12:03: Jarvis chunk 1 starts: Herald OS studied and mapped
 - **What:** Dayframe is becoming **Jarvis**, a Chief-of-Staff agent built on Hermes Agent with Herald OS v0.1.0-alpha.4's capabilities.
   - `docs/jarvis/HERALD-MAP.md` maps every Herald capability to the user's four pillars (Filesystem, Applications, System, Agents) and to the chunk that brings it in. It also holds the Hermes protocol cheat-sheet (backend start, auth and origins, RPC methods and events, REST, the bridge plugin, the control socket).

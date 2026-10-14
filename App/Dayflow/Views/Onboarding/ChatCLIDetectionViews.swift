@@ -83,7 +83,7 @@ struct ChatCLIDetectionStepView: View {
   var body: some View {
     VStack(alignment: .leading, spacing: 24) {
       Text(
-        "Dayframe can talk to ChatGPT (via the Codex CLI), Claude Code or Grok. You only need one installed and signed in on this Mac. After installing, run `codex auth`, `claude login` or `grok login` in Terminal to connect it to your account."
+        "Jarvis can talk to ChatGPT (via the Codex CLI), Claude Code or Grok. You only need one installed and signed in on this Mac. After installing, run `codex auth`, `claude login` or `grok login` in Terminal to connect it to your account."
       )
       .font(.custom("Figtree", size: 16))
       .foregroundColor(Color(hex: "333333"))
@@ -99,14 +99,14 @@ struct ChatCLIDetectionStepView: View {
       }
 
       Text(
-        "Tip: With more than one installed, you can choose which provider Dayframe uses from Settings → AI Provider."
+        "Tip: With more than one installed, you can choose which provider Jarvis uses from Settings → AI Provider."
       )
       .font(.custom("Figtree", size: 16))
       .foregroundColor(Color(hex: "333333"))
 
       VStack(alignment: .leading, spacing: 8) {
         VStack(alignment: .leading, spacing: 14) {
-          Text("Choose which provider Dayframe should use")
+          Text("Choose which provider Jarvis should use")
             .font(.custom("Figtree", size: 14))
             .fontWeight(.medium)
             .foregroundColor(Color(hex: "333333"))
