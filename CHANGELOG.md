@@ -24,6 +24,20 @@ Entry template:
 
 ## 2026-10-14 (Wed)
 
+### 15:00: Handoff note for the next AI
+- **What:** `docs/jarvis/HANDOFF.md` sums up Jarvis at v1.4 for whoever picks it up next:
+  - how it fits together
+  - what's verified and what isn't
+  - the owner's decisions
+  - the next steps (ticket 10 Piper voice, then chunks 2–4)
+  - the gotchas from today
+
+  START-HERE now points to it. The phrase cache had 16 of 18 Jarvis-voice lines ready at 15:00.
+- **Files:** `docs/jarvis/HANDOFF.md`, `START-HERE.md`, `CHANGELOG.md`
+- **Why:** The owner is pausing and will continue with another AI.
+- **Checked:** The repo was clean before this entry. Jarvis.app v1.4 is running (pid 38270). `ls` of the voice cache shows 16 files.
+- **Commit:** this entry's title is the commit subject.
+
 ### 13:49: Jarvis v1.4 installed and verified end to end; instant voice, phrase cache, and an island-sound crash fix
 - **What:**
   - **Hermes:** the owner signed in to Grok (`hermes auth add xai-oauth`). The model is set to `xai-oauth` / `grok-4.6` (old config kept as `~/.hermes/config.yaml.before-jarvis`). The setup wizard was skipped. The installer also added Hermes's messaging gateway service (`ai.hermes.gateway`, about 31 MB); it is unused for now.

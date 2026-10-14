@@ -2,6 +2,8 @@
 
 Jarvis is your Mac app and your chief-of-staff agent. It records your screen, turns it into a timeline, gives you a daily briefing, and (since 2026-10-14) acts on your Mac for you through **Hermes Agent** with the system tools from **Herald OS**. The rename is display only: the project folder, bundle ID (`local.dayframe.app`), `dayframe://` links, settings keys and data folder keep the Dayframe name.
 
+**Picking Jarvis up? Read `docs/jarvis/HANDOFF.md` first.**
+
 **Jarvis in one paragraph:** the Jarvis tab (first in the sidebar) is the HQ. Swift starts `hermes serve` (`App/Dayflow/Core/Jarvis/HermesBackend.swift`), the page (`Web/src/jarvis`, bundled as `App/Dayflow/Jarvis/Resources/jarvis.html`) talks to it over a WebSocket, system actions go through the vendored plugin in `Jarvis/bridge/` (approval cards for anything that changes something), ⌥Space talks, and answers to voice turns are spoken in the Jarvis voice (`~/jarvis-voice`, port 5055). The Herald OS study and capability map are in `docs/jarvis/HERALD-MAP.md`; tickets in `.scratch/jarvis/`.
 
 It's built from **Dayflow** (MIT license, © 2025 Jerry Liu, github.com/JerryZLiu/Dayflow) plus your **Briefing** add-on.
