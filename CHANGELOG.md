@@ -24,6 +24,44 @@ Entry template:
 
 ## 2026-10-13 (Tue)
 
+### 22:19: Briefing's pop-ups now come out of the notch
+- **What:** The "Where you left off" dialog, the check-in and session-goal text boxes, and the nudge/debrief notifications are gone. The owner chose the "quiet peek" style:
+  - the notch pill grows one line under the notch (accent dot, the message, a chevron)
+  - after 30 s, or 8 s for a nudge, it tucks away and Jarvis's eyes turn the palette accent until it's read
+  - hover peeks again; a click opens a card in the pill's own style
+  - the briefing card shows one paragraph, 3 numbered next steps, and a single footnote ("3 memories to confirm in Briefing"), with Open Briefing / Done
+  - the check-in card has a one-line field (Return saves). The panel takes the keyboard without activating Dayframe
+  - a nudge is a peek only
+  - a newer briefing replaces an unread older one; questions queue; notices wait for the startup show to end
+  - **AI-down briefing rewritten:** it no longer shows "(Local AI unavailable: Ollama error…)" with every open loop. It now says "The local AI was busy, so this comes from your open loops" and lists the 3 freshest loops (7 days or newer) plus "N more open loops in Briefing". The raw error goes to the log only.
+  - **Hand-off:**
+    - `briefing.py notch()` writes `~/Briefing/notices/<id>.json` and runs `open -g dayframe://notice?id=<id>`
+    - Dayframe validates the id, reads and deletes the file, and writes `<id>.ack`; for a question it writes `<id>.answer`
+    - with no ack in 3 s, Briefing deletes the notice and shows its old dialog, so nothing is lost when Dayframe is closed
+    - message text never goes in the URL
+  - Not changed (owner didn't pick it): the "Resume <project>?" dialog.
+  - `BriefingSections` now separates "Question for you" and the trailing notes from the next steps, which also fixes the native Briefing screen listing them as steps.
+- **Files:**
+  - new: `App/Dayflow/Island/BriefingNotice.swift`, `App/DayflowTests/BriefingNoticeTests.swift`, `Briefing/tests/test_notch.py`
+  - changed: `App/Dayflow/Island/NotchPillView.swift`, `NotchPillPanel.swift`, `IslandController.swift`, `App/Dayflow/App/AppDeepLinkRouter.swift`, `App/Dayflow/Views/UI/Briefing/BriefingService.swift`
+  - changed: `Briefing/briefing.py`, `Briefing/tests/test_briefing.py`, `Briefing/tests/test_hardening.py`
+  - docs: `START-HERE.md`, `AGENTS.md`, `logs.sh` (new log category `notice`)
+- **Why:** The owner hates the gray system dialogs. They pop up out of nowhere, are walls of text, and don't look like Dayframe. They asked for messages from the notch that are smarter, sharper and good-looking.
+- **Checked:**
+  - `DAYFRAME_LOW_DISK_OK=1 ./check.sh --app`: 259 app tests (8 new; 1 skipped, 0 failures), 100 Briefing tests (5 new), 24 web tests.
+  - The new tests cover:
+    - hand-off: ack/answer/skip, path-traversal ids rejected, expiry
+    - peek text, and question/notes kept apart from next steps
+    - AI-down text has no raw error
+    - fallback dialog when there's no ack
+    - the URL carries only the id
+  - Rendered each state to PNG with ImageRenderer and reviewed it: briefing peek, briefing card, AI-busy card, check-in card, nudge peek, unread eyes.
+  - Live, after install: `briefing.show()` returned in 0.3 s; Dayframe logged "showing brief notice" (category `notice`); no dialog; `~/Briefing/notices/` left empty.
+  - Recording continued (frame at 22:27:55), 0 ScreenCapture tccd mismatches.
+  - Not tested live: typing a check-in answer (`ask` waits for the owner). Covered by unit tests both sides.
+  - Disk is down to about 1.3 GB free after the builds.
+- **Commit:** this entry's title is the commit subject.
+
 ### 21:40: Full-repo v2 audit, installer/doctor/test/preset fixes, and documentation sync
 - **What:** Applied an outside audit (Argon, on the Dayframe-for-Gemini snapshot of 05b9dfb). Claude re-checked every finding against this repo before taking it. Records are in `docs/audits/2026-10-13T2232Z/`.
   - `Briefing/install.sh` no longer crashes on the deleted `Companion.swift`, which it used to copy under `set -e`. `PORT` is now set unconditionally. Without the file it removes the old companion agent and binary, and drops the stale `companion` entry from `~/Briefing/status.json`, so `doctor` stops reporting it LATE.

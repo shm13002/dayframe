@@ -129,6 +129,10 @@ struct BriefingSections: Equatable {
   var goal: String = ""
   var nextSteps: [String] = []
   var refs: String = ""
+  /// Briefing's "Question for you: …" about a memory that disagrees with itself.
+  var question: String = ""
+  /// The trailing one-liners Briefing appends (stale facts, a suggested improvement, more loops).
+  var notes: [String] = []
 
   init(_ raw: String) {
     var current = "left"
@@ -151,6 +155,15 @@ struct BriefingSections: Equatable {
         buffers[current, default: []].append(r)
         continue
       }
+      if let r = Self.header(upper, t, "QUESTION FOR YOU") {
+        current = "question"
+        buffers[current, default: []].append(r)
+        continue
+      }
+      if Self.isNote(t) {
+        buffers["notes", default: []].append(t)
+        continue
+      }
       if upper.hasPrefix("REFS:") {
         current = "refs"
         buffers[current, default: []].append(String(t.dropFirst(5)))
@@ -165,6 +178,8 @@ struct BriefingSections: Equatable {
     leftOff = Self.stripCitations(joined("left"))
     goal = Self.stripCitations(joined("goal"))
     refs = joined("refs")
+    question = joined("question")
+    notes = (buffers["notes"] ?? []).filter { !$0.isEmpty }
     nextSteps = (buffers["next"] ?? [])
       .map {
         $0.replacingOccurrences(
@@ -172,6 +187,13 @@ struct BriefingSections: Equatable {
       }
       .map(Self.stripCitations)
       .filter { !$0.isEmpty }
+  }
+
+  /// Lines briefing.py adds after the model's sections (cmd_brief / fallback_brief).
+  private static func isNote(_ line: String) -> Bool {
+    line.hasPrefix("Suggested improvement")
+      || line.range(of: #"^\d+ (remembered fact|more open loop)"#, options: .regularExpression)
+        != nil
   }
 
   private static func header(_ upper: String, _ line: String, _ name: String) -> String? {

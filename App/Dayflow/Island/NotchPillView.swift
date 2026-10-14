@@ -7,6 +7,10 @@
 //  closed when paused) and today's tracked time. Hover shows a one-line summary;
 //  a click opens a card with the next thing and quick actions.
 //
+//  Briefing's messages (BriefingNotice) arrive as a quiet peek: the pill grows one
+//  line below the notch, then tucks the message away and the eyes take the accent
+//  colour until it is read. Hover peeks again; a click opens the full notice card.
+//
 //  The ring, eyes and text sit at the same offsets the island show draws its last
 //  frame with (Web/src/island/layout.ts), so the hand-off is seamless.
 //
@@ -16,7 +20,7 @@ import SwiftUI
 
 @MainActor
 final class NotchPillModel: ObservableObject {
-  enum Mode: Equatable { case rest, hover, open }
+  enum Mode: Equatable { case rest, hover, open, peek, notice }
 
   @Published var mode: Mode = .rest
   @Published var stats: IslandStats = .empty
@@ -30,12 +34,21 @@ final class NotchPillModel: ObservableObject {
   /// True while a drip is showing; the panel grows a little to make room for it.
   @Published var isDripping = false
   @Published var lookOffset: CGSize = .zero
+  /// Briefing's current message, shown as a peek and then as the notice card.
+  @Published var notice: BriefingNotice?
+  /// True while the pointer is over the pill (the controller never tucks a peek away under it).
+  var isHovering = false
 
   var geometry: NotchGeometry
   var onToggleRecording: () -> Void = {}
   var onOpenApp: () -> Void = {}
   var onReplay: () -> Void = {}
   var onModeChange: (Mode) -> Void = { _ in }
+  /// The notice is done: `answered` with the text (nil = skipped) for asks.
+  var onNoticeDone: (BriefingNotice, _ answered: Bool, _ text: String?) -> Void = { _, _, _ in }
+  var onOpenBriefing: () -> Void = {}
+  /// The ask card needs the keyboard (the panel becomes key without activating Dayframe).
+  var onNeedsKeyboard: (Bool) -> Void = { _ in }
 
   init(geometry: NotchGeometry) {
     self.geometry = geometry
@@ -56,7 +69,36 @@ final class NotchPillModel: ObservableObject {
     case .open:
       return CGSize(
         width: max(pill.width, NotchPillLayout.cardWidth), height: NotchPillLayout.cardHeight)
+    case .peek:
+      return CGSize(
+        width: max(pill.width, NotchPillLayout.peekWidth),
+        height: pill.height + NotchPillLayout.peekRow)
+    case .notice:
+      return CGSize(width: max(pill.width, NotchPillLayout.cardWidth), height: noticeHeight)
     }
+  }
+
+  /// The notice card's height, from its content (the panel must know it before SwiftUI lays out).
+  var noticeHeight: CGFloat {
+    guard let n = notice else { return NotchPillLayout.cardHeight }
+    let layout = NotchPillLayout.self
+    var parts: [CGFloat] = [geometry.pillRect.height - 4, 20]
+    switch n.kind {
+    case .brief:
+      let s = n.sections
+      if !s.leftOff.isEmpty { parts.append(layout.textHeight(s.leftOff, lines: 3)) }
+      let steps = min(s.nextSteps.count, 3)
+      if steps > 0 { parts.append(CGFloat(steps) * layout.stepRow + CGFloat(steps - 1) * 6) }
+      if !s.question.isEmpty || !s.notes.isEmpty { parts.append(16) }
+    case .ask:
+      parts.append(layout.textHeight(n.prompt, lines: 4))
+      parts.append(layout.fieldHeight)
+    case .peek:
+      parts.append(layout.textHeight(n.text, lines: 4))
+    }
+    parts.append(layout.buttonRow)
+    return parts.reduce(0, +) + layout.cardSpacing * CGFloat(parts.count - 1) + layout.cardBottom
+      + 4
   }
 }
 
@@ -68,6 +110,24 @@ enum NotchPillLayout {
   static let cardWidth: CGFloat = 420
   static let cardHeight: CGFloat = 214
   static let spring = Animation.spring(response: 0.42, dampingFraction: 0.74)
+  static let peekWidth: CGFloat = 400
+  static let peekRow: CGFloat = 34
+  static let cardSpacing: CGFloat = 10
+  static let cardBottom: CGFloat = 18
+  static let stepRow: CGFloat = 17
+  static let fieldHeight: CGFloat = 34
+  static let buttonRow: CGFloat = 28
+  static let bodyFont = NSFont.systemFont(ofSize: 13)
+
+  /// Height of 13 pt body text in the card, capped at `lines`.
+  static func textHeight(_ text: String, lines: Int) -> CGFloat {
+    let width = cardWidth - 48
+    let line = ceil(NSLayoutManager().defaultLineHeight(for: bodyFont))
+    let rect = (text as NSString).boundingRect(
+      with: CGSize(width: width, height: .greatestFiniteMagnitude),
+      options: [.usesLineFragmentOrigin, .usesFontLeading], attributes: [.font: bodyFont])
+    return min(ceil(rect.height), line * CGFloat(lines))
+  }
 }
 
 struct NotchPillView: View {
@@ -86,6 +146,11 @@ struct NotchPillView: View {
     switch model.mode {
     case .rest, .hover: return (pill.width, pill.height, geo.pillRadius)
     case .open: return (NotchPillLayout.cardWidth, NotchPillLayout.cardHeight, 28)
+    case .peek:
+      return (
+        max(pill.width, NotchPillLayout.peekWidth), pill.height + NotchPillLayout.peekRow, 20
+      )
+    case .notice: return (NotchPillLayout.cardWidth, model.noticeHeight, 28)
     }
   }
 
@@ -112,10 +177,25 @@ struct NotchPillView: View {
             width: NotchPillLayout.cardWidth, height: NotchPillLayout.cardHeight, alignment: .top
           )
           .transition(.opacity.combined(with: .scale(scale: 0.98, anchor: .top)))
+      } else if model.mode == .notice, let notice = model.notice {
+        NoticeCard(
+          notice: notice, accent: accent, topInset: pill.height - 4,
+          onDone: { answered, text in model.onNoticeDone(notice, answered, text) },
+          onOpenBriefing: { model.onOpenBriefing() },
+          onNeedsKeyboard: { model.onNeedsKeyboard($0) }
+        )
+        .id(notice.id)
+        .frame(width: NotchPillLayout.cardWidth, height: model.noticeHeight, alignment: .top)
+        .transition(.opacity.combined(with: .scale(scale: 0.98, anchor: .top)))
       } else {
         restContent
           .frame(width: pill.width, height: pill.height)
           .transition(.opacity)
+        if model.mode == .peek, let notice = model.notice {
+          peekRow(notice)
+            .offset(y: pill.height)
+            .transition(.opacity.combined(with: .offset(y: -6)))
+        }
       }
 
       if model.mode == .hover {
@@ -149,8 +229,11 @@ struct NotchPillView: View {
         .fixedSize()
         .position(x: NotchPillLayout.badgeInset + NotchPillLayout.textGap, y: midY)
         .offset(x: textHalfWidth("\(model.stats.focusPercent)%"))
-      PillEyes(open: model.recording, blinkSignal: model.blinkSignal, look: model.lookOffset)
-        .position(x: notchRight + NotchPillLayout.eyesInset, y: midY)
+      PillEyes(
+        open: model.recording, blinkSignal: model.blinkSignal, look: model.lookOffset,
+        tint: model.notice == nil ? .white : accent
+      )
+      .position(x: notchRight + NotchPillLayout.eyesInset, y: midY)
       Text(model.stats.trackedMinutes.islandDuration)
         .font(.system(size: 12, weight: .semibold))
         .monospacedDigit()
@@ -160,11 +243,38 @@ struct NotchPillView: View {
         .offset(x: textHalfWidth(model.stats.trackedMinutes.islandDuration))
     }
     .contentShape(Rectangle())
-    .onTapGesture { model.setMode(.open) }
+    .onTapGesture { model.setMode(model.notice == nil ? .open : .notice) }
     .accessibilityElement(children: .ignore)
-    .accessibilityLabel(summary)
+    .accessibilityLabel(model.notice.map { "Briefing: \($0.peekLine)" } ?? summary)
     .accessibilityAddTraits(.isButton)
-    .accessibilityHint("Opens today's summary")
+    .accessibilityHint(model.notice == nil ? "Opens today's summary" : "Opens the message")
+  }
+
+  // MARK: - Peek
+
+  /// One line under the notch: an accent dot, the message, a chevron that says "there's more".
+  private func peekRow(_ notice: BriefingNotice) -> some View {
+    HStack(spacing: 8) {
+      Circle().fill(accent).frame(width: 6, height: 6)
+      Text(notice.peekLine)
+        .font(.system(size: 12.5))
+        .foregroundStyle(PillInk.body)
+        .lineLimit(1)
+        .truncationMode(.tail)
+      Spacer(minLength: 4)
+      if notice.kind != .peek {
+        Image(systemName: "chevron.down")
+          .font(.system(size: 10, weight: .semibold))
+          .foregroundStyle(PillInk.muted)
+      }
+    }
+    .padding(.horizontal, 20)
+    .frame(width: max(pill.width, NotchPillLayout.peekWidth), height: NotchPillLayout.peekRow - 4)
+    .contentShape(Rectangle())
+    .onTapGesture { if notice.kind != .peek { model.setMode(.notice) } }
+    .accessibilityElement(children: .ignore)
+    .accessibilityLabel(notice.peekLine)
+    .accessibilityAddTraits(.isButton)
   }
 
   /// `.position` centers a view; the page draws these labels left-aligned at x, so shift by half the width.
@@ -275,10 +385,11 @@ struct NotchPillView: View {
 
   private func hoverChanged(_ inside: Bool) {
     leaveTask?.cancel()
+    model.isHovering = inside
     if inside {
       hoveredSinceOpen = true
       if model.mode == .rest {
-        model.setMode(.hover)
+        model.setMode(model.notice == nil ? .hover : .peek)
         model.blinkSignal += 1
       }
       return
@@ -286,6 +397,16 @@ struct NotchPillView: View {
     switch model.mode {
     case .hover:
       model.setMode(.rest)
+    case .peek:
+      model.setMode(.rest)
+    case .notice:
+      // A question stays open while you type; a briefing waits a moment for a wobbly pointer.
+      guard model.notice?.kind != .ask else { return }
+      leaveTask = Task { @MainActor in
+        try? await Task.sleep(for: .seconds(2.5))
+        guard !Task.isCancelled else { return }
+        model.setMode(.rest)
+      }
     case .open:
       // Leave the card open briefly so a slightly wobbly pointer doesn't slam it shut.
       leaveTask = Task { @MainActor in
@@ -338,6 +459,7 @@ private struct PillEyes: View {
   let open: Bool
   let blinkSignal: Int
   let look: CGSize
+  var tint: Color = .white
   @Environment(\.accessibilityReduceMotion) private var reduceMotion
   @State private var blinking = false
 
@@ -355,8 +477,9 @@ private struct PillEyes: View {
 
   private var eye: some View {
     Capsule()
-      .fill(.white)
+      .fill(tint)
       .frame(width: 4, height: open && !blinking ? 9 : 2)
+      .animation(.easeOut(duration: 0.3), value: tint)
   }
 
   private func blink() async {
@@ -373,6 +496,170 @@ private struct PillEyes: View {
       guard !Task.isCancelled else { return }
       await blink()
     }
+  }
+}
+
+/// Briefing's message, opened from the pill: the briefing in three short parts, a question with a
+/// one-line answer, or a nudge. Same black card, type and buttons as the pill's own card.
+private struct NoticeCard: View {
+  let notice: BriefingNotice
+  let accent: Color
+  let topInset: CGFloat
+  let onDone: (_ answered: Bool, _ text: String?) -> Void
+  let onOpenBriefing: () -> Void
+  let onNeedsKeyboard: (Bool) -> Void
+  @State private var answer = ""
+  @FocusState private var fieldFocused: Bool
+
+  var body: some View {
+    VStack(alignment: .leading, spacing: NotchPillLayout.cardSpacing) {
+      Color.clear.frame(height: topInset)  // the notch row stays clear
+      HStack(alignment: .firstTextBaseline) {
+        Text(title)
+          .font(.system(size: 15, weight: .semibold))
+          .lineLimit(1)
+        Spacer()
+        Text(notice.kind == .ask ? "Briefing asks" : "Briefing")
+          .font(.system(size: 12))
+          .foregroundStyle(PillInk.muted)
+      }
+      .frame(height: 20)
+      switch notice.kind {
+      case .brief: brief
+      case .ask: ask
+      case .peek: nudge
+      }
+    }
+    .foregroundStyle(.white)
+    .padding(.horizontal, 24)
+    .padding(.bottom, NotchPillLayout.cardBottom)
+  }
+
+  private var title: String {
+    if notice.kind == .brief, notice.title.isEmpty || notice.title == "Where you left off" {
+      return "Where you left off"
+    }
+    return notice.title.isEmpty ? "Briefing" : notice.title
+  }
+
+  // MARK: Briefing
+
+  @ViewBuilder private var brief: some View {
+    let s = notice.sections
+    if !s.leftOff.isEmpty {
+      Text(s.leftOff)
+        .font(.system(size: 13))
+        .foregroundStyle(PillInk.body)
+        .lineLimit(3)
+        .fixedSize(horizontal: false, vertical: true)
+    }
+    let steps = Array(s.nextSteps.prefix(3))
+    if !steps.isEmpty {
+      VStack(alignment: .leading, spacing: 6) {
+        ForEach(Array(steps.enumerated()), id: \.offset) { i, step in
+          HStack(alignment: .firstTextBaseline, spacing: 10) {
+            Text("\(i + 1)")
+              .font(.system(size: 12, weight: .semibold))
+              .monospacedDigit()
+              .foregroundStyle(accent)
+              .frame(width: 10, alignment: .leading)
+            Text(step)
+              .font(.system(size: 13))
+              .foregroundStyle(.white)
+              .lineLimit(1)
+              .truncationMode(.tail)
+          }
+          .frame(height: NotchPillLayout.stepRow, alignment: .leading)
+        }
+      }
+    }
+    if let footnote = footnote(s) {
+      HStack(spacing: 6) {
+        Circle().fill(accent.opacity(0.8)).frame(width: 5, height: 5)
+        Text(footnote).lineLimit(1)
+      }
+      .font(.system(size: 12))
+      .foregroundStyle(PillInk.muted)
+      .frame(height: 16)
+    }
+    HStack(spacing: 8) {
+      CardButton(title: "Open Briefing") {
+        onOpenBriefing()
+        onDone(false, nil)
+      }
+      Spacer()
+      CardButton(title: "Done", subtle: true) { onDone(false, nil) }
+    }
+    .frame(height: NotchPillLayout.buttonRow)
+  }
+
+  /// "A memory to confirm", stale facts or a suggested improvement: one quiet line, details in Briefing.
+  private func footnote(_ s: BriefingSections) -> String? {
+    if !s.question.isEmpty {
+      let more =
+        s.question.range(of: #"\(\+(\d+) more\)"#, options: .regularExpression)
+        .map { s.question[$0].filter(\.isNumber) }
+        .flatMap { Int($0) } ?? 0
+      let n = more + 1
+      return n == 1 ? "1 memory to confirm in Briefing" : "\(n) memories to confirm in Briefing"
+    }
+    return s.notes.first
+  }
+
+  // MARK: Question
+
+  @ViewBuilder private var ask: some View {
+    Text(notice.prompt)
+      .font(.system(size: 13))
+      .foregroundStyle(PillInk.body)
+      .lineLimit(4)
+      .fixedSize(horizontal: false, vertical: true)
+    TextField(
+      "", text: $answer,
+      prompt: Text(notice.defaultAnswer.isEmpty ? "Type a line, then Return" : notice.defaultAnswer)
+        .foregroundColor(PillInk.muted)
+    )
+    .textFieldStyle(.plain)
+    .font(.system(size: 13))
+    .foregroundStyle(.white)
+    .focused($fieldFocused)
+    .onSubmit(save)
+    .padding(.horizontal, 12)
+    .frame(height: NotchPillLayout.fieldHeight)
+    .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(PillInk.surface))
+    .overlay(
+      RoundedRectangle(cornerRadius: 10, style: .continuous)
+        .strokeBorder(fieldFocused ? accent.opacity(0.7) : PillInk.track, lineWidth: 1)
+    )
+    .onAppear {
+      answer = notice.defaultAnswer
+      onNeedsKeyboard(true)
+      DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { fieldFocused = true }
+    }
+    .onDisappear { onNeedsKeyboard(false) }
+    HStack(spacing: 8) {
+      CardButton(title: "Save", action: save)
+      Spacer()
+      CardButton(title: "Skip", subtle: true) { onDone(true, nil) }
+    }
+    .frame(height: NotchPillLayout.buttonRow)
+  }
+
+  private func save() { onDone(true, answer) }
+
+  // MARK: Nudge
+
+  @ViewBuilder private var nudge: some View {
+    Text(notice.text)
+      .font(.system(size: 13))
+      .foregroundStyle(PillInk.body)
+      .lineLimit(4)
+      .fixedSize(horizontal: false, vertical: true)
+    HStack {
+      Spacer()
+      CardButton(title: "Got it", subtle: true) { onDone(false, nil) }
+    }
+    .frame(height: NotchPillLayout.buttonRow)
   }
 }
 

@@ -41,6 +41,9 @@ final class IslandController {
   private var unlockCheck: Task<Void, Never>?
   private var stats: IslandStats = .empty
   private var started = false
+  /// Briefing notices waiting for the pill (one shows at a time).
+  private var noticeQueue: [BriefingNotice] = []
+  private var noticeTasks: [Task<Void, Never>] = []
 
   private init() {}
 
@@ -84,6 +87,13 @@ final class IslandController {
     model.onOpenApp = { Self.openMainWindow() }
     model.onReplay = { [weak self] in self?.playStartup(force: true) }
     model.onModeChange = { [weak self] mode in self?.pillModeChanged(mode) }
+    model.onNoticeDone = { [weak self] notice, answered, text in
+      self?.finishNotice(notice, answered: answered, text: text)
+    }
+    model.onOpenBriefing = {
+      Self.openMainWindow()
+      NotificationCenter.default.post(name: .navigateToBriefing, object: nil)
+    }
     let panel = NotchPillPanel(model: model)
     pill = panel
     panel.show(fadeIn: true)
@@ -291,7 +301,10 @@ final class IslandController {
       panel.onFinished = { [weak self] in
         IslandCaptureExclusion.setShowOnScreen(false)
         self?.show = nil
-        if self?.started == true { pill.show(fadeIn: false) }
+        if self?.started == true {
+          pill.show(fadeIn: false)
+          self?.showNextNotice()
+        }
       }
       self.show = panel
       panel.present()
@@ -370,6 +383,77 @@ final class IslandController {
     return trimmed
   }
 
+  // MARK: - Briefing notices
+
+  /// dayframe://notice?id=… arrived. Without a pill, nothing is acknowledged, so Briefing falls back
+  /// to its own dialog after 3 s.
+  func presentNotice(id: String) {
+    guard started, pill != nil else { return }
+    guard let notice = BriefingNoticeInbox.take(id: id) else { return }
+    // A newer briefing replaces an unread older one; questions and nudges queue in order.
+    if notice.kind == .brief {
+      noticeQueue.removeAll { $0.kind == .brief }
+      if let current = pill?.model.notice, current.kind == .brief, pill?.model.mode != .notice {
+        clearNotice()
+      }
+    }
+    noticeQueue.append(notice)
+    showNextNotice()
+  }
+
+  private func showNextNotice() {
+    guard started, show == nil, let pill, pill.model.notice == nil, !noticeQueue.isEmpty else {
+      return
+    }
+    let notice = noticeQueue.removeFirst()
+    let model = pill.model
+    model.notice = notice
+    model.blinkSignal += 1
+    IslandSound.shared.play(.blink)
+    if model.mode == .rest || model.mode == .hover { model.setMode(.peek) }
+
+    // Peek for a while, then tuck it behind the (accent) eyes. A nudge just goes away.
+    noticeTasks.append(
+      Task { [weak self] in
+        try? await Task.sleep(for: .seconds(notice.peekDuration))
+        while !Task.isCancelled, model.isHovering, model.mode == .peek {
+          try? await Task.sleep(for: .seconds(1))
+        }
+        guard !Task.isCancelled, let self, model.notice?.id == notice.id else { return }
+        if notice.kind == .peek {
+          self.finishNotice(notice, answered: false, text: nil)
+        } else if model.mode == .peek {
+          model.setMode(.rest)
+        }
+      })
+
+    // Briefing stops waiting for an answer at `expires`; an unread briefing is stale after 3 hours.
+    let expires =
+      notice.expires ?? Date().addingTimeInterval(notice.kind == .brief ? 3 * 3600 : 600)
+    noticeTasks.append(
+      Task { [weak self] in
+        try? await Task.sleep(for: .seconds(max(1, expires.timeIntervalSinceNow)))
+        guard !Task.isCancelled, let self, model.notice?.id == notice.id else { return }
+        self.clearNotice()
+        self.showNextNotice()
+      })
+  }
+
+  private func finishNotice(_ notice: BriefingNotice, answered: Bool, text: String?) {
+    if notice.kind == .ask, answered { BriefingNoticeInbox.answer(notice, text: text) }
+    guard pill?.model.notice?.id == notice.id else { return }
+    clearNotice()
+    showNextNotice()
+  }
+
+  private func clearNotice() {
+    for task in noticeTasks { task.cancel() }
+    noticeTasks.removeAll()
+    guard let model = pill?.model else { return }
+    model.notice = nil
+    if model.mode == .peek || model.mode == .notice { model.setMode(.rest) }
+  }
+
   // MARK: - Pill actions
 
   private func pillModeChanged(_ mode: NotchPillModel.Mode) {
@@ -382,7 +466,7 @@ final class IslandController {
         let sections = await briefingSections()
         pill?.model.nextThing = sections?.nextSteps.first
       }
-    case .rest:
+    case .peek, .notice, .rest:
       break
     }
   }

@@ -9,6 +9,8 @@ final class AppDeepLinkRouter {
     /// dayframe://welcome-preview?variant=dailyWake plays a welcome preview, so its in-app frame
     /// rate can be measured from Terminal (`open …`, then `./logs.sh 5m welcome`).
     case welcomePreview = "welcome-preview"
+    /// dayframe://notice?id=<id>: Briefing left a message in ~/Briefing/notices for the notch pill.
+    case notice = "notice"
 
     init?(identifier: String) {
       switch identifier.lowercased() {
@@ -20,6 +22,8 @@ final class AppDeepLinkRouter {
         self = .referral
       case Self.welcomePreview.rawValue:
         self = .welcomePreview
+      case Self.notice.rawValue:
+        self = .notice
       default:
         return nil
       }
@@ -82,6 +86,12 @@ final class AppDeepLinkRouter {
       let variant = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems?
         .first { $0.name == "variant" }?.value
       WelcomeController.shared.preview(variant == "dailyWake" ? .dailyWake : .firstLaunch)
+    case .notice:
+      if let id = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems?
+        .first(where: { $0.name == "id" })?.value
+      {
+        IslandController.shared.presentNotice(id: id)
+      }
     }
   }
 

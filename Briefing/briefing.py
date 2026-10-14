@@ -30,6 +30,7 @@ INDEX_DB = MEM / "index.sqlite"
 LOG_DIR = HOME / "log"
 STATE_PATH = HOME / "state.json"
 ERR_LOG = HOME / "briefing.log"
+NOTICES = HOME / "notices"   # hand-off folder for Dayframe's notch pill (see notch())
 DEFAULT_DB = Path.home() / "Library/Application Support/Dayflow/chunks.sqlite"
 
 # RAM tier -> default text model (Ollama tags verified on ollama.com, Oct 2026).
@@ -343,6 +344,52 @@ def run_on_mac(args, background=False, **kw):
 
 # ---------------------------------------------------------------- UI (macOS; prints elsewhere)
 
+# Dayframe shows briefings, check-ins and nudges in its notch pill instead of AppleScript dialogs.
+# notch() writes NOTICES/<id>.json, wakes Dayframe with dayframe://notice?id=<id> and waits briefly for
+# <id>.ack. No ack (Dayframe not running, island off) means the caller falls back to its dialog, so a
+# message is never lost. For "ask", Dayframe writes <id>.answer: {"text": "..."} or {"skip": true}.
+NOTCH_ACK_SECONDS = 3.0
+NOTCH_RESPONDER = None   # tests: a function(notice_id) that plays Dayframe's part
+
+def notch(kind, wait_answer=0, **payload):
+    """Returns (shown, answer). shown=False: Dayframe didn't take it, so use the fallback."""
+    if not is_mac() or os.environ.get("BRIEFING_NO_NOTCH") == "1":
+        return False, None
+    nid = f"{int(time.time() * 1000)}-{os.getpid()}-{secrets.token_hex(3)}"
+    note, ack, ans = NOTICES / f"{nid}.json", NOTICES / f"{nid}.ack", NOTICES / f"{nid}.answer"
+    try:
+        NOTICES.mkdir(parents=True, exist_ok=True)
+        for old in NOTICES.iterdir():   # leftovers older than a day
+            if old.stat().st_mtime < time.time() - 86400:
+                old.unlink(missing_ok=True)
+        tmp = note.with_suffix(".tmp")
+        tmp.write_text(json.dumps(dict(payload, id=nid, kind=kind, created=time.time(), wait=wait_answer)))
+        tmp.replace(note)
+        run_on_mac(["open", "-g", f"dayframe://notice?id={nid}"], capture_output=True, timeout=15)
+        if NOTCH_RESPONDER:
+            NOTCH_RESPONDER(nid)
+        testing = os.environ.get("BRIEFING_NO_DESKTOP") == "1" and not NOTCH_RESPONDER
+        deadline = time.time() + (0 if testing else NOTCH_ACK_SECONDS)
+        while not ack.exists() and time.time() < deadline:
+            time.sleep(0.1)
+        if not ack.exists():
+            note.unlink(missing_ok=True)   # Dayframe must not show it late, after the fallback dialog
+            return False, None
+        answer = None
+        if wait_answer:
+            deadline = time.time() + wait_answer
+            while not ans.exists() and time.time() < deadline:
+                time.sleep(0.5)
+            if ans.exists():
+                answer = json.loads(ans.read_text() or "{}")
+        return True, answer
+    except Exception as e:
+        log(f"notch failed: {e}")
+        return False, None
+    finally:
+        for f in (ack, ans):
+            f.unlink(missing_ok=True)
+
 def ask(prompt, title="Briefing", default=""):
     """Text-input dialog. Returns '' if cancelled or not on macOS (unless BRIEFING_TEST_ANSWER set)."""
     if "BRIEFING_TEST_ANSWER" in os.environ:
@@ -350,6 +397,9 @@ def ask(prompt, title="Briefing", default=""):
     if not is_mac():
         print(f"[ask] {prompt}")
         return ""
+    shown, answer = notch("ask", wait_answer=600, title=title, prompt=prompt, default=default)
+    if shown:
+        return "" if not answer or answer.get("skip") else str(answer.get("text", "")).strip()
     script = (f'set r to display dialog "{osa_escape(prompt)}" default answer "{osa_escape(default)}" '
               f'with title "{osa_escape(title)}" buttons {{"Skip", "Save"}} default button "Save" giving up after 600\n'
               f'if button returned of r is "Save" then return text returned of r')
@@ -365,6 +415,8 @@ def show(text, title="Where you left off"):
         print(f"===== {title} =====\n{text}\n")
         return
     short = text if len(text) < 1800 else text[:1800] + "…"
+    if notch("brief", title=title, text=short)[0]:
+        return
     script = (f'display dialog "{osa_escape(short)}" with title "{osa_escape(title)}" '
               f'buttons {{"OK"}} default button "OK" giving up after 900')
     try:
@@ -374,6 +426,8 @@ def show(text, title="Where you left off"):
 
 def notify(text, title="Briefing"):
     if is_mac():
+        if notch("peek", title=title, text=text[:300])[0]:
+            return
         run_on_mac(["osascript", "-e", f'display notification "{osa_escape(text[:200])}" with title "{osa_escape(title)}"'],
                    capture_output=True)
     else:
@@ -2343,6 +2397,22 @@ def build_context(cfg, cards, journal, standup, note, facts=None):
         parts.append("## Dayflow standup\n" + standup.get("payload_json", "")[:1200])
     return "\n\n".join(parts)
 
+def fallback_brief(todos, today=None):
+    """The briefing when the AI didn't answer: the freshest open loops, in the model's own sections, so
+    Dayframe lays it out like any other briefing. The raw error goes to the log, not on screen."""
+    today = today or dt.date.today()
+    def fresh(t):
+        try:
+            return (today - dt.date.fromisoformat(str(t.get("created", ""))[:10])).days <= 7
+        except ValueError:
+            return True
+    open_ = [t for t in todos if not t.get("done")]
+    recent = [t for t in open_ if fresh(t)][::-1][:3]
+    steps = "\n".join(f"{i}. {t['text']}" for i, t in enumerate(recent, 1)) or "1. Pick one small step and start."
+    older = len(open_) - len(recent)
+    return ("WHERE YOU LEFT OFF: The local AI was busy, so this comes from your open loops."
+            f"\nNEXT STEPS:\n{steps}" + (f"\n\n{older} more open loop{'s' * (older != 1)} in Briefing." if older > 0 else ""))
+
 def cmd_brief(cfg, force=False, interactive=True):
     st = load_state()
     now = time.time()
@@ -2362,8 +2432,7 @@ def cmd_brief(cfg, force=False, interactive=True):
         text = text.rstrip() + "\n\nRefs: " + ", ".join(refs + ["memory/open-loops.md"])
     if err:
         log(err)
-        op = "\n".join(f"- {t['text']}" for t in todos_load() if not t["done"])[:600]
-        text = f"(Local AI unavailable: {err})\n\nOpen loops:\n{op or 'none'}"
+        text = fallback_brief(todos_load())
     fdb = facts_db()
     conf = [c for c in fdb["conflicts"] if c["status"] == "open"]
     if conf:
@@ -3618,8 +3687,9 @@ def set_home(path):
     CONFIG_PATH, MEM, LOG_DIR = HOME / "config.json", HOME / "memory", HOME / "log"
     STATE_PATH, ERR_LOG, AUTO_DIR = HOME / "state.json", HOME / "briefing.log", HOME / "automations"
     INBOX, INDEX_DB, TODOS, DATA = MEM / "inbox.jsonl", MEM / "index.sqlite", MEM / "todos.json", MEM / "data"
-    global COMP_DB
+    global COMP_DB, NOTICES
     AUTO_DB, NM_DB, COMP_DB = DATA / "automations.json", DATA / "nextmove.json", DATA / "companion.json"
+    NOTICES = HOME / "notices"
 
 # ---------------------------------------------------------------- CLI
 

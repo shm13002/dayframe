@@ -124,7 +124,9 @@ class TestSecurity(HBase):
         finally:
             b.is_mac = orig_mac
         calls = b.DESKTOP_CALLS
-        self.assertEqual(len(calls), 2)
+        self.assertEqual(len(calls), 3)  # say, the notch hand-off, and the notification it fell back to
+        notice = next(c for c in calls if c[0] == "open")
+        self.assertRegex(notice[-1], r"^dayframe://notice\?id=[0-9a-f-]+$")  # the text goes in a file, never the URL
         for c in calls:
             self.assertIsInstance(c, list)  # argv lists, never a shell string
         say = next(c for c in calls if c[0] == "say")

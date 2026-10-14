@@ -23,7 +23,7 @@ final class NotchPillPanel {
 
   init(model: NotchPillModel) {
     self.model = model
-    panel = NSPanel(
+    panel = KeyablePanel(
       contentRect: model.geometry.pillWindowFrame, styleMask: [.borderless, .nonactivatingPanel],
       backing: .buffered, defer: false)
     panel.isOpaque = false
@@ -48,6 +48,23 @@ final class NotchPillPanel {
       .removeDuplicates { $0 == $1 }
       .sink { [weak self] _ in self?.resizeForCurrentMode() }
       .store(in: &observers)
+    // A new notice can change the card's height while it is open.
+    model.$notice
+      .removeDuplicates()
+      .sink { [weak self] _ in
+        DispatchQueue.main.async { self?.resizeForCurrentMode() }
+      }
+      .store(in: &observers)
+
+    // The ask card's text field: take the keyboard without activating Dayframe, give it back after.
+    model.onNeedsKeyboard = { [weak panel] needs in
+      guard let panel else { return }
+      if needs {
+        panel.makeKey()
+      } else if panel.isKeyWindow {
+        panel.resignKey()
+      }
+    }
   }
 
   func show(fadeIn: Bool) {
@@ -101,6 +118,12 @@ final class NotchPillPanel {
       panel.setFrame(target, display: true)
     }
   }
+}
+
+/// Borderless panels refuse key status by default; the ask card's text field needs it. With
+/// `becomesKeyOnlyIfNeeded` the pill still never takes the keyboard for an ordinary click.
+private final class KeyablePanel: NSPanel {
+  override var canBecomeKey: Bool { true }
 }
 
 /// Lets the first click on the pill act immediately instead of only focusing the panel.

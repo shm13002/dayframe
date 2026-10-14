@@ -120,7 +120,8 @@ class TestModelFailures(Base):
         cfg = dict(self.cfg, ollama_url="http://127.0.0.1:9", request_timeout_s=2)
         with contextlib.redirect_stdout(io.StringIO()):
             txt = b.cmd_brief(cfg, force=True, interactive=False)
-        self.assertIn("Local AI unavailable", txt)
+        self.assertIn("local AI was busy", txt)
+        self.assertNotIn("127.0.0.1", txt)  # the raw error stays in the log
         self.assertIn("unavailable", b.cmd_ask(cfg, "hero"))
         self.assertIn("model unavailable", b.predict_next(cfg, "app_switch")["gated"])
         self.assertIn("error", b.automation_draft(cfg, "nope"))

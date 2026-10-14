@@ -89,6 +89,15 @@ All paths below are relative to this folder. After editing anything in `App/`, r
 | The **Original** colors themselves | `App/Dayflow/Utilities/DayflowTheme.swift` | `lightPalette` and the dark palette (e.g. `accent: Color(hex: "F3854B")`, line ~286) |
 | Light/Dark mode | In the app: Settings → Other → Light/Dark mode | none |
 
+### Briefing messages in the notch (briefing, check-in, nudges)
+Briefing no longer pops up macOS dialogs. It leaves a message in `~/Briefing/notices/` and opens `dayframe://notice?id=…`; the pill peeks one line under the notch, then the eyes turn the accent colour until you read it. Hover to peek again, click for the card. If Dayframe doesn't answer within 3 s (not running, island off), Briefing shows its old dialog instead.
+| Change | File | Where |
+|---|---|---|
+| The **card and peek** look (layout, copy, buttons) | `App/Dayflow/Island/NotchPillView.swift` | `NoticeCard`, `peekRow`, `NotchPillLayout` |
+| **How long** it peeks, queueing, expiry | `App/Dayflow/Island/IslandController.swift` | `presentNotice`, `showNextNotice` |
+| The **hand-off files** and answer format | `App/Dayflow/Island/BriefingNotice.swift` and `Briefing/briefing.py` `notch()` | `BriefingNoticeInbox` |
+| What the briefing **says when the AI is down** | `Briefing/briefing.py` | `fallback_brief()` |
+
 ### Start of day (opening animation, wallpaper, your day's apps)
 Everything is in the app under **Settings → Start of day**. Code lives in `App/Dayflow/Welcome/`.
 | Change | File | Where |
@@ -179,6 +188,7 @@ Edit `~/Briefing/config.json`. Changes apply on the next run.
 - **Added:** six color palettes with an "ink spread" switch (Settings → Other → Colors).
 - **Added:** a Briefing tab (React page, with a native fallback) and Chat on Qwen.
 - **Added:** the notch island: a pill around the notch and a welcome-back show (Settings → Other → Notch island).
+- **Added:** Briefing's messages come out of the notch as a quiet peek instead of macOS dialogs.
 - **Added:** Start of day: the opening animation, wallpaper, your day's apps, an optional Focus.
 - **Added:** Grok as a fourth AI, and the eclipse-ring app icon.
 - **Added:** recording safeguards (section 7).
