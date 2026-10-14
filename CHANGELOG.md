@@ -24,6 +24,13 @@ Entry template:
 
 ## 2026-10-13 (Tue)
 
+### 22:49: Saved version v1.2
+- **What:** Tagged `v1.2` and saved a backup in `~/Documents/Projects/Dayframe Versions/v1.2 (2026-10-13)/` (`Dayframe.app.zip`, `Dayframe-source.zip`, `README.txt`). Added the row to START-HERE §5.
+- **Files:** `START-HERE.md`
+- **Why:** The owner asked to save the latest Dayframe.
+- **Checked:** The installed app was built from 3cba3c4, which has no code changes since. Both zips were listed with `unzip -l`. The GitHub push is still blocked (no `gh` sign-in).
+- **Commit:** this entry's title is the commit subject.
+
 ### 22:19: Briefing's pop-ups now come out of the notch
 - **What:** The "Where you left off" dialog, the check-in and session-goal text boxes, and the nudge/debrief notifications are gone. The owner chose the "quiet peek" style:
   - the notch pill grows one line under the notch (accent dot, the message, a chevron)
