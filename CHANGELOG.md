@@ -24,6 +24,35 @@ Entry template:
 
 ## 2026-10-14 (Wed)
 
+### 16:10: Ticket 10 paused: Piper benchmark passed, Mac GPU training too slow so far; handoff updated
+- **What:**
+  - Ticket 10 (fast Piper Jarvis voice) started and paused so the owner can continue with another AI.
+  - **Workspace:** `~/jarvis-piper/` (outside ~/Documents because of TCC). It has a uv venv with `piper-tts==1.8.0[train]` (the version Hermes pins) and torch 2.8.0 from the uv cache.
+  - **Downloads**, each approved by the owner: the stock voices `en_GB-alan-medium` and `en_GB-northern_english_male-medium`, and `core.pyx` from piper1-gpl v1.8.0, because the wheel lacks it.
+  - **Gate 1, speed: passed.**
+    - A one-sentence summary synthesizes in a median of 0.29–0.44 s, max about 0.8 s, while the load average was 11 with 10 GB of swap.
+    - Model load takes 2–9 s, so the voice must stay loaded in a server.
+  - **Gate 2, training speed: likely failed on the Mac GPU.**
+    - MPS took 17–28 s per batch of 8, peak 937 MB. That is about 17 min per epoch for 400 clips.
+    - The CPU hasn't been measured yet.
+  - **Owner's choices:**
+    - Training starts from Alan.
+    - The dataset run happens overnight.
+    - The owner OK'd removing Cursor's staged update and Chrome's web cache, and emptied the Trash.
+  - **New `Jarvis/voice/train.py`:** wraps `piper.train fit`. It keeps only `last.ckpt` (Piper's defaults keep up to 11 × 846 MB), logs every step's time and peak memory, and turns off the MOS metric (it downloads UTMOS).
+  - **`docs/jarvis/HANDOFF.md`** now holds the ticket 10 state, the numbers, the exact next steps and the new gotchas:
+    - the espeak voice must be `en-gb-x-rp`
+    - LightningCLI's `config.yaml` clash
+    - swap filling the disk
+- **Files:** `Jarvis/voice/train.py`, `docs/jarvis/HANDOFF.md`, `.scratch/jarvis/issues/10-fast-jarvis-voice.md`, `CHANGELOG.md`
+- **Why:** The owner asked to save the work and leave a file another AI can continue from.
+- **Checked:**
+  - The benchmark ran three times on both stock voices.
+  - The MPS probe logged 4 batches before it was stopped on purpose. Its process is confirmed gone.
+  - `train.py` ran through `piper.train fit` with checkpointing off.
+  - **Not verified:** `train.py`'s keep-only-last checkpoint setting (no checkpoint has been saved yet), the CPU speed, and anything in the app (no app code changed).
+- **Commit:** this entry's title is the commit subject.
+
 ### 15:00: Handoff note for the next AI
 - **What:** `docs/jarvis/HANDOFF.md` sums up Jarvis at v1.4 for whoever picks it up next:
   - how it fits together

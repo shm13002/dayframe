@@ -1,5 +1,5 @@
 # A fast Jarvis voice (Piper), so live answers speak in the Jarvis voice at once
-Status: ready-for-agent
+Status: claimed
 Type: task
 
 The cloned voice (`~/jarvis-voice`, OmniVoice, 32 steps + Whisper check) takes ~50 s per sentence on this
@@ -19,3 +19,10 @@ Owner said `~/jarvis-voice` may be changed, but on 2026-10-14 12:45 another agen
 `tts_server.py` (pinned MODEL_REVISION), so leave the server file alone and build beside it.
 
 ## Comments
+
+**2026-10-14 16:10 (Claude), paused for a switch to another AI.** Full state and next steps: `docs/jarvis/HANDOFF.md`.
+- **Owner's choices:** start from the Alan voice (`en_GB-alan-medium`, RP); run the dataset overnight; clear caches only with an OK.
+- **Workspace:** `~/jarvis-piper/` (venv with `piper-tts==1.8.0[train]` + torch 2.8, the stock voices, benchmark and probe files).
+- **Gate 1, speed: PASS.** A one-sentence summary synthesizes in a median of 0.29–0.44 s (max about 0.8 s) under heavy load. Model load takes 2–9 s, so a long-lived server is needed.
+- **Gate 2, training on MPS: likely FAIL.** It took 17–28 s per batch of 8 (`~/jarvis-piper/probe/steps-mps.log`), about 17 min per epoch for 400 clips. The CPU probe hasn't run yet. If the CPU fails too, offer the owner the options listed in the handoff. Don't switch silently.
+- **Added `Jarvis/voice/train.py`:** keeps only `last.ckpt`, logs each step's time, and turns MOS off.
