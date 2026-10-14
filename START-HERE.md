@@ -228,6 +228,7 @@ Each finished version gets a git tag, a backup copy, and a push to GitHub.
 | `v1.1` | 2026-10-13 | v1.0 plus the v2 audit fixes: Briefing installer works again without the Companion, never reinstalls Dayflow, Qwen3.5 upgrade sheet, dashboard backend picker |
 | `v1.2` | 2026-10-13 | v1.1 plus Briefing's messages from the notch (quiet peek instead of dialogs) and a sharper briefing when the AI is busy |
 | `v1.3` | 2026-10-14 | v1.2 plus (app now shows v1.3) the notch Resume card & non-starving notice queue, sandbox-hermetic Briefing tests, Evolution Center (L0/L1/L2 pipeline & state machine), and `docs/app-evolution/` |
+| `v1.4` | 2026-10-14 | **Jarvis** (renamed from Dayframe, display only): Hermes Agent on Grok 4.6, the Jarvis tab (HQ) with tools and approval cards, Herald OS system tools, timeline via MCP, ⌥Space with spoken summaries, phrase cache in the Jarvis voice, island-sound crash fix |
 
 - **List them:** `git -C ~/Documents/Projects/Dayframe tag -n`
 - **Look at one** (read-only): `git -C ~/Documents/Projects/Dayframe checkout v1.0`. Come back with `git -C ~/Documents/Projects/Dayframe checkout main`.
@@ -238,8 +239,11 @@ Each finished version gets a git tag, a backup copy, and a push to GitHub.
 ## 6. To do
 
 **Only you can do these** (Jarvis is waiting on them):
-- [ ] Finish Hermes setup (`hermes setup`, choose Full setup) and sign in to Grok: `hermes auth add xai-oauth` (needs SuperGrok or X Premium+). Optional: `hermes auth add openai-codex` (ChatGPT), `hermes auth add anthropic --type oauth` (Claude).
-- [ ] Allow the microphone the first time you press ⌥Space.
+- [x] Grok signed in to Hermes (2026-10-14); default model `xai-oauth` / `grok-4.6`.
+- [ ] Optional brains: `hermes auth add openai-codex` (ChatGPT), `hermes auth add anthropic --type oauth` (Claude).
+- [ ] Allow the microphone the first time you press ⌥Space, and try a real voice turn.
+- [ ] Optional: download a better instant voice (System Settings › Accessibility › Spoken Content › System voice › Manage Voices: Jamie (Premium) or Daniel (Enhanced)).
+- [ ] Decide what to do about the name clash: Codex's separate Electron app is also called "Jarvis" (`~/Applications/Jarvis.app`, `local.jarvis.desktop`).
 - [ ] Sign in to Grok: `~/.grok/bin/grok login`. Then Settings → Providers → Grok → Test, and Settings → MCP / CLI → Grok CLI → Connect.
 - [ ] In Shortcuts, make "Work Focus" (Set Focus → Work → On). Then pick it in Settings → Start of day → Focus.
 - [ ] Add your day's apps: Settings → Start of day → Add app…
@@ -248,6 +252,7 @@ Each finished version gets a git tag, a backup copy, and a push to GitHub.
 - [ ] Save the design system: in a terminal `claude` session in `Web/`, run `/design-login`, then `/design-sync Dayframe Design System`.
 
 **For an AI session** (tickets in `.scratch/`):
+- [ ] **Next for Jarvis:** `.scratch/jarvis/issues/10-fast-jarvis-voice.md` (train a Piper Jarvis voice; ask before each download), then chunk 2 (quick panel, "Hey Jarvis", control socket). Plan: `~/.claude/plans/okay-now-that-we-swift-lovelace.md`.
 - [ ] After `grok login`: test whether Grok accepts screenshots, not just their text (`.scratch/grok/issues/05-grok-images.md`).
 - [ ] The first-run intro video still says "Dayflow".
 

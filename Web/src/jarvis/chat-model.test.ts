@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { approvalFacts } from "./approvals";
+import { approvalFacts, toolLabel } from "./approvals";
 import { brainFor } from "./brains";
 import { appendUser, emptyChat, lastAnswer, reduceChatEvent, type ChatState } from "./chat-model";
 import type { GatewayEvent } from "./hermes/upstream/gateway-events";
@@ -65,5 +65,12 @@ describe("brains", () => {
     expect(brainFor("custom", "qwen3.5:4b")?.limited).toBe(true);
     expect(brainFor("openai-codex", "gpt-5")?.id).toBe("chatgpt");
     expect(brainFor("mystery", "x")).toBeNull();
+  });
+});
+
+describe("tool labels", () => {
+  it("names MCP tools by their tool, not their server", () => {
+    expect(toolLabel("mcp__dayflow__get_timeline")).toBe("Read your timeline");
+    expect(toolLabel("mcp__github__create_issue")).toBe("create issue");
   });
 });

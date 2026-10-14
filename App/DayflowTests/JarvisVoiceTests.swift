@@ -104,3 +104,21 @@ final class JarvisVoiceTests: XCTestCase {
     XCTAssertTrue(requests().isEmpty)
   }
 }
+
+final class JarvisPhraseCacheTests: XCTestCase {
+  func testSameLineSameKey() {
+    XCTAssertEqual(JarvisPhraseCache.key("On it!"), JarvisPhraseCache.key("  on   it. "))
+    XCTAssertEqual(JarvisPhraseCache.key("I’ve finished."), JarvisPhraseCache.key("i've finished"))
+    XCTAssertNotEqual(JarvisPhraseCache.key("Done."), JarvisPhraseCache.key("All done."))
+  }
+
+  func testStoresAndReads() throws {
+    var cache = JarvisPhraseCache()
+    cache.folder = FileManager.default.temporaryDirectory
+      .appendingPathComponent("jarvis-cache-\(UUID().uuidString)")
+    XCTAssertNil(cache.wav(for: "Done."))
+    cache.store(Data("RIFF".utf8), for: "Done.")
+    XCTAssertEqual(cache.wav(for: "done"), Data("RIFF".utf8))
+    try? FileManager.default.removeItem(at: cache.folder)
+  }
+}

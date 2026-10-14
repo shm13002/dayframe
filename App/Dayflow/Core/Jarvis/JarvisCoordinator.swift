@@ -86,6 +86,11 @@ final class JarvisCoordinator: NSObject, ObservableObject {
     }
     .store(in: &cancellables)
     _ = webView
+    // The Jarvis voice is slow, so its common lines are prepared ahead, after launch settles.
+    Task {
+      try? await Task.sleep(for: .seconds(90))
+      if JarvisVoice.shared.isEnabled { JarvisVoice.shared.prepareCommonPhrases() }
+    }
   }
 
   func stop() {
@@ -98,7 +103,12 @@ final class JarvisCoordinator: NSObject, ObservableObject {
   /// ⌥Space or the mic button: listen, then hand the words to the page as a voice turn.
   func listen() {
     JarvisVoice.shared.stop()
-    JarvisListener.shared.toggle { [weak self] text in self?.ask(text, surface: "voice") }
+    JarvisListener.shared.toggle { [weak self] text in
+      // An instant acknowledgement (in the Jarvis voice once the phrase is prepared), then the
+      // reply's summary sentence when it streams in.
+      JarvisVoice.shared.speak("On it.")
+      self?.ask(text, surface: "voice")
+    }
   }
 
   func ask(_ text: String, surface: String = "chat") {

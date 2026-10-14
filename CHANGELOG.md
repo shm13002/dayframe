@@ -24,6 +24,54 @@ Entry template:
 
 ## 2026-10-14 (Wed)
 
+### 13:49: Jarvis v1.4 installed and verified end to end; instant voice, phrase cache, and an island-sound crash fix
+- **What:**
+  - **Hermes:** the owner signed in to Grok (`hermes auth add xai-oauth`). The model is set to `xai-oauth` / `grok-4.6` (old config kept as `~/.hermes/config.yaml.before-jarvis`). The setup wizard was skipped. The installer also added Hermes's messaging gateway service (`ai.hermes.gateway`, about 31 MB); it is unused for now.
+  - **Installed Jarvis.app:**
+    - The old Dayframe.app went to the Trash, the Dock pin was repointed, and LaunchServices was re-registered.
+    - Recording stayed on: frames every 10 s and 0 tccd ScreenCapture mismatches.
+  - **End-to-end tests over Hermes's WebSocket**, like the Jarvis page (throwaway backend, `source:"herald_os"`):
+    1. "What is using the most memory?" Jarvis read its `jarvis` skill, then `system_processes`, and answered in 17 s.
+    2. "Create a folder on my Desktop" raised an approval request. Denied: nothing was created and `audit.jsonl` shows `denied`.
+    3. "What did I work on this morning?" used `mcp__dayflow__get_status` and `get_timeline` and answered correctly in 13 s.
+  - **Bridge install fixes** (`Jarvis/install-bridge.sh`):
+    - The plugin is now **copied** into `~/.hermes/plugins`, not symlinked. The repo is in ~/Documents, and Hermes, a child of Jarvis, reading it set off a TCC "Documents folder" request for Jarvis.
+    - `hermes mcp add` asks "Enable all 8 tools? [Y/n]" and quietly cancelled on a closed stdin: it is now answered `y` and checked. The "already registered" check reads config.yaml, because `mcp list` shortens paths.
+  - **Voice (owner's choice: summary + fast):**
+    - The cloned Jarvis voice takes about 50 s per sentence (measured 42.8 s and 52.0 s; X-Jarvis-Verified true).
+    - Herald streams speech about 1 s after the reply starts. Its free Edge engine returns 403 on this Mac.
+    - Voice turns now send Hermes a `voice_context` asking for a one-sentence summary first. Jarvis speaks that sentence as soon as it has streamed in (`Web/src/jarvis/spoken.ts`). An extra `llm.oneshot` summary call cost 12.6 s, so it was dropped.
+    - `JarvisVoice` has two modes:
+      - `.live`: the phrase cache in the Jarvis voice, otherwise the best installed British Mac voice, immediately.
+      - `.notice`: the cloned voice, even if slow.
+    - `JarvisPhraseCache` lives in `~/Library/Application Support/Dayflow/Jarvis/voice-cache`. 18 common lines ("On it.", "Done.", greetings…) are prepared in the background, waiting patiently while the shared server is busy (429). ⌥Space says "On it." at once.
+    - Settings › Jarvis shows phrases ready, the instant voice, and a Premium-voice tip.
+    - Ticket 10 (train a Piper Jarvis voice) is next.
+  - **Another app is also called "Jarvis":**
+    - Codex's Electron Jarvis HQ (`~/Applications/Jarvis.app`, `local.jarvis.desktop`, v0.1.0) was installed at 12:57.
+    - `build-and-install.sh` and the keep-alive now match our app by its full path. By name they would quit Codex's app, or think ours was running when only theirs was. The keep-alive was reloaded.
+  - **Crash fix** (`Island/IslandSound.swift`):
+    - From 13:04, Jarvis crashed (SIGABRT) 13–19 s after each launch while the screen was locked. `AVAudioPlayerNode.play()` raised an Objective-C exception on a stopped AVAudioEngine.
+    - Cues now play through `AVAudioPlayer`, which returns false instead of raising. The recipes are unchanged; `Synth.wav()` renders 16-bit WAV.
+    - Island sounds were switched off briefly as a stopgap, then back on.
+  - **Recording gap 12:58 → unlock:** the screen was locked, and Dayframe pauses recording while locked by design; it is not a fault.
+  - Version **1.4** (`MARKETING_VERSION`, `CFBundleShortVersionString`). START-HERE: v1.4 row, to-dos.
+- **Files:** `Jarvis/install-bridge.sh`, `Jarvis/bridge/JARVIS-CHANGES.md`, `App/Dayflow/Core/Jarvis/{JarvisVoice,JarvisCoordinator}.swift`, `App/Dayflow/Views/UI/Settings/JarvisSettingsView.swift`, `App/Dayflow/Island/IslandSound.swift`, `App/DayflowTests/{JarvisVoiceTests,NotchIslandTests}.swift`, `Web/src/jarvis/{spoken.ts,spoken.test.ts,use-jarvis.ts,approvals.ts,chat-model.test.ts}`, `App/Dayflow/Jarvis/Resources/jarvis.html`, `build-and-install.sh`, `Keepalive/local.dayframe.keepalive.plist`, `App/Dayflow.xcodeproj/project.pbxproj`, `App/Dayflow/Info.plist`, `START-HERE.md`, `.scratch/jarvis/issues/{02,03,10}*`
+- **Why:**
+  - Owner: "make it summarize", and it must be no slower than Herald.
+  - Owner: "save everything and log it".
+  - The crash and the name clash were found while verifying.
+- **Checked:**
+  - `./check.sh --app`: 284 app tests, 0 failures; web 33; Briefing 104; bridge 359.
+  - Jarvis v1.4 installed and stable for 90 s with sounds on and the screen locked. No new crash reports after 13:18.
+  - Codex's Jarvis (pid 25563) survived two installs.
+  - The three e2e tests above passed.
+  - **Not yet verified (screen locked / needs the owner):**
+    - a real ⌥Space voice turn
+    - the phrase cache filling (0 so far: the shared voice server stayed busy)
+    - the Jarvis tab UI in person
+- **Commit:** this entry's title is the commit subject.
+
 ### 12:26: Jarvis chunk 1 built: Hermes backend, Jarvis tab, system tools, Jarvis voice, ⌥Space, and the rename
 - **What:**
   - **The app is called Jarvis (display only).**

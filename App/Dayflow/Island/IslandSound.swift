@@ -29,18 +29,13 @@ final class IslandSound {
   static let enabledKey = "islandSoundEnabled"
   static let volumeKey = "islandSoundVolume"
 
-  private let engine = AVAudioEngine()
-  private let format: AVAudioFormat
-  private var players: [AVAudioPlayerNode] = []
-  private var nextPlayer = 0
+  private let sampleRate = 44_100.0
   private let queue = DispatchQueue(label: "local.dayframe.island.sound", qos: .userInitiated)
-  private var cache: [IslandCue: AVAudioPCMBuffer] = [:]
-  private var idleStop: DispatchWorkItem?
-  private var configured = false
+  private var cache: [IslandCue: Data] = [:]
+  /// Cues still playing (AVAudioPlayer must be kept alive until it finishes). Main thread only.
+  private var playing: [AVAudioPlayer] = []
 
-  private init() {
-    format = AVAudioFormat(standardFormatWithSampleRate: 44_100, channels: 1)!
-  }
+  private init() {}
 
   var isEnabled: Bool {
     UserDefaults.standard.object(forKey: Self.enabledKey) as? Bool ?? true
@@ -52,62 +47,44 @@ final class IslandSound {
     return Float(min(max(v, 0), 1))
   }
 
+  /// Plays a cue. Each cue is its own AVAudioPlayer, so overlapping cues mix naturally.
+  ///
+  /// Not AVAudioEngine + AVAudioPlayerNode (until 2026-10-14): when the audio output changes
+  /// (screen lock, AirPods, another app taking the device) the engine stops, and `play()` on a
+  /// node of a stopped engine raises an Objective-C exception that Swift can't catch. That
+  /// crashed Jarvis on launch over and over while the screen was locked. AVAudioPlayer reports
+  /// failure by returning false instead.
   func play(_ cue: IslandCue, value: Double = 0) {
     guard isEnabled else { return }
     queue.async { [self] in
-      guard let buffer = buffer(for: cue, value: value) else { return }
-      guard startEngineIfNeeded() else { return }
-      let player = players[nextPlayer]
-      nextPlayer = (nextPlayer + 1) % players.count
-      player.scheduleBuffer(buffer, at: nil, options: [], completionHandler: nil)
-      if !player.isPlaying { player.play() }
-      scheduleIdleStop()
-    }
-  }
-
-  // MARK: - Engine
-
-  private func startEngineIfNeeded() -> Bool {
-    if !configured {
-      for _ in 0..<12 {
-        let player = AVAudioPlayerNode()
-        engine.attach(player)
-        engine.connect(player, to: engine.mainMixerNode, format: format)
-        players.append(player)
+      guard let wav = wav(for: cue, value: value) else { return }
+      let volume = volume
+      DispatchQueue.main.async { [self] in
+        playing.removeAll { !$0.isPlaying }
+        guard let player = try? AVAudioPlayer(data: wav) else { return }
+        player.volume = volume
+        if player.play() {
+          playing.append(player)
+        } else {
+          soundLog.error("[IslandSound] couldn't play \(cue.rawValue, privacy: .public)")
+        }
       }
-      configured = true
-    }
-    engine.mainMixerNode.outputVolume = volume
-    if engine.isRunning { return true }
-    do {
-      try engine.start()
-      return true
-    } catch {
-      soundLog.error(
-        "[IslandSound] engine failed to start: \(error.localizedDescription, privacy: .public)")
-      return false
     }
   }
 
-  /// Let the audio hardware sleep when the island is quiet.
-  private func scheduleIdleStop() {
-    idleStop?.cancel()
-    let work = DispatchWorkItem { [weak self] in
-      guard let self else { return }
-      for player in self.players { player.stop() }
-      self.engine.stop()
-    }
-    idleStop = work
-    queue.asyncAfter(deadline: .now() + 8, execute: work)
+  func wav(for cue: IslandCue, value: Double) -> Data? {
+    // Grains and count chirps vary every time; everything else is rendered once.
+    let varies = cue == .grain || cue == .count
+    if !varies, let cached = cache[cue] { return cached }
+    let wav = recipe(for: cue, value: value).wav()
+    if !varies, let wav { cache[cue] = wav }
+    return wav
   }
 
   // MARK: - Recipes (seconds, Hz, linear gain)
 
-  private func buffer(for cue: IslandCue, value: Double) -> AVAudioPCMBuffer? {
-    // Grains and count chirps vary every time; everything else is rendered once.
-    let varies = cue == .grain || cue == .count
-    if !varies, let cached = cache[cue] { return cached }
-    var s = Synth(sampleRate: format.sampleRate)
+  private func recipe(for cue: IslandCue, value: Double) -> Synth {
+    var s = Synth(sampleRate: sampleRate)
     switch cue {
     case .drip: s.whoosh(from: 1200, to: 3000, dur: 0.45, gain: 0.22)
     case .pop:
@@ -152,9 +129,7 @@ final class IslandSound {
         s.tone(3300 - Double(i) * 180, dur: 0.1, gain: 0.04, delay: 0.08 + Double(i) * 0.07)
       }
     }
-    let buffer = s.render(format: format)
-    if !varies, let buffer { cache[cue] = buffer }
-    return buffer
+    return s
   }
 }
 
@@ -236,19 +211,17 @@ private struct Synth {
     }
   }
 
-  /// Master gain 0.55 like the prototypes, with a soft clip in place of their compressor.
-  func render(format: AVAudioFormat) -> AVAudioPCMBuffer? {
+  /// Master gain 0.55 like the prototypes, with a soft clip in place of their compressor,
+  /// as a 16-bit mono WAV.
+  func wav() -> Data? {
     let tail = Int(0.05 * sampleRate)
     let count = samples.count + tail
-    guard count > 0,
-      let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: AVAudioFrameCount(count)),
-      let out = buffer.floatChannelData?[0]
-    else { return nil }
-    buffer.frameLength = AVAudioFrameCount(count)
+    guard count > tail else { return nil }
+    var pcm = [Int16](repeating: 0, count: count)
     for i in 0..<count {
       let x = i < samples.count ? samples[i] * 0.55 : 0
-      out[i] = tanhf(x * 1.2) / 1.2
+      pcm[i] = Int16(max(-1, min(1, tanhf(x * 1.2) / 1.2)) * 32767)
     }
-    return buffer
+    return JarvisWAV.encode(pcm, sampleRate: Int(sampleRate))
   }
 }

@@ -1,3 +1,4 @@
+import AVFoundation
 import XCTest
 
 @testable import Dayflow
@@ -179,5 +180,17 @@ final class NotchIslandTests: XCTestCase {
     XCTAssertTrue(IslandCaptureExclusion.showOnScreen)
     IslandCaptureExclusion.setShowOnScreen(false)
     XCTAssertFalse(IslandCaptureExclusion.showOnScreen)
+  }
+}
+
+final class IslandSoundTests: XCTestCase {
+  /// Every cue renders to a playable WAV (cues play through AVAudioPlayer since 2026-10-14).
+  func testEveryCueRendersAPlayableWAV() throws {
+    for cue in IslandCue.allCases {
+      let wav = try XCTUnwrap(IslandSound.shared.wav(for: cue, value: 50), "\(cue)")
+      XCTAssertEqual(String(decoding: wav.prefix(4), as: UTF8.self), "RIFF", "\(cue)")
+      let player = try AVAudioPlayer(data: wav)
+      XCTAssertGreaterThan(player.duration, 0.04, "\(cue)")
+    }
   }
 }

@@ -60,15 +60,20 @@ const TOOL_LABEL: Record<string, string> = {
   system_kill_process: "Stopped a program",
   system_files: "Worked with files",
   system_documents: "Read documents",
-  mcp_dayflow_get_timeline: "Read your timeline",
-  mcp_dayflow_get_daily: "Read your day",
-  mcp_dayflow_search_activities: "Searched your timeline",
-  mcp_dayflow_get_time_breakdown: "Added up your time",
+  mcp__dayflow__get_timeline: "Read your timeline",
+  mcp__dayflow__get_daily: "Read your day",
+  mcp__dayflow__search_activities: "Searched your timeline",
+  mcp__dayflow__get_time_breakdown: "Added up your time",
+  mcp__dayflow__get_status: "Checked the timeline",
+  mcp__dayflow__get_weekly: "Read your week",
+  mcp__dayflow__get_activity_detail: "Read an activity",
+  mcp__dayflow__list_categories: "Read your categories",
+  skill_view: "Read its playbook",
   terminal: "Ran a command",
   web_search: "Searched the web",
   memory: "Used memory",
 };
 
 export function toolLabel(name: string): string {
-  return TOOL_LABEL[name] ?? name.replace(/^mcp_/, "").replace(/_/g, " ");
+  return TOOL_LABEL[name] ?? name.replace(/^mcp__[a-z0-9-]+__/, "").replace(/_/g, " ");
 }

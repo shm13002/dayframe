@@ -1,6 +1,6 @@
 #!/bin/bash
 # Gives Hermes Jarvis's system tools and Dayframe's timeline. Safe to re-run.
-#   ./install-bridge.sh          link + enable the bridge plugin, tool search off, dayflow MCP
+#   ./install-bridge.sh          copy + enable the bridge plugin, tool search off, dayflow MCP
 #   ./install-bridge.sh --undo   take all of that back (tool search returns to its old value)
 #   ./install-bridge.sh --test   run the bridge's own tests with Hermes's Python
 # Mirrors Herald OS's scripts/bootstrap.sh (MIT, Luke The Dev); see bridge/JARVIS-CHANGES.md.
@@ -54,21 +54,21 @@ case "${1:-}" in
     rm -f "$STATE/tool-search-before"
   fi
   link="$HERMES_HOME/plugins/herald-os-bridge"
-  [[ -L "$link" ]] && rm -f "$link" && echo "  removed $link"
+  [[ -e "$link" ]] && rm -rf "$link" && echo "  removed $link"
   rm -f "$STATE/bridge-enabled"
   echo "Done."
   exit 0
   ;;
 esac
 
-echo "Linking the system tools into Hermes"
+echo "Copying the system tools into Hermes"
+# A copy, not a link into this repo: the repo lives in ~/Documents, and Hermes (a child of Jarvis)
+# reading it would count as Jarvis reading Documents (a TCC Files & Folders request).
 mkdir -p "$HERMES_HOME/plugins"
 link="$HERMES_HOME/plugins/herald-os-bridge"
-if [[ ! -L "$link" || "$(readlink "$link")" != "$PLUGIN" ]]; then
-  rm -rf "$link"
-  ln -s "$PLUGIN" "$link"
-  echo "  $link -> $PLUGIN"
-fi
+[[ -L "$link" ]] && rm -f "$link"
+rsync -a --delete --exclude __pycache__ --exclude tests "$PLUGIN/" "$link/"
+echo "  $link (copy of $PLUGIN)"
 
 step "adds it to plugins.enabled" plugins enable herald-os-bridge
 step "adds herald_os to the saved toolsets (it only serves Jarvis's own sessions)" tools enable herald_os
@@ -83,10 +83,17 @@ fi
 
 cli="$(dayflow_cli)"
 if [[ -n "$cli" ]]; then
-  current="$(hermes_run mcp list 2>/dev/null | grep -E '^\s*dayflow\b' || true)"
-  if [[ -z "$current" || "$current" != *"$cli"* ]]; then
+  # Already registered for this app path? (`mcp list` shortens paths, so read the config.)
+  if ! grep -q "$cli" "$HERMES_HOME/config.yaml" 2>/dev/null; then
     hermes_run mcp remove dayflow >/dev/null 2>&1 || true
-    step "lets Jarvis read the Dayframe timeline" mcp add dayflow --command "$cli" --args mcp
+    # `mcp add` asks "Enable all 8 tools? [Y/n/select]" and cancels on a closed stdin: answer yes.
+    echo "  hermes mcp add dayflow: lets Jarvis read the Dayframe timeline"
+    added="$(cd "$ROOT" && printf 'y\n' | NO_COLOR=1 "$HERMES" mcp add dayflow --command "$cli" --args mcp 2>&1)"
+    if ! grep -q "dayflow" <<<"$(hermes_run mcp list 2>&1)" || grep -q "Cancelled" <<<"$added"; then
+      echo "  FAILED to add the dayflow MCP server:" >&2
+      tail -5 <<<"$added" >&2
+      exit 1
+    fi
   fi
 else
   echo "  (no installed Jarvis/Dayframe app yet: skipped the dayflow MCP server)"

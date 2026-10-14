@@ -69,11 +69,13 @@ touch /tmp/dayframe-installing
 trap 'rm -f /tmp/dayframe-installing' EXIT
 
 # Polite quit first: the app catches SIGTERM, closes the open recording segment and exits.
-# (Before the rename to Jarvis on 2026-10-14 its process was called Dayframe; quit that too.)
-for name in Jarvis Dayframe; do
-  if pkill -TERM -x "$name" 2>/dev/null; then
-    for _ in 1 2 3 4 5 6 7 8 9 10; do pgrep -x "$name" >/dev/null || break; sleep 0.5; done
-    pkill -KILL -x "$name" 2>/dev/null || true
+# Matched by full path, never by name: another app called "Jarvis" (Codex's Electron Jarvis HQ,
+# ~/Applications/Jarvis.app, bundle local.jarvis.desktop) may be running and must be left alone.
+# Before the rename (2026-10-14) this app was /Applications/Dayframe.app.
+for exe in /Applications/Jarvis.app/Contents/MacOS/Jarvis /Applications/Dayframe.app/Contents/MacOS/Dayframe; do
+  if pkill -TERM -f "^$exe" 2>/dev/null; then
+    for _ in 1 2 3 4 5 6 7 8 9 10; do pgrep -f "^$exe" >/dev/null || break; sleep 0.5; done
+    pkill -KILL -f "^$exe" 2>/dev/null || true
   fi
 done
 rm -rf /Applications/Jarvis.app

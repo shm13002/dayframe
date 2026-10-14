@@ -25,5 +25,5 @@ Not copied: the `herald-*` skills.
 
 ## Install
 
-`./install-bridge.sh` links this folder into `~/.hermes/plugins/` and enables it (idempotent).
+`./install-bridge.sh` copies this folder into `~/.hermes/plugins/` (a copy, so Hermes never reads ~/Documents) and enables it (idempotent). Re-run it after changing the plugin.
 `./install-bridge.sh --undo` reverses it. Tests: `./install-bridge.sh --test`.

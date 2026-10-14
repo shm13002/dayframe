@@ -76,13 +76,31 @@ struct JarvisSettingsView: View {
       SettingsSection(
         title: "Voice",
         subtitle:
-          "Spoken answers use your Jarvis voice (the voice server in ~/jarvis-voice). If it isn't running, the Mac's own voice reads them."
+          "After ⌥Space, Jarvis says \"On it.\" and then one summary sentence; the full answer is on screen. Your cloned Jarvis voice takes about 50 s per new sentence on this Mac, so live replies use prepared phrases in that voice plus an instant British voice for the rest. A fast trained Jarvis voice is next."
       ) {
         VStack(alignment: .leading, spacing: 0) {
+          SettingsRow(
+            label: "Jarvis voice phrases",
+            subtitle:
+              "Common lines (\"On it.\", \"Done.\", greetings) prepared in your Jarvis voice so they play instantly. \(voice.preparedPhrases) of \(JarvisVoice.commonPhrases.count) ready."
+          ) {
+            SettingsSecondaryButton(title: "Prepare", systemImage: "waveform") {
+              voice.prepareCommonPhrases()
+            }
+            .disabled(!voiceEnabled)
+          }
+          SettingsRow(
+            label: "Instant voice",
+            subtitle:
+              "New sentences are read at once by \(JarvisVoice.bestBritishVoice?.name ?? "the Mac's voice"). For a better one, download Jamie (Premium) or Daniel (Enhanced) in System Settings › Accessibility › Spoken Content › System voice › Manage Voices."
+          ) {
+            EmptyView()
+          }
           SettingsRow(label: "Speak answers to voice requests", subtitle: voiceSourceText) {
             HStack(spacing: 10) {
               SettingsSecondaryButton(title: "Test", systemImage: "speaker.wave.2") {
-                voice.speak("Good \(Self.partOfDay), Shahzeb. Jarvis is online and ready.")
+                voice.speak("Good \(Self.partOfDay), Shahzeb.")
+                voice.speak("Jarvis is online and ready.")
               }
               .disabled(!voiceEnabled)
               SettingsToggle(isOn: $voiceEnabled)
@@ -130,7 +148,10 @@ struct JarvisSettingsView: View {
         }
       }
     }
-    .task { audit = JarvisAuditEntry.recent() }
+    .task {
+      audit = JarvisAuditEntry.recent()
+      voice.prepareCommonPhrases()
+    }
   }
 
   private var statusText: String {

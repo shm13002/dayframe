@@ -2,17 +2,10 @@
 // requests and the brains this Mac is signed in to.
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { BRAINS, type Brain, brainFor } from "./brains";
-import {
-  appendSystem,
-  appendUser,
-  emptyChat,
-  fromTranscript,
-  lastAnswer,
-  reduceChatEvent,
-  type ChatState,
-} from "./chat-model";
+import { appendSystem, appendUser, emptyChat, fromTranscript, reduceChatEvent, type ChatState } from "./chat-model";
 import type { JarvisContext } from "./host";
 import { postToHost } from "./host";
+import { VOICE_CONTEXT, firstSpokenSentence } from "./spoken";
 import type {
   ApprovalRequestParams,
   ClarifyRequestParams,
@@ -153,15 +146,20 @@ export function useJarvis(context: JarvisContext) {
 
   useEffect(() => setBrainId(context.brain), [context.brain]);
 
-  // Speak each finished answer that came from a voice turn (or every answer when asked by voice).
-  const spokenRef = useRef("");
+  // After a voice turn, speak the reply's first sentence (asked to be a summary through
+  // voice_context) as soon as it has streamed in, while the rest keeps arriving on screen.
+  const spokenTurnRef = useRef<string | null>(null);
   useEffect(() => {
-    if (!chat || chat.streaming) return;
-    const answer = lastAnswer(chat);
-    if (answer && answer !== spokenRef.current && surfaceRef.current === "voice") {
-      spokenRef.current = answer;
-      postToHost({ type: "speak", text: answer });
-    }
+    if (!chat || surfaceRef.current !== "voice") return;
+    const lastUser = chat.messages.findLast((m) => m.role === "user");
+    if (!lastUser || spokenTurnRef.current === lastUser.id) return;
+    const start = chat.messages.indexOf(lastUser);
+    const reply = chat.messages.slice(start + 1).find((m) => m.role === "assistant" && m.text);
+    if (!reply || reply.role !== "assistant") return;
+    const line = firstSpokenSentence(reply.text, !reply.streaming);
+    if (!line) return;
+    spokenTurnRef.current = lastUser.id;
+    postToHost({ type: "speak", text: line });
   }, [chat]);
 
   /** The brain to use: the chosen one if signed in, else the first that is (Qwen last). */
@@ -216,6 +214,7 @@ export function useJarvis(context: JarvisContext) {
           session_id: current.sessionId,
           text: trimmed,
           surface: surface === "voice" ? "voice-live" : "chat",
+          ...(surface === "voice" ? { voice_context: VOICE_CONTEXT, voice_turn: true } : {}),
         });
       } catch (error) {
         postToHost({ type: "busy", busy: false });
