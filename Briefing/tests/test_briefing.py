@@ -256,9 +256,14 @@ class TestDebriefWakeCli(Base):
         os.environ["BRIEFING_TEST_RESUME"] = "yes"
         self.nightly()
         b.DESKTOP_CALLS.clear()
-        with contextlib.redirect_stdout(io.StringIO()):
-            b.main(["resume"])
-            b.main(["brief", "--force"])
+        orig_mac = b.is_mac
+        b.is_mac = lambda: True
+        try:
+            with contextlib.redirect_stdout(io.StringIO()):
+                b.main(["resume"])
+                b.main(["brief", "--force"])
+        finally:
+            b.is_mac = orig_mac
         calls = [" ".join(c) for c in b.DESKTOP_CALLS]
         self.assertTrue(any(c.startswith("open ") and "github.com/me/site/pull/12" in c for c in calls), calls)
         self.assertTrue(any("Where you left off" in c for c in calls), calls)

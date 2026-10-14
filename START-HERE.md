@@ -19,15 +19,15 @@ Everything lives in this one folder: `~/Documents/Projects/Dayframe`.
 | `AGENTS.md` | How any AI (Claude, Grok, Codex) must work here: the loop, standards, guardrails. `CLAUDE.md` points to it | Rarely |
 | `CONTEXT.md` | The glossary: the one word for each thing (card, show, welcome, slot…) | When a new idea needs a name |
 | `docs/adr/` | Short records of decisions that are hard to undo, and why they were made | When making one |
+| `docs/audits/` | Evidence-driven audit logs, recommendations, and handoff summaries | On audit runs |
 | `.scratch/` | Tickets: one folder per feature, one file per step, each with a `Status:` line | Yes |
 | `App/` | The Mac app's source code (Xcode project, Swift) | Yes: looks, tabs, behavior |
 | `App/Dayflow/` | The app's Swift files (folder name kept from the original) | Yes |
 | `App/Dayflow.xcodeproj` | Open this in Xcode to browse or edit visually | Optional |
 | `Web/` | The web pages inside the app: the React Briefing, the notch island show, the opening animation, the UI-kit gallery (`kit.html`). The build script builds them | Yes |
-| `Briefing/` | The briefing service: daily briefings, memory, dashboard page, Clicky orb | Yes |
+| `Briefing/` | The briefing service: daily briefings, memory, dashboard page | Yes |
 | `Briefing/briefing.py` | Briefing logic: what it writes, when, and which AI it talks to | Yes |
-| `Briefing/dashboard.html` | The page shown in the Briefing tab | Yes |
-| `Briefing/Companion.swift` | The Clicky orb | Yes |
+| `Briefing/dashboard.html` | The page shown in the Briefing tab's advanced views | Yes |
 | `Briefing/notes/` | Logs from the first install test | No |
 | `tools/` | A small helper the app build needs | No |
 | `Keepalive/` | Background job that reopens Dayframe and Ollama if they ever stop (installed by the build script) | Rarely |
@@ -96,7 +96,7 @@ Everything is in the app under **Settings → Start of day**. Code lives in `App
 | The **opening animation** (spark, orbit, vortex, ignition, locks, logo, wordmark) | `Web/src/welcome/scene.ts` | `firstLaunch(T)` / `dailyWake(T)` say what is on screen at each second; `WelcomeScene` draws it. Preview: run the `dayframe-welcome` dev server, open `/welcome.html?variant=firstLaunch&palette=ember&t=2.6` for one frozen frame. Rebuild with `npm --prefix Web run build:welcome` (the build script does it too) |
 | The **wordmark / tagline** text | `Web/src/welcome/welcome.html` | `#wordmark`, `#tagline` |
 | The **sounds** (Aether Pulse masters, AAC) | `App/Dayflow/Welcome/Resources/welcome-*.m4a` | `first-launch` / `daily-wake`, `laptop` / `cinematic` mixes |
-| **When** it plays (login once per session; unlock after N min away) | `App/Dayflow/Welcome/WelcomeController.swift` | `WelcomeLoginGate`, `WelcomeEventGate` (unit-tested in `WelcomeEventGateTests`) |
+| **When** it plays (login once per session; unlock after N min away) | `App/Dayflow/Welcome/WelcomeController.swift` | `WelcomeLoginGate`, `WelcomeEventGate` (unit-tested in `StartOfDayTests`) |
 | The **wallpaper** look (sky, glow, dunes; no text) | `App/Dayflow/Welcome/WallpaperManager.swift` | `WallpaperArt`. Files go to `~/Library/Application Support/Dayframe/Wallpaper/` |
 | What happens **after login** (Briefing, apps, layout, hide others) | `App/Dayflow/Welcome/StartOfDay.swift` | `run(reason:)`. Moving other apps' windows needs Accessibility, which you allow in System Settings |
 | Turn on a **Focus** at start of day | In the app: Settings → Start of day → Focus. Code: `App/Dayflow/Welcome/FocusShortcut.swift` | macOS has no Focus API, so it runs a Shortcut you make once (Set Focus → Work → On) |
@@ -210,6 +210,7 @@ Each finished version gets a git tag, a backup copy, and a push to GitHub.
 | Version | Date | What it is |
 |---|---|---|
 | `v1.0` | 2026-10-13 | Grok, the ring icon, Start of day with Focus and Today's apps, the notch island, the React Briefing |
+| `v1.1` | 2026-10-13 | v1.0 plus the v2 audit fixes: Briefing installer works again without the Companion, never reinstalls Dayflow, Qwen3.5 upgrade sheet, dashboard backend picker |
 
 - **List them:** `git -C ~/Documents/Projects/Dayframe tag -n`
 - **Look at one** (read-only): `git -C ~/Documents/Projects/Dayframe checkout v1.0`. Come back with `git -C ~/Documents/Projects/Dayframe checkout main`.
@@ -229,7 +230,6 @@ Each finished version gets a git tag, a backup copy, and a push to GitHub.
 
 **For an AI session** (tickets in `.scratch/`):
 - [ ] After `grok login`: test whether Grok accepts screenshots, not just their text (`.scratch/grok/issues/05-grok-images.md`).
-- [ ] Merge the **Clicky orb** (`Briefing/Companion.swift`) into the app, so it's one app with one permission.
 - [ ] The first-run intro video still says "Dayflow".
 
 **Done:**
@@ -239,6 +239,7 @@ Each finished version gets a git tag, a backup copy, and a push to GitHub.
 - [x] "How did you hear about us?" step skipped in first-run setup.
 - [x] Stable signing, so rebuilds keep the Screen Recording permission (section 7).
 - [x] Chat uses Qwen on this Mac by default (Claude, Codex and Grok optional).
+- [x] Companion orb retired and removed at owner request (2026-10-13).
 
 ## 7. Recording: how it stays on (and what to do if it ever stops)
 
@@ -275,5 +276,5 @@ sqlite3 ~/Library/Application\ Support/Dayflow/chunks.sqlite "select datetime(ma
 ## 8. Known issues
 
 - Never run the old **Dayflow** app at the same time. Both use the same data folder.
-- The build needs about 3 GB of free disk. The script checks first. `build/` is only build output: deleting it frees about 1.4 GB, and the next build recreates it (the first build after that is slower).
+- The build needs about 3000 MB of free disk (or `DAYFRAME_LOW_DISK_OK=1` with 1000+ MB free for incremental builds). The script checks first. `build/` is only build output: deleting it frees about 1.4 GB, and the next build recreates it (the first build after that is slower).
 - All tests pass (as of 2026-10-13: 251 app, 95 Briefing, 24 web). Run them all with `./check.sh --app`. The two failures inherited from Dayflow and the Briefing zip were fixed on 2026-10-13 (CHANGELOG, commit c874439).

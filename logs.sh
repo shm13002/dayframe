@@ -2,7 +2,8 @@
 # Dayframe's own log lines (os.Logger, subsystem local.dayframe.app).
 #   ./logs.sh                 the last hour, every area
 #   ./logs.sh 3h welcome      the last 3 hours of one area
-# Areas (categories): welcome, startofday, wallpaper, island. List them: grep -rn "category:" App/Dayflow
+# Areas (categories): welcome, startofday, wallpaper, island, briefing, recording, usage.
+# List them: grep -rn "category:" App/Dayflow
 # Uses /usr/bin/log on purpose: in zsh, plain `log` is a builtin that silently does nothing.
 set -euo pipefail
 last=${1:-1h}

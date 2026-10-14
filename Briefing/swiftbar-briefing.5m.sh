@@ -1,5 +1,5 @@
 #!/bin/bash
-# <xbar.title>Dayflow Briefing</xbar.title>
+# <xbar.title>Dayframe Briefing</xbar.title>
 # <xbar.desc>Menu-bar access to your local briefing dashboard</xbar.desc>
 # <swiftbar.hideRunInTerminal>true</swiftbar.hideRunInTerminal>
 PY=$(command -v python3); APP="$HOME/Briefing/app/briefing.py"

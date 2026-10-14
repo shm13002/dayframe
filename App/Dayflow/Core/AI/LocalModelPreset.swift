@@ -100,7 +100,7 @@ enum LocalModelPreset: String, CaseIterable, Codable {
         buttonTitle: "Open download in LM Studio",
         buttonURL: lmStudioDownloadURL,
         note:
-          "Tip: enable \"Launch local server\" so Dayflow can talk to LM Studio at \(LocalEngine.lmstudio.defaultBaseURL)."
+          "Tip: enable \"Launch local server\" so Dayframe can talk to LM Studio at \(LocalEngine.lmstudio.defaultBaseURL)."
       )
     }
   }
@@ -165,7 +165,7 @@ enum LocalModelPreferences {
 
   static func shouldShowUpgradeBanner(engine: LocalEngine, modelId: String) -> Bool {
     if defaults.bool(forKey: upgradeDismissedKey) { return false }
-    if currentPreset() == .qwen3VL4B { return false }
+    if currentPreset() == .qwen35Model4B { return false }
     let normalized = modelId.trimmingCharacters(in: .whitespacesAndNewlines)
     return normalized == LocalModelPreset.qwen25VL3B.modelId(for: engine)
   }

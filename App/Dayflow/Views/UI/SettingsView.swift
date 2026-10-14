@@ -89,7 +89,7 @@ struct SettingsView: View {
       }
       .sheet(isPresented: $providersViewModel.isShowingLocalModelUpgradeSheet) {
         LocalModelUpgradeSheet(
-          preset: .qwen3VL4B,
+          preset: .qwen35Model4B,
           initialEngine: providersViewModel.localEngine,
           initialBaseURL: providersViewModel.localBaseURL,
           initialModelId: providersViewModel.localModelId,

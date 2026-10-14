@@ -24,6 +24,48 @@ Entry template:
 
 ## 2026-10-13 (Tue)
 
+### 21:40: Full-repo v2 audit, installer/doctor/test/preset fixes, and documentation sync
+- **What:** Applied an outside audit (Argon, on the Dayframe-for-Gemini snapshot of 05b9dfb). Claude re-checked every finding against this repo before taking it. Records are in `docs/audits/2026-10-13T2232Z/`.
+  - `Briefing/install.sh` no longer crashes on the deleted `Companion.swift`, which it used to copy under `set -e`. `PORT` is now set unconditionally. Without the file it removes the old companion agent and binary, and drops the stale `companion` entry from `~/Briefing/status.json`, so `doctor` stops reporting it LATE.
+  - `Briefing/install.sh` no longer installs the original Dayflow cask (ADR 0007). It checks for `Dayframe.app` and warns if `Dayflow.app` is present. `uninstall.sh` text updated to match.
+  - `build-and-install.sh`:
+    - the disk check is now in MB, like `check.sh`, and accepts `DAYFRAME_LOW_DISK_OK=1` with 1000 MB or more free
+    - it syncs `Briefing/dist` to `~/Briefing/app/dist`
+    - it creates `~/Library/LaunchAgents` before copying the keep-alive
+    - signing is unchanged
+  - The local-model upgrade sheet, banner and "recommended" checks now use Qwen3.5 4B (`.qwen35Model4B`) instead of the old Qwen3-VL 4B.
+  - `dashboard.html` Settings: added `llm_backend` (a select with ollama, claude_cli, codex_cli, grok_cli, openai) and `cli_model`, and the empty state now says Dayframe.
+  - Two Briefing tests made platform-independent (they behave the same on the Mac).
+  - Docs:
+    - `logs.sh` and `AGENTS.md` list all 7 log categories
+    - START-HERE no longer mentions Companion.swift or WelcomeEventGateTests
+    - AGENTS.md says Briefing deploys with `install.sh`, which is safe now that the Companion is gone
+    - Briefing README and the SwiftBar title updated
+  - Not taken from the audit: its `.githooks/pre-commit`. Ours already existed and works; the audit's archive had just left it out.
+  - Found while applying it: the `install.sh --check` port test grepped for `python`, but `lsof` prints `Python`. Briefing's own running dashboard was reported as "port in use by another app", so the preflight failed. It's case-insensitive now (`grep -qi`).
+  - START-HERE §5: added `v1.1`. Saved as tag `v1.1` plus a backup in `~/Documents/Projects/Dayframe Versions/v1.1 (2026-10-13)/`.
+- **Files:**
+  - `Briefing/install.sh`, `Briefing/uninstall.sh`, `build-and-install.sh`, `logs.sh`
+  - `AGENTS.md`, `START-HERE.md`, `Briefing/README.md`
+  - `Briefing/dashboard.html`, `Briefing/swiftbar-briefing.5m.sh`
+  - `Briefing/tests/test_briefing.py`, `Briefing/tests/test_improve.py`
+  - `App/Dayflow/Views/UI/SettingsView.swift`, `App/Dayflow/Views/UI/Settings/SettingsProvidersTabView.swift`, `App/Dayflow/Core/AI/LocalModelPreset.swift`, `App/Dayflow/Views/UI/Settings/ProvidersSettingsViewModel.swift`
+  - new: `docs/audits/2026-10-13T2232Z/` (AUDIT_CONTEXT_LOG, RECOMMENDATIONS, FINAL_SUMMARY, CLAUDE_INSTRUCTIONS)
+- **Why:** After the 16:30 Companion removal, `install.sh` crashed and `doctor` would report LATE indefinitely. The installer could also reinstall the conflicting Dayflow app. The user asked for the audit to be applied and saved as the latest version.
+- **Checked:**
+  - Before applying, every audit diff was read against this repo:
+    - `.qwen35Model4B` exists, and `preset` is in scope in the banner
+    - every backend value is valid in `briefing.py`
+    - `/api/companion` and `/api/anticipate` exist
+    - the signing block is untouched
+  - `./check.sh`: clean, 24 web + 95 Briefing tests. `DAYFRAME_LOW_DISK_OK=1 ./check.sh --app`: 251 tests, 1 skipped, 0 failures.
+  - `./build-and-install.sh` at 21:45: build OK, stable signing, keep-alive OK. A new chunk started at 21:45:44 and frames kept arriving (21:46:34). `pgrep -x Dayflow` is empty.
+  - The only tccd "Failed to match" line was 21:44 (Documents folder, during the Debug test-host run), not ScreenCapture.
+  - `Briefing/install.sh --check`: all OK. One WARN: the original Dayflow.app is still installed (owner's call). `./install.sh` OK, auto-committed `~/Briefing/app` a11ffee.
+  - `briefing.py doctor`: `companion` is now NEVER (was going LATE), the dashboard answers 200, and no companion LaunchAgent remains.
+  - Still erroring and not part of this change: `wake` and `distill`, "Ollama error: timed out".
+- **Commit:** this entry's title is the commit subject.
+
 ### 16:30: Companion orb removed (owner request)
 - **What:** Deleted the Briefing companion orb (the cursor-trailing bubble with suggested questions). Stopped and removed its launch agent. The rest of Briefing (briefing, dashboard, distill, nightly, etc.) is untouched.
 - **Files:** Deleted `Briefing/Companion.swift`, `Briefing/companion-mock.html`; outside the repo: `~/Briefing/app/BriefingCompanion`, `~/Briefing/app/Companion.swift`, `~/Briefing/app/companion-Info.plist`, `~/Briefing/companion.log`, `~/Library/LaunchAgents/com.dayflowbriefing.companion.plist`.

@@ -2,28 +2,34 @@
 # Build Dayframe and install it to /Applications.
 #   ./build-and-install.sh            build + install + relaunch
 #   ./build-and-install.sh --build    build only (check that it compiles)
-# Needs ~3 GB free disk while building. Signing is local and stable, so the
-# Screen Recording permission you grant once keeps working after rebuilds.
+# Needs ~3 GB free disk while building (or DAYFRAME_LOW_DISK_OK=1 with 1 GB+ for incremental builds).
+# Signing is local and stable, so the Screen Recording permission you grant once keeps working after rebuilds.
 set -euo pipefail
 cd "$(dirname "$0")"
 
-FREE_GB=$(df -g "$HOME" | awk 'NR==2{print $4}')
-if [[ ${FREE_GB:-0} -lt 3 ]]; then
-  echo "Only ${FREE_GB} GB free; the build needs about 3 GB. Free some space first."; exit 1
+FREE_MB=$(df -m "$HOME" | awk 'NR==2{print $4}')
+if (( ${FREE_MB:-0} < 3000 )) && ! { [[ ${DAYFRAME_LOW_DISK_OK:-} == 1 ]] && (( ${FREE_MB:-0} >= 1000 )); }; then
+  echo "Only ${FREE_MB} MB free; the build needs about 3000 MB (or set DAYFRAME_LOW_DISK_OK=1 with 1000+ MB free)."; exit 1
 fi
 
 mkdir -p build
 
-# Web surfaces: the React Briefing screen (-> Briefing/dist, deployed by Briefing/install.sh)
-# and the notch-island show (-> App/Dayflow/Island/Resources/island.html, bundled in the app).
+# Web surfaces:
+# - React Briefing screen (-> Briefing/dist, synced to ~/Briefing/app/dist when installed)
+# - Notch-island show (-> App/Dayflow/Island/Resources/island.html, bundled in the app)
+# - Start-of-day welcome show (-> App/Dayflow/Welcome/Resources/welcome.html, bundled in the app)
 if command -v npm >/dev/null 2>&1; then
   echo "Building web surfaces..."
   [[ -d Web/node_modules ]] || npm --prefix Web ci --no-audit --no-fund > build/web-install.log 2>&1
   if ! npm --prefix Web run build > build/web-build.log 2>&1; then
     tail -20 build/web-build.log; echo "Web build FAILED (full log: build/web-build.log)"; exit 1
   fi
+  if [[ -d "$HOME/Briefing/app" && -f Briefing/dist/index.html ]]; then
+    rm -rf "$HOME/Briefing/app/dist"
+    cp -R Briefing/dist "$HOME/Briefing/app/dist"
+  fi
 else
-  echo "npm not found: skipping the web build (the app uses the last committed island.html)."
+  echo "npm not found: skipping the web build (the app uses the last committed island.html and welcome.html)."
 fi
 
 echo "Building Dayframe..."
@@ -74,6 +80,7 @@ echo "Installed and launched /Applications/Dayframe.app"
 
 # Keep-alive agent: reopens Dayframe (and Ollama) within 2 minutes if either isn't running.
 AGENT=local.dayframe.keepalive
+mkdir -p "$HOME/Library/LaunchAgents"
 AGENT_DST="$HOME/Library/LaunchAgents/$AGENT.plist"
 if ! cmp -s "Keepalive/$AGENT.plist" "$AGENT_DST"; then
   cp "Keepalive/$AGENT.plist" "$AGENT_DST"

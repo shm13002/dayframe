@@ -1,4 +1,6 @@
-# Dayflow Briefing (free, local, no API keys)
+# Dayframe Briefing (free, local, no API keys)
+
+> **Dayframe note (2026-10-13):** In Dayframe, this service lives inside `Briefing/` and shares `~/Library/Application Support/Dayflow/chunks.sqlite` read-only with `Dayframe.app`. The native `Companion.swift` cursor-trailing orb was retired at owner request on 2026-10-13 (`install.sh` skips it when `Companion.swift` is absent, while `/api/companion` and `/api/anticipate` remain in `briefing.py` for replay and test suite compatibility).
 
 Turns [Dayflow](https://github.com/JerryZLiu/Dayflow)'s screen timeline into a **memory folder that keeps learning**,
 gives you a **"where you left off" briefing** on wake/login, and can **delete recordings once they're distilled**.

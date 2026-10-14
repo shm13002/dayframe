@@ -655,7 +655,7 @@ private struct LocalModelUpgradeBanner: View {
             .font(.custom("Figtree", size: 16))
             .fontWeight(.semibold)
             .foregroundColor(.white)
-          Text("Upgrade to Qwen3VL for a big improvement in quality.")
+          Text("Upgrade to \(preset.displayName) for a big improvement in quality.")
             .font(.custom("Figtree", size: 13))
             .foregroundColor(.white.opacity(0.8))
         }

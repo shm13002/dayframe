@@ -1,5 +1,5 @@
 #!/bin/bash
-# Dayflow Briefing installer (macOS). Idempotent: safe to re-run.
+# Dayframe Briefing installer (macOS). Idempotent: safe to re-run.
 set -euo pipefail
 [[ "$(uname)" == "Darwin" ]] || { echo "macOS only."; exit 1; }
 SRC="$(cd "$(dirname "$0")" && pwd)"
@@ -17,14 +17,15 @@ if [[ "${1:-}" == "--check" ]]; then
   then ok "python3 $("$PYC" -V 2>&1 | cut -d' ' -f2) with sqlite FTS5 ($PYC)"; else no "python3 >= 3.9 missing: xcode-select --install"; fi
   xcode-select -p >/dev/null 2>&1 && ok "Xcode Command Line Tools (git, swiftc)" || no "Command Line Tools missing: xcode-select --install"
   command -v brew >/dev/null 2>&1 || [[ -x /opt/homebrew/bin/brew || -x /usr/local/bin/brew ]] && ok "Homebrew" || warn "Homebrew missing (installer will install it)"
-  [[ -d /Applications/Dayflow.app ]] && ok "Dayflow.app" || warn "Dayflow not installed (installer tries brew; else https://dayflow.so)"
+  [[ -d /Applications/Dayframe.app ]] && ok "Dayframe.app" || warn "Dayframe.app not installed (run ../build-and-install.sh)"
+  [[ ! -d /Applications/Dayflow.app ]] && ok "Upstream Dayflow.app not present" || warn "Upstream Dayflow.app is installed; quit/uninstall it so it never shares the database with Dayframe"
   DB="$HOME/Library/Application Support/Dayflow/chunks.sqlite"
-  [[ -f "$DB" ]] && ok "Dayflow database found" || warn "no Dayflow database yet at $DB (open Dayflow and let it record; or set dayflow_db in ~/Briefing/config.json)"
+  [[ -f "$DB" ]] && ok "Dayframe database found" || warn "no database yet at $DB (open Dayframe and let it record; or set dayflow_db in ~/Briefing/config.json)"
   [[ -d /Applications/Ollama.app ]] || PATH="$JOB_PATH" command -v ollama >/dev/null 2>&1 && ok "Ollama installed" || warn "Ollama not installed (installer will install it)"
   curl -fs -m 3 http://localhost:11434/api/tags >/dev/null && ok "Ollama running" || warn "Ollama not running (open -a Ollama)"
   PATH="$JOB_PATH:$PATH" command -v sleepwatcher >/dev/null 2>&1 && ok "sleepwatcher" || warn "sleepwatcher missing (installer will brew install; without it no briefing on wake, login briefing still works)"
   if lsof -nP -iTCP:8765 -sTCP:LISTEN >/dev/null 2>&1; then
-    lsof -nP -iTCP:8765 -sTCP:LISTEN | grep -q python && ok "port 8765 (Briefing dashboard already running)" || no "port 8765 in use by another app: set dashboard_port in ~/Briefing/config.json"
+    lsof -nP -iTCP:8765 -sTCP:LISTEN | grep -qi python && ok "port 8765 (Briefing dashboard already running)" || no "port 8765 in use by another app: set dashboard_port in ~/Briefing/config.json"
   else ok "port 8765 free"; fi
   FREE=$(df -g "$HOME" | awk 'NR==2{print $4}'); [[ ${FREE:-0} -ge 8 ]] && ok "disk: ${FREE} GB free" || warn "disk: ${FREE} GB free (models need ~5-10 GB)"
   echo; [[ $FAIL == 0 ]] && echo "Ready: run ./install.sh" || echo "Fix the FIX lines, then run ./install.sh"
@@ -42,16 +43,19 @@ if ! command -v brew >/dev/null 2>&1; then
   for b in /opt/homebrew/bin/brew /usr/local/bin/brew; do [[ -x $b ]] && eval "$($b shellenv)"; done
 fi
 
-# 2) Dependencies
+# 2) Dependencies (never install upstream Dayflow.app; Dayframe shares its data folder)
 brew list --cask ollama >/dev/null 2>&1 || command -v ollama >/dev/null 2>&1 || brew install --cask ollama
 brew list sleepwatcher >/dev/null 2>&1 || brew install sleepwatcher
-[[ -d /Applications/Dayflow.app ]] || brew list --cask dayflow >/dev/null 2>&1 || brew install --cask dayflow || \
-  echo "WARN: could not install Dayflow; get it from https://dayflow.so then rerun."
+[[ -d /Applications/Dayframe.app ]] || echo "WARN: /Applications/Dayframe.app not found; run ../build-and-install.sh from the repo root."
+if [[ -d /Applications/Dayflow.app ]]; then
+  echo "WARN: /Applications/Dayflow.app is installed. Never run Dayflow and Dayframe together; consider: brew uninstall --cask dayflow"
+fi
 
-# 3) Python
+# 3) Python & Briefing files
 PY="$(command -v python3 || true)"
 [[ -n "$PY" ]] || { echo "python3 not found. Run: xcode-select --install   then rerun."; exit 1; }
-cp "$SRC/briefing.py" "$SRC/improve.py" "$SRC/dashboard.html" "$SRC/swiftbar-briefing.5m.sh" "$SRC/Companion.swift" "$APP/"; chmod +x "$APP/briefing.py" "$APP/swiftbar-briefing.5m.sh"
+cp "$SRC/briefing.py" "$SRC/improve.py" "$SRC/dashboard.html" "$SRC/swiftbar-briefing.5m.sh" "$APP/"
+chmod +x "$APP/briefing.py" "$APP/swiftbar-briefing.5m.sh"
 rm -rf "$APP/tests"; cp -R "$SRC/tests" "$APP/tests"   # the self-improvement gate runs the full suite on every candidate
 # The React Briefing screen (built from ../Web by `npm --prefix Web run build`), served at /app/.
 rm -rf "$APP/dist"; if [[ -f "$SRC/dist/index.html" ]]; then cp -R "$SRC/dist" "$APP/dist"; else echo "WARN: Briefing/dist not built; Dayframe falls back to its native Briefing screen."; fi
@@ -109,7 +113,7 @@ P
 plist login   '<key>RunAtLoad</key><true/>' wake
 plist checkin '<key>StartInterval</key><integer>4500</integer>' checkin
 plist distill '<key>StartInterval</key><integer>1800</integer>' distill
-DEB_H="$("$PY" -c "import json;print(json.load(open('$HOME/Briefing/config.json')).get('debrief_hour',18))")"
+DEB_H="$("$PY" -c "import json;print(json.load(open('$HOME/Briefing/config.json')).get('debrief_hour',18))" 2>/dev/null || echo 18)"
 plist debrief "<key>StartCalendarInterval</key><dict><key>Hour</key><integer>$DEB_H</integer><key>Minute</key><integer>0</integer></dict>" debrief
 plist report  '<key>StartCalendarInterval</key><dict><key>Weekday</key><integer>0</integer><key>Hour</key><integer>18</integer><key>Minute</key><integer>30</integer></dict>' report
 plist dashboard '<key>RunAtLoad</key><true/><key>KeepAlive</key><true/>' serve
@@ -119,12 +123,14 @@ plist improve '<key>StartCalendarInterval</key><dict><key>Hour</key><integer>2</
 # Optional SwiftBar menu-bar icon (only if SwiftBar is installed and has a plugin folder)
 SB_DIR="$(defaults read com.ameba.SwiftBar PluginDirectory 2>/dev/null || true)"
 if [[ -n "$SB_DIR" && -d "$SB_DIR" ]]; then ln -sf "$APP/swiftbar-briefing.5m.sh" "$SB_DIR/swiftbar-briefing.5m.sh"; echo "SwiftBar plugin linked."; fi
-# Anticipatory companion orb (native Swift, macOS 14+; needs Xcode Command Line Tools: xcode-select --install)
-# Permissions it asks for: Accessibility (window text, Ctrl+Option hold), Screen Recording (optional OCR fallback),
-# Speech Recognition + Microphone (optional push-to-talk; on-device only), Automation (browser URL for mode detection).
+
 mkdir -p "$HOME/Briefing/automations"
 chmod -R go-rwx "$HOME/Briefing"
-if xcrun --find swiftc >/dev/null 2>&1; then
+PORT="$("$PY" -c "import sys;sys.path.insert(0,'$APP');import briefing as b;print(b.load_config()['dashboard_port'])")"
+
+# Optional Companion orb: only built if Companion.swift is present in the source folder (retired by owner 2026-10-13)
+if [[ -f "$SRC/Companion.swift" ]] && xcrun --find swiftc >/dev/null 2>&1; then
+  cp "$SRC/Companion.swift" "$APP/Companion.swift"
   cat > "$APP/companion-Info.plist" <<'IP'
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -136,7 +142,6 @@ if xcrun --find swiftc >/dev/null 2>&1; then
   <key>NSAppleEventsUsageDescription</key><string>Reads the current browser tab URL to tell what you are working on.</string>
 </dict></plist>
 IP
-  PORT="$("$PY" -c "import sys;sys.path.insert(0,'$APP');import briefing as b;print(b.load_config()['dashboard_port'])")"
   if xcrun swiftc -O "$APP/Companion.swift" -o "$APP/BriefingCompanion" -framework Cocoa -framework Vision \
        -framework ScreenCaptureKit -framework Speech -framework AVFoundation \
        -Xlinker -sectcreate -Xlinker __TEXT -Xlinker __info_plist -Xlinker "$APP/companion-Info.plist"; then
@@ -153,12 +158,17 @@ IP
 </dict></plist>
 P
     plutil -lint -s "$f"
-    xattr -d com.apple.quarantine "$APP/BriefingCompanion" 2>/dev/null || true   # built locally; never downloaded
+    xattr -d com.apple.quarantine "$APP/BriefingCompanion" 2>/dev/null || true
     launchctl bootout "gui/$(id -u)/$LABEL.companion" 2>/dev/null || true
     launchctl bootstrap "gui/$(id -u)" "$f"
-    echo "Companion orb running: hover it or hold Ctrl+Option to open; grant Accessibility (and optionally Screen Recording) when asked."
+    echo "Companion orb running."
   else echo "WARN: Companion.swift failed to compile; the rest works without it."; fi
-else echo "Skipping companion bubble: run 'xcode-select --install' then rerun install.sh."; fi
+else
+  launchctl bootout "gui/$(id -u)/$LABEL.companion" 2>/dev/null || true
+  rm -f "$LA/$LABEL.companion.plist" "$APP/BriefingCompanion" "$APP/Companion.swift" "$APP/companion-Info.plist" "$HOME/Briefing/companion.log"
+  # Remove any stale 'companion' entry from ~/Briefing/status.json so `briefing.py doctor` does not report it LATE
+  "$PY" -c "import json,pathlib;p=pathlib.Path('$HOME/Briefing/status.json');d=json.loads(p.read_text()) if p.exists() else {};d.pop('companion',None) and p.write_text(json.dumps(d,indent=1))" 2>/dev/null || true
+fi
 plist nightly '<key>StartCalendarInterval</key><dict><key>Hour</key><integer>23</integer><key>Minute</key><integer>0</integer></dict>' nightly
 
 echo
@@ -166,10 +176,10 @@ echo
 cat <<M
 
 Installed. Next:
- 1. Open Dayflow, grant Screen Recording, and choose Ollama as its AI provider.
+ 1. Open Dayframe, grant Screen Recording, and choose Ollama (Qwen) or your CLI plan as its AI provider.
  2. First dialog may ask to allow "osascript"/Terminal to control the computer: allow it.
  3. Test now:  $PY $APP/briefing.py brief --force
- Automations: dashboard → Automations tab (drafts never run without your approval)
+ Automations: dashboard -> Automations tab (drafts never run without your approval)
  Dashboard: http://127.0.0.1:${PORT:-8765}   (menu bar: brew install --cask swiftbar, then rerun install.sh)
  Ask your memory:  $PY $APP/briefing.py ask "what was I doing yesterday afternoon?"
  Voice: set "speak": true in ~/Briefing/config.json

@@ -193,7 +193,7 @@ class TestImproveLoop(ImproveBase):
         (self.repo / "briefing.py").write_text((self.repo / "briefing.py").read_text() + "\n# local edit\n")
         rep = improve.run(self.cfg, force=True)
         self.assertTrue(any("uncommitted" in n for n in rep["notes"]), rep["notes"])
-        self.write_cfg(improve_min_free_gb=10 ** 9)
+        self.write_cfg(improve_min_free_gb=10 ** 15)
         self.assertEqual(improve.run(self.cfg, force=True), {"skipped": "low disk"})
         orig = improve.on_battery
         improve.on_battery = lambda: True

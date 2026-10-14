@@ -261,7 +261,7 @@ final class ProvidersSettingsViewModel: ObservableObject {
     if normalized.caseInsensitiveCompare(recommended) == .orderedSame {
       return true
     }
-    return LocalModelPreferences.currentPreset() == .qwen3VL4B
+    return LocalModelPreferences.currentPreset() == .qwen35Model4B
   }
 
   func refreshUpgradeBannerState() {
