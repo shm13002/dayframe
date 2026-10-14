@@ -85,6 +85,24 @@ final class BriefingNoticeTests: XCTestCase {
     XCTAssertEqual(skipped?["skip"] as? Bool, true)
   }
 
+  func testResumeNoticePeekAndConfirmation() throws {
+    let resume = BriefingNotice(
+      id: "1-5-ee", kind: .resume, title: "Resume landing-page?",
+      text: "Apps: Cursor, Figma\nLinks: https://github.com/me/site/pull/12", prompt: "",
+      defaultAnswer: "", expires: Date(timeIntervalSince1970: 1300))
+    XCTAssertEqual(resume.peekLine, "Resume landing-page? · Apps: Cursor, Figma")
+    BriefingNoticeInbox.confirm(resume, resume: true, in: dir)
+    let confirmed =
+      try JSONSerialization.jsonObject(
+        with: Data(contentsOf: dir.appendingPathComponent("1-5-ee.answer"))) as? [String: Any]
+    XCTAssertEqual(confirmed?["resume"] as? Bool, true)
+    BriefingNoticeInbox.confirm(resume, resume: false, in: dir)
+    let skipped =
+      try JSONSerialization.jsonObject(
+        with: Data(contentsOf: dir.appendingPathComponent("1-5-ee.answer"))) as? [String: Any]
+    XCTAssertEqual(skipped?["skip"] as? Bool, true)
+  }
+
   func testAskExpiresWhenBriefingStopsWaiting() throws {
     let json = Data(
       #"{"id":"1-3-cc","kind":"ask","prompt":"Goal?","created":1000,"wait":600}"#.utf8)
@@ -154,6 +172,13 @@ final class BriefingNoticeTests: XCTestCase {
           id: "4", kind: .ask, title: "Check-in", text: "",
           prompt: "What are you working on, and any blockers?\n(Session goal: ship the notch card)",
           defaultAnswer: "", expires: nil), .notice
+      ),
+      (
+        "resume-card",
+        .init(
+          id: "7", kind: .resume, title: "Resume dayframe?",
+          text: "Apps: Xcode, Terminal\nFiles: ~/Documents/Projects/Dayframe/START-HERE.md",
+          prompt: "", defaultAnswer: "", expires: nil), .notice
       ),
       (
         "nudge-peek",

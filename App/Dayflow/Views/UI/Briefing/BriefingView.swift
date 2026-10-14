@@ -685,7 +685,7 @@ private struct BriefingStat: View {
 // MARK: - "More" pages (the advanced web dashboard, in a sheet)
 
 enum BriefingMorePage: String, CaseIterable, Identifiable {
-  case memory, projects, weekly, automations, settings
+  case memory, projects, weekly, automations, improve, privacy, settings
   var id: String { rawValue }
   var title: String {
     switch self {
@@ -693,6 +693,8 @@ enum BriefingMorePage: String, CaseIterable, Identifiable {
     case .projects: return "Projects"
     case .weekly: return "Weekly report"
     case .automations: return "Automations"
+    case .improve: return "Evolution Center"
+    case .privacy: return "Privacy & cleanup"
     case .settings: return "Briefing settings"
     }
   }
@@ -702,6 +704,8 @@ enum BriefingMorePage: String, CaseIterable, Identifiable {
     case .projects: return "folder"
     case .weekly: return "calendar"
     case .automations: return "bolt"
+    case .improve: return "chart.line.uptrend.xyaxis"
+    case .privacy: return "hand.raised"
     case .settings: return "slider.horizontal.3"
     }
   }

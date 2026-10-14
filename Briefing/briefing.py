@@ -374,7 +374,9 @@ def notch(kind, wait_answer=0, **payload):
             time.sleep(0.1)
         if not ack.exists():
             note.unlink(missing_ok=True)   # Dayframe must not show it late, after the fallback dialog
+            telemetry("notch", notice_kind=kind, shown=False)
             return False, None
+        telemetry("notch", notice_kind=kind, shown=True)
         answer = None
         if wait_answer:
             deadline = time.time() + wait_answer
@@ -2364,10 +2366,14 @@ def offer_resume(cfg):
         print(f"[resume offer] {t['project']}: {listing}")
         return "offered (non-mac)"
     else:
-        sc = (f'display dialog "Resume {osa_escape(t["project"])}?\n\n{osa_escape(listing)}" with title "Resume" '
-              f'buttons {{"Not now", "Resume"}} default button "Resume" giving up after 300')
-        r = run_on_mac(["osascript", "-e", sc], capture_output=True, text=True, timeout=330)
-        ok = "Resume" in r.stdout
+        shown, answer = notch("resume", wait_answer=300, title=f"Resume {t['project']}?", text=listing, project=t["project"])
+        if shown:
+            ok = bool(answer and answer.get("resume") and not answer.get("skip"))
+        else:
+            sc = (f'display dialog "Resume {osa_escape(t["project"])}?\n\n{osa_escape(listing)}" with title "Resume" '
+                  f'buttons {{"Not now", "Resume"}} default button "Resume" giving up after 300')
+            r = run_on_mac(["osascript", "-e", sc], capture_output=True, text=True, timeout=330)
+            ok = "Resume" in r.stdout
     return "resumed: " + ", ".join(do_resume(t)) if ok else "declined"
 
 # ---------------------------------------------------------------- briefing v3
@@ -2508,7 +2514,7 @@ SETTABLE = {"companion_enabled", "companion_sensitivity", "companion_hint_mode",
             "nextmove_focus_minutes", "model", "speak", "voice", "cooldown_minutes", "lookback_hours", "checkin_quiet_hours", "cleanup_enabled",
             "cleanup_min_age_hours", "blocklist", "coach_enabled", "coach_threshold_minutes", "debrief_hour",
             "debrief_use_whisper", "phone_push", "ntfy_topic", "ntfy_server", "imessage_to", "push_briefing",
-            "ask_session_goal", "embeddings", "improve_enabled", "improve_auto_apply_params", "improve_code_model",
+            "ask_session_goal", "embeddings", "improve_enabled", "improve_mode", "improve_auto_apply_params", "improve_code_model",
             "obsidian_links", "things_sync", "things_list", "llm_backend", "cli_model"}
 
 DASH_TIMELINE_MAX = 400
@@ -3642,7 +3648,11 @@ def ext_post(cfg, path, body):
         if path == "/api/improve/decide":
             return improve.decide(cfg, str(body["id"]), str(body["decision"]))
         if path == "/api/improve/run":
-            return improve.run_async(cfg)
+            return improve.run_async(cfg, mode=str(body.get("mode") or ""))
+        if path == "/api/improve/audit":
+            return improve.run_audit(cfg)
+        if path == "/api/improve/cancel":
+            return improve.cancel(cfg, reason=str(body.get("reason") or "user cancelled"))
     if path == "/api/memory/trace":
         return fact_trace(str(body["id"]))
     if path == "/api/memory/forget":

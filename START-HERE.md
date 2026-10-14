@@ -222,6 +222,7 @@ Each finished version gets a git tag, a backup copy, and a push to GitHub.
 | `v1.0` | 2026-10-13 | Grok, the ring icon, Start of day with Focus and Today's apps, the notch island, the React Briefing |
 | `v1.1` | 2026-10-13 | v1.0 plus the v2 audit fixes: Briefing installer works again without the Companion, never reinstalls Dayflow, Qwen3.5 upgrade sheet, dashboard backend picker |
 | `v1.2` | 2026-10-13 | v1.1 plus Briefing's messages from the notch (quiet peek instead of dialogs) and a sharper briefing when the AI is busy |
+| `v1.3` | 2026-10-14 | v1.2 plus (app now shows v1.3) the notch Resume card & non-starving notice queue, sandbox-hermetic Briefing tests, Evolution Center (L0/L1/L2 pipeline & state machine), and `docs/app-evolution/` |
 
 - **List them:** `git -C ~/Documents/Projects/Dayframe tag -n`
 - **Look at one** (read-only): `git -C ~/Documents/Projects/Dayframe checkout v1.0`. Come back with `git -C ~/Documents/Projects/Dayframe checkout main`.

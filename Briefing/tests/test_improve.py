@@ -212,6 +212,39 @@ class TestImproveLoop(ImproveBase):
         self.assertEqual(ov["proposals"][0]["status"], "pending"); self.assertTrue(ov["repo"])
 
 
+
+    def test_evolution_engine_audit_mode_transitions_and_deduplication(self):
+        self.seed_companion()
+        # 1. Audit mode (L0) inspects and ranks problems without creating branches or proposals
+        audit_rep = improve.run_audit(self.cfg)
+        self.assertEqual(audit_rep["mode"], "audit")
+        self.assertEqual(audit_rep["proposals"], [])
+        self.assertEqual(self.branches(), [])
+        self.assertGreaterEqual(len(audit_rep["problems"]), 1)
+        self.assertIn("priority", audit_rep["problems"][0])
+        self.assertTrue(audit_rep["codebase"]["git_ready"])
+        # 2. Guided run creates proposal, records state transitions, and attaches iteration contract
+        rep = improve.run(self.cfg, force=True)
+        self.assertEqual(len(rep["proposals"]), 1)
+        ov = b.ext_get(self.cfg, "/api/improve", {})
+        self.assertEqual(ov["state"]["state"], "IDLE")
+        states_seen = [t["to_state"] for t in ov["transitions"]]
+        for expected in ("OBSERVING", "ANALYZING", "PROPOSING", "REVIEWING", "VERIFYING", "APPROVAL_PENDING", "RECORDED", "IDLE"):
+            self.assertIn(expected, states_seen)
+        p = ov["proposals"][0]
+        self.assertEqual(p["contract"]["mode"], "guided")
+        self.assertEqual(p["contract"]["authority_level"], "L0-L1")
+        # 3. Rejecting a proposal prevents identical re-proposal on the next cycle (circuit-breaker deduplication)
+        improve.decide(self.cfg, p["id"], "reject")
+        rep2 = improve.run(self.cfg, force=True)
+        self.assertEqual(rep2["proposals"], [])
+        self.assertTrue(any("duplicate" in n for n in rep2["notes"]), rep2["notes"])
+        # 4. Cancel resets state cleanly
+        c_res = b.ext_post(self.cfg, "/api/improve/cancel", {"reason": "test cancel"})
+        self.assertTrue(c_res["ok"])
+        self.assertEqual(improve.state_load()["state"], "IDLE")
+
+
 class TestPatchSafety(ImproveBase):
     def hunk(self, func, path="briefing.py", body="+    x = 1\n"):
         src = (self.repo / path).read_text() if (self.repo / path).exists() else ""

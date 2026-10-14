@@ -390,14 +390,24 @@ final class IslandController {
   func presentNotice(id: String) {
     guard started, pill != nil else { return }
     guard let notice = BriefingNoticeInbox.take(id: id) else { return }
-    // A newer briefing replaces an unread older one; questions and nudges queue in order.
+    // A newer briefing replaces an unread older one. Interactive prompts (ask, resume) and nudges
+    // preempt a passive unread briefing (which is re-queued right behind them) so a 3-hour unread
+    // briefing never starves a wake question or resume prompt.
     if notice.kind == .brief {
       noticeQueue.removeAll { $0.kind == .brief }
       if let current = pill?.model.notice, current.kind == .brief, pill?.model.mode != .notice {
         clearNotice()
       }
+      noticeQueue.append(notice)
+    } else if let current = pill?.model.notice, current.kind == .brief,
+      pill?.model.mode != .notice
+    {
+      clearNotice()
+      noticeQueue.append(notice)
+      noticeQueue.append(current)
+    } else {
+      noticeQueue.append(notice)
     }
-    noticeQueue.append(notice)
     showNextNotice()
   }
 
@@ -440,7 +450,11 @@ final class IslandController {
   }
 
   private func finishNotice(_ notice: BriefingNotice, answered: Bool, text: String?) {
-    if notice.kind == .ask, answered { BriefingNoticeInbox.answer(notice, text: text) }
+    if notice.kind == .ask, answered {
+      BriefingNoticeInbox.answer(notice, text: text)
+    } else if notice.kind == .resume, answered {
+      BriefingNoticeInbox.confirm(notice, resume: text == "resume")
+    }
     guard pill?.model.notice?.id == notice.id else { return }
     clearNotice()
     showNextNotice()

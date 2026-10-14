@@ -72,5 +72,34 @@ class TestNotch(unittest.TestCase):
         self.assertIn("1 more open loop", text)
 
 
+    def test_resume_offer_goes_to_the_notch_and_opens_targets(self):
+        b.DATA.mkdir(parents=True, exist_ok=True)
+        b.proj_save("dayframe", {"sessions": [{"day": "2026-10-13", "start": 100, "minutes": 45, "title": "Notch card", "src": "#1"}],
+                                 "apps": {"Xcode": 3, "Terminal": 2}, "urls": {"https://github.com/me/dayframe/pull/1": 2}, "files": {}})
+        self.dayframe({"resume": True})
+        out = b.offer_resume(b.load_config())
+        self.assertEqual(self.seen[0]["kind"], "resume")
+        self.assertEqual(self.seen[0]["title"], "Resume dayframe?")
+        self.assertIn("Apps: Xcode, Terminal", self.seen[0]["text"])
+        self.assertIn("resumed:", out)
+        self.assertTrue(any('tell application "Xcode" to activate' in c for c in self.calls()), self.calls())
+        self.assertFalse(any("display dialog" in c for c in self.calls()), self.calls())
+
+    def test_resume_offer_declined_from_the_notch_opens_nothing(self):
+        b.DATA.mkdir(parents=True, exist_ok=True)
+        b.proj_save("dayframe", {"sessions": [], "apps": {"Xcode": 2}, "urls": {}, "files": {}})
+        self.dayframe({"skip": True})
+        out = b.offer_resume(b.load_config())
+        self.assertEqual(out, "declined")
+        self.assertFalse(any("activate" in c or "display dialog" in c for c in self.calls()), self.calls())
+
+    def test_resume_falls_back_to_dialog_without_dayframe(self):
+        b.DATA.mkdir(parents=True, exist_ok=True)
+        b.proj_save("dayframe", {"sessions": [], "apps": {"Xcode": 2}, "urls": {}, "files": {}})
+        out = b.offer_resume(b.load_config())
+        self.assertEqual(out, "declined")
+        self.assertTrue(any("display dialog" in c and "Resume dayframe?" in c for c in self.calls()), self.calls())
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -187,7 +187,7 @@ pre.code{margin:var(--s3) 0;background:var(--code);border:1px solid var(--line);
  <button class="navb" data-s="automations" data-primary><svg class="i"><use href="#i-bolt"/></svg><span>Automate</span><kbd>6</kbd></button>
  <button class="navb" data-s="companion"><svg class="i"><use href="#i-orb"/></svg><span>Companion</span><kbd>C</kbd></button>
  <button class="navb" data-s="memory"><svg class="i"><use href="#i-brain"/></svg><span>Memory</span><kbd>M</kbd></button>
- <button class="navb" data-s="improve"><svg class="i"><use href="#i-trend"/></svg><span>Improvements</span><kbd>I</kbd></button>
+ <button class="navb" data-s="improve"><svg class="i"><use href="#i-trend"/></svg><span>Evolution Center</span><kbd>I</kbd></button>
  <button class="navb" data-s="weekly"><svg class="i"><use href="#i-cal"/></svg><span>Weekly</span><kbd>7</kbd></button>
  <button class="navb" data-s="ask" data-primary><svg class="i"><use href="#i-chat"/></svg><span>Ask</span><kbd>8</kbd></button>
  <button class="navb" data-s="privacy"><svg class="i"><use href="#i-shield"/></svg><span>Privacy</span><kbd>9</kbd></button>
@@ -236,8 +236,8 @@ pre.code{margin:var(--s3) 0;background:var(--code);border:1px solid var(--line);
 </section>
 <section id="memory" class="sec" aria-labelledby="h-mem"><header class="page"><div><h1 id="h-mem">Memory</h1><div class="sub">Every remembered fact with its source, confidence and review date. Changing facts are re-checked against your logs; nothing stale is used silently.</div></div></header>
  <div class="grid" id="memBody"><div class="card"><div class="sk" style="width:50%"></div></div></div></section>
-<section id="improve" class="sec" aria-labelledby="h-imp"><header class="page"><div><h1 id="h-imp">Improvements</h1><div class="sub">Each night Briefing checks whether a small, tested change would have served you better on your own history. Nothing changes until you approve.</div></div>
- <button class="btn" id="impRun"><svg class="i"><use href="#i-refresh"/></svg>Check now</button></header>
+<section id="improve" class="sec" aria-labelledby="h-imp"><header class="page"><div><h1 id="h-imp">Evolution Center</h1><div class="sub">Bounded, evidence-driven improvement pipeline. Every proposal requires a root-cause diagnosis, a failing check first, full test verification, and your approval.</div></div>
+ <div class="row"><button class="btn" id="impAudit" title="L0 Observe-only audit (no branches or edits)"><svg class="i"><use href="#i-shield"/></svg>Audit only (L0)</button><button class="btn p" id="impRun"><svg class="i"><use href="#i-refresh"/></svg>Run guided cycle</button></div></header>
  <div class="grid" id="impBody"><div class="card"><div class="sk" style="width:50%"></div></div></div></section>
 <section id="weekly" class="sec" aria-labelledby="h-wk"><header class="page"><div><h1 id="h-wk">Weekly report</h1><div class="sub" id="wname">Written every Sunday evening.</div></div></header><div class="card md" id="wmd"></div></section>
 
@@ -421,7 +421,7 @@ const LOWER_BETTER=/wasted|latency|unparseable/i;
 function deltaRow(k,[a,c]){const num=v=>typeof v==="number"&&v<=1&&!/cases|kept|ms|unparseable/i.test(k)?Math.round(v*100)+"%":v;
  const better=a===c?"":(LOWER_BETTER.test(k)?c<a:c>a)?"better":"worse";return `<tr><td>${esc(k.replace(/^.*?: /,"").replace(/^./,m=>m.toUpperCase()))}</td><td>${esc(num(a))}</td><td class="${better}">${esc(num(c))}</td></tr>`}
 function diffView(d){return esc(d).split("\n").filter(l=>!/^(index |diff --git)/.test(l)).map(l=>`<span class="${l.startsWith("+")&&!l.startsWith("+++")?"a":l.startsWith("-")&&!l.startsWith("---")?"r":l.startsWith("@@")?"h":""}">${l}</span>`).join("\n")}
-const PROB={companion_interrupts:"Companion interruptions",companion_misses:"Companion guesses",nextmove_dismissed:"Next-move suggestions"};
+const PROB={companion_interrupts:"Companion interruptions",companion_misses:"Companion guesses",nextmove_dismissed:"Next-move suggestions",llm_errors:"Local model errors",briefing_disliked:"Briefing quality",notch_fallback_high:"Notch fallback rate"};
 const humanNote=n=>n.replace(/^(\w+): /,(m,k)=>(PROB[k]||k)+": ");
 const KIND={param:"Setting tweak",prompt:"Prompt wording",code:"Small code change",retro:"Retro suggestion"};
 const STAT={accepted:["ok","On backlog"],pending:["acc","Waiting for you"],approved:["ok","Applied"],rejected:["","Rejected"],reverted:["warn","Undone"]};
@@ -436,21 +436,30 @@ async function loadImp(){let o;try{o=await api("/api/improve")}catch(e){$("#impB
   <details${p.status==="pending"?" open":""}><summary class="dim" style="cursor:pointer">Exact change (${esc(p.branch||"")})</summary><pre class="diff2" tabindex="0">${diffView(p.diff||"")}</pre></details>
   <div class="row">${p.status==="pending"?`<button class="btn p" data-d="approve">Approve &amp; apply</button><button class="btn" data-d="reject">Reject</button>`:p.status==="approved"?`<button class="btn" data-d="undo">Undo this change</button>`:""}</div></div>`}`};
  const pctv=v=>v==null?"–":Math.round(v*100)+"%";
- $("#impBody").innerHTML=(pend.length?pend.map(card).join(""):`<div class="card">${emptyState("trend","No changes needed","The last check found nothing that clearly beats your current setup. That's the expected result most nights.")}</div>`)+
- `<div class="card s7"><h2>This week's health</h2><div class="mgrid">
-   <div><span class="dim">Companion ignored</span><b>${pctv(m.companion.ignore_rate)}</b><span class="dim">${m.companion.n} guesses</span></div>
+ const stObj=o.state||{state:"IDLE",mode:o.mode||"guided",reason:"ready"},nt=m.notch||{n:0,ack_rate:null},probs=o.problems||[],trs=o.transitions||[],cb=o.codebase||{};
+ $("#impBody").innerHTML=`<div class="card"><div class="row between"><div><h2>Pipeline state &amp; authority mode</h2><div class="row" style="gap:var(--s3)"><span class="pill ${stObj.state==="IDLE"?"ok":stObj.state==="APPROVAL_PENDING"?"acc":"warn"}">${esc(stObj.state||"IDLE")}</span><span class="mut" style="font-size:var(--t-sm)">${esc(stObj.reason||"ready")}</span></div></div>
+  <div class="row"><label for="impMode" class="dim">Mode</label><select id="impMode" style="min-height:32px">${Object.entries(o.modes||{audit:{label:"Audit (L0)"},guided:{label:"Guided (L0-L1)"},controlled_autonomous:{label:"Controlled autonomous (L2)"},scheduled:{label:"Scheduled"}}).map(([k,v])=>`<option value="${esc(k)}" ${(o.mode||"guided")===k?"selected":""}>${esc(v.label||k)}</option>`).join("")}</select>
+  ${stObj.state&&stObj.state!=="IDLE"?`<button class="btn sm d" id="impCancel">Cancel / Reset</button>`:""}</div></div></div>`+
+ (pend.length?pend.map(card).join(""):`<div class="card">${emptyState("trend","No changes needed","The last check found nothing that clearly beats your current setup. That's the expected result most nights.")}</div>`)+
+ `<div class="card s7"><h2>This week's health &amp; audited signals</h2><div class="mgrid">
+   <div><span class="dim">Notch notice ack</span><b>${pctv(nt.ack_rate)}</b><span class="dim">${nt.n||0} notices</span></div>
    <div><span class="dim">Next-move dismissed</span><b>${pctv(m.nextmove.dismiss_rate)}</b><span class="dim">${m.nextmove.n} suggestions</span></div>
    <div><span class="dim">Model latency p90</span><b>${m.llm.p90_ms==null?"–":(m.llm.p90_ms/1000).toFixed(1)+"s"}</b><span class="dim">${pctv(m.llm.error_rate)} errors</span></div>
    <div><span class="dim">Briefings disliked</span><b>${pctv(m.briefing.down_rate)}</b><span class="dim">${m.briefing.n} rated</span></div></div>
-   <p class="dim" style="margin:var(--s4) 0 0">Telemetry stays on this Mac (~/Briefing/telemetry.jsonl): outcomes, timings and error types, never content. ${o.repo?"":"<b>App folder isn't a git repo; re-run install.sh to enable proposals.</b>"}</p></div>
- <div class="card s5"><h2>Recent checks</h2>${o.runs.length?`<ul class="runs">${o.runs.slice(0,6).map(r=>`<li><span class="dim" style="min-width:84px">${new Date(r.ts*1000).toLocaleDateString([], {weekday:"short",month:"short",day:"numeric"})}</span><span>${esc(r.result==="proposal"?"Proposed a change":r.result==="skipped"?"Skipped: "+r.reason:"No change needed")}${(r.notes||[]).length?`<br><span class="dim">${esc(humanNote(r.notes[0]))}</span>`:""}</span></li>`).join("")}</ul>`:'<div class="dim">Runs nightly at 2:30 AM when plugged in.</div>'}
+   <p class="dim" style="margin:var(--s4) 0 0">Telemetry stays on this Mac (~/Briefing/telemetry.jsonl): outcomes, timings and error types, never content. Protected scope: ${(cb.protected_files||[]).length} files, ${cb.protected_functions_count||0} functions locked. ${o.repo?"":"<b>App folder isn't a git repo; re-run install.sh to enable proposals.</b>"}</p></div>
+ <div class="card s5"><h2>Recent cycles &amp; state log</h2>${o.runs.length?`<ul class="runs">${o.runs.slice(0,5).map(r=>`<li><span class="dim" style="min-width:84px">${new Date(r.ts*1000).toLocaleDateString([], {weekday:"short",month:"short",day:"numeric"})}</span><span>${esc(r.result==="proposal"?"Proposed a change":r.result==="audit"?"Audit (L0) completed":r.result==="cancelled"?"Cancelled: "+r.reason:r.result==="skipped"?"Skipped: "+r.reason:"No change needed")}${(r.notes||[]).length?`<br><span class="dim">${esc(humanNote(r.notes[0]))}</span>`:""}</span></li>`).join("")}</ul>`:'<div class="dim">Runs nightly at 2:30 AM when plugged in.</div>'}
+  ${trs.length?`<details style="margin-top:var(--s3)"><summary class="dim" style="cursor:pointer">State transitions (${trs.length})</summary><div class="dim" style="margin-top:var(--s2);font-family:ui-monospace,Menlo,monospace">${trs.slice(0,6).map(t=>`${esc(t.from_state)} → <b>${esc(t.to_state)}</b> (${esc(t.reason||t.mode)})`).join("<br>")}</div></details>`:""}
   <p class="dim" style="margin:var(--s4) 0 0">Param-only auto-apply: <b>${o.auto_apply_params?"on":"off"}</b> · Code patches: <b>${o.code_model?esc(o.code_model):"off"}</b></p></div>`+
+ (probs.length?`<div class="card"><h2>Candidate backlog (ranked by priority = value × confidence × urgency / effort × risk)</h2>${probs.map(pr=>`<div class="fact"><div><span class="pill ${pr.fixable?"acc":"warn"}">${pr.fixable?"Auto-tunable":"Diagnostic"}</span> <b>${esc(PROB[pr.id]||pr.id)}</b> — ${esc(pr.text)}</div><div class="dim">Priority: <b>${pr.priority??"–"}</b> · Confidence: ${Math.round((pr.confidence||0)*100)}%</div></div>`).join("")}</div>`:"")+
  (retro.length?`<div class="card"><h2>Nightly retro: environment fixes (suggestions only)</h2>${retro.map(p=>`<div class="fact" data-id="${esc(p.id)}"><div><span class="pill">${esc(p.problem)}</span> ${esc(p.summary)}</div><div class="row"><button class="btn sm" data-d="approve">Add to backlog</button><button class="btn sm g" data-d="reject">Dismiss</button></div></div>`).join("")}</div>`:"")+
  (past.length?`<div class="card"><h2>History</h2></div>`+past.slice(0,6).map(card).join(""):"");
  $$("#impBody [data-d]").forEach(btn=>btn.onclick=async()=>{const id=btn.closest("[data-id]").dataset.id,d=btn.dataset.d;
   if(d==="approve"&&!confirm("Apply this change? It is merged into the app folder (a backup is kept) and the dashboard restarts. You can undo it any time."))return;
-  btn.disabled=true;const r=await api("/api/improve/decide",{id,decision:d});toast(r.error?r.error:d==="approve"?"Applied":d==="undo"?"Undone":"Rejected");loadImp()})}
-$("#impRun").onclick=async()=>{await api("/api/improve/run",{});toast("Checking in the background. Results appear here");setTimeout(loadImp,4000)};
+  btn.disabled=true;const r=await api("/api/improve/decide",{id,decision:d});toast(r.error?r.error:d==="approve"?"Applied":d==="undo"?"Undone":"Rejected");loadImp()});
+ if($("#impMode"))$("#impMode").onchange=async e=>{await api("/api/settings",{improve_mode:e.target.value,improve_auto_apply_params:e.target.value==="controlled_autonomous"});toast("Evolution mode saved");loadImp()};
+ if($("#impCancel"))$("#impCancel").onclick=async()=>{await api("/api/improve/cancel",{reason:"cancelled from Evolution Center"});toast("Cycle cancelled");loadImp()}}
+$("#impRun").onclick=async()=>{await api("/api/improve/run",{mode:$("#impMode")?.value||""});toast("Running guided cycle in the background. Results appear here");setTimeout(loadImp,4000)};
+if($("#impAudit"))$("#impAudit").onclick=async()=>{await api("/api/improve/audit",{});toast("Audit complete (L0: 0 files modified)");loadImp()};
 document.addEventListener("click",async e=>{const r=e.target.closest("[data-rate]");if(!r)return;await api("/api/brief/feedback",{rating:r.dataset.rate});$$("[data-rate]").forEach(x=>x.setAttribute("aria-pressed",x===r));toast("Thanks. This helps tune your briefings")});
 /* memory */
 const KLAB=k=>k.startsWith("project:")?"Project · "+k.slice(8).replace(/-/g," "):{open_loop:"Open loop",goals:"Goal",profile:"Profile",people:"People",patterns:"Habit"}[k]||k;

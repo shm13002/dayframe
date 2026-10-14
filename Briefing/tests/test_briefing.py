@@ -273,15 +273,11 @@ class TestServer(Base):
     def setUp(self):
         super().setUp()
         self.nightly()
-        import socketserver, http.server
-        class S(socketserver.ThreadingMixIn, http.server.HTTPServer):
-            daemon_threads = True
-        self.srv = S(("127.0.0.1", 0), b.make_handler({"cfg": self.cfg}))
+        self.srv = mocks.start_http_server(b.make_handler({"cfg": self.cfg}))
         self.port = self.srv.server_address[1]
         self.cfg["dashboard_port"] = self.port
         b.CONFIG_PATH.write_text(json.dumps(dict(json.loads(b.CONFIG_PATH.read_text()), dashboard_port=self.port)))
         self.srv.RequestHandlerClass = b.make_handler({"cfg": self.cfg})
-        threading.Thread(target=self.srv.serve_forever, daemon=True).start()
     def tearDown(self):
         self.srv.shutdown(); self.srv.server_close()
     def req(self, path, body=None, headers=None, raw=None):

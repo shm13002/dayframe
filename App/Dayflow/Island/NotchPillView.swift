@@ -93,6 +93,8 @@ final class NotchPillModel: ObservableObject {
     case .ask:
       parts.append(layout.textHeight(n.prompt, lines: 4))
       parts.append(layout.fieldHeight)
+    case .resume:
+      parts.append(layout.textHeight(n.text, lines: 4))
     case .peek:
       parts.append(layout.textHeight(n.text, lines: 4))
     }
@@ -519,14 +521,18 @@ private struct NoticeCard: View {
           .font(.system(size: 15, weight: .semibold))
           .lineLimit(1)
         Spacer()
-        Text(notice.kind == .ask ? "Briefing asks" : "Briefing")
-          .font(.system(size: 12))
-          .foregroundStyle(PillInk.muted)
+        Text(
+          notice.kind == .ask
+            ? "Briefing asks" : notice.kind == .resume ? "Resume workspace" : "Briefing"
+        )
+        .font(.system(size: 12))
+        .foregroundStyle(PillInk.muted)
       }
       .frame(height: 20)
       switch notice.kind {
       case .brief: brief
       case .ask: ask
+      case .resume: resumeCard
       case .peek: nudge
       }
     }
@@ -646,6 +652,22 @@ private struct NoticeCard: View {
   }
 
   private func save() { onDone(true, answer) }
+
+  // MARK: Resume
+
+  @ViewBuilder private var resumeCard: some View {
+    Text(notice.text)
+      .font(.system(size: 13))
+      .foregroundStyle(PillInk.body)
+      .lineLimit(4)
+      .fixedSize(horizontal: false, vertical: true)
+    HStack(spacing: 8) {
+      CardButton(title: "Resume") { onDone(true, "resume") }
+      Spacer()
+      CardButton(title: "Not now", subtle: true) { onDone(true, nil) }
+    }
+    .frame(height: NotchPillLayout.buttonRow)
+  }
 
   // MARK: Nudge
 

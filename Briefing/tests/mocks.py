@@ -1,7 +1,110 @@
 """Test fixtures: in-process fake Ollama + realistic Dayflow / Meetily databases.
 
 Importing this module also keeps every test off the real Mac (every test file imports it)."""
-import hashlib, http.server, json, random, re, sqlite3, subprocess, threading, datetime as dt, os
+import hashlib, http.client, http.server, io, json, random, re, sqlite3, subprocess, threading, urllib.error, urllib.parse, urllib.request, datetime as dt, os
+
+_INPROC_SERVERS = {}
+_NEXT_VIRTUAL_PORT = 18700
+_ORIG_URLOPEN = urllib.request.urlopen
+
+
+class _FakeSocket:
+    def __init__(self, req_bytes):
+        self._rfile = io.BytesIO(req_bytes)
+        self._wfile = io.BytesIO()
+
+    def makefile(self, mode, *a, **kw):
+        return self._rfile if "r" in mode else self._wfile
+
+    def sendall(self, data):
+        self._wfile.write(data)
+
+    def close(self):
+        pass
+
+
+class _InProcessHTTPServer:
+    def __init__(self, handler_cls):
+        global _NEXT_VIRTUAL_PORT
+        _NEXT_VIRTUAL_PORT += 1
+        self.server_address = ("127.0.0.1", _NEXT_VIRTUAL_PORT)
+        self.RequestHandlerClass = handler_cls
+        self.closed = False
+        _INPROC_SERVERS[self.server_address[1]] = self
+
+    def serve_forever(self):
+        pass
+
+    def shutdown(self):
+        self.closed = True
+        _INPROC_SERVERS.pop(self.server_address[1], None)
+
+    def server_close(self):
+        self.shutdown()
+
+    def dispatch(self, req_obj, timeout=None):
+        if self.closed:
+            raise urllib.error.URLError(ConnectionRefusedError(61, "Connection refused"))
+        if isinstance(req_obj, str):
+            req_obj = urllib.request.Request(req_obj)
+        parsed = urllib.parse.urlsplit(req_obj.full_url)
+        path = (parsed.path or "/") + (f"?{parsed.query}" if parsed.query else "")
+        body = req_obj.data or b""
+        if isinstance(body, str):
+            body = body.encode("utf-8")
+        method = req_obj.get_method()
+        headers = {k: v for k, v in req_obj.header_items()}
+        if not any(k.lower() == "host" for k in headers):
+            headers["Host"] = f"127.0.0.1:{self.server_address[1]}"
+        if req_obj.data is not None and not any(k.lower() == "content-length" for k in headers):
+            headers["Content-Length"] = str(len(body))
+        head = f"{method} {path} HTTP/1.1\r\n" + "".join(f"{k}: {v}\r\n" for k, v in headers.items()) + "\r\n"
+        sock = _FakeSocket(head.encode("iso-8859-1") + body)
+        self.RequestHandlerClass(sock, ("127.0.0.1", 50000), self)
+        raw_resp = sock._wfile.getvalue()
+
+        class _RespSock:
+            def __init__(self, data):
+                self._fp = io.BytesIO(data)
+            def makefile(self, mode, *a, **kw):
+                return self._fp
+            def close(self):
+                pass
+
+        resp = http.client.HTTPResponse(_RespSock(raw_resp), method=method)
+        resp.begin()
+        if resp.status >= 400:
+            raise urllib.error.HTTPError(req_obj.full_url, resp.status, resp.reason, resp.headers, resp)
+        return resp
+
+
+def _patched_urlopen(url, data=None, timeout=None, *a, **kw):
+    req_obj = urllib.request.Request(url, data=data) if isinstance(url, str) else url
+    parsed = urllib.parse.urlsplit(req_obj.full_url)
+    if parsed.hostname == "127.0.0.1" and parsed.port in _INPROC_SERVERS:
+        return _INPROC_SERVERS[parsed.port].dispatch(req_obj, timeout=timeout)
+    try:
+        return _ORIG_URLOPEN(url, data=data, timeout=timeout, *a, **kw)
+    except PermissionError as e:
+        raise urllib.error.URLError(ConnectionRefusedError(61, str(e))) from e
+
+
+urllib.request.urlopen = _patched_urlopen
+
+
+def start_http_server(handler_cls):
+    import socket
+    probe = socket.socket()
+    try:
+        probe.bind(("127.0.0.1", 0))
+    except PermissionError:
+        probe.close()
+        return _InProcessHTTPServer(handler_cls)
+    probe.close()
+    srv = http.server.ThreadingHTTPServer(("127.0.0.1", 0), handler_cls)
+    threading.Thread(target=srv.serve_forever, daemon=True).start()
+    return srv
+
 
 # Tests must never act on the user's Mac: no dialogs, notifications, speech, microphone, Messages,
 # Things to-dos, opened apps or links. briefing.run_on_mac() records such commands instead of running
@@ -45,9 +148,8 @@ class FakeOllama:
                         self.wfile.write((json.dumps({"message": {"content": piece}, "done": False}) + "\n").encode()); self.wfile.flush()
                     self.wfile.write(b'{"message":{"content":""},"done":true}\n'); return
                 self.wfile.write(json.dumps(out).encode())
-        self.srv = http.server.ThreadingHTTPServer(("127.0.0.1", 0), H)
+        self.srv = start_http_server(H)
         self.url = f"http://127.0.0.1:{self.srv.server_address[1]}"
-        threading.Thread(target=self.srv.serve_forever, daemon=True).start()
 
     def openai(self, h, path, b):
         """OpenAI-compatible endpoints (LM Studio): translate to the Ollama-shaped reply() and back."""

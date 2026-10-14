@@ -43,6 +43,8 @@ const MORE_PAGES: { id: string; label: string }[] = [
   { id: "projects", label: "Projects" },
   { id: "weekly", label: "Weekly report" },
   { id: "automations", label: "Automations" },
+  { id: "improve", label: "Evolution Center" },
+  { id: "privacy", label: "Privacy & cleanup" },
   { id: "settings", label: "Briefing settings" },
 ];
 

@@ -70,6 +70,123 @@ def runs_load(n=20):
     p = idir() / "runs.jsonl"
     return [json.loads(x) for x in p.read_text().splitlines()[-n:]] if p.exists() else []
 
+# ---------------------------------------------------------------- Evolution Engine state machine & modes
+STATES = (
+    "IDLE", "OBSERVING", "ANALYZING", "PROPOSING", "REVIEWING", "APPROVAL_PENDING",
+    "BASELINING", "IMPLEMENTING", "VERIFYING", "EVALUATING", "READY_FOR_REVIEW",
+    "MERGED", "REJECTED", "REVERTED", "RECORDED",
+    "CANCELLED", "BLOCKED", "FAILED", "BUDGET_EXCEEDED",
+)
+MODES = {
+    "audit": {"level": "L0", "label": "Audit (L0: Observe only)", "allow_branch": False, "allow_auto_merge": False},
+    "guided": {"level": "L0-L1", "label": "Guided (L0-L1: Propose for approval)", "allow_branch": True, "allow_auto_merge": False},
+    "controlled_autonomous": {"level": "Delegated L2", "label": "Controlled autonomous (L2: Scoped param auto-apply)", "allow_branch": True, "allow_auto_merge": True},
+    "scheduled": {"level": "L0 / Delegated L2", "label": "Scheduled (Nightly bounded check)", "allow_branch": True, "allow_auto_merge": False},
+}
+
+def current_mode(cfg, override=None):
+    if override and override in MODES:
+        return override
+    m = str(cfg.get("improve_mode") or "").strip()
+    if m in MODES:
+        return m
+    return "controlled_autonomous" if cfg.get("improve_auto_apply_params") else "guided"
+
+def state_load():
+    return b.jload(idir() / "state.json", {"state": "IDLE", "op_id": "", "mode": "guided", "updated": 0, "reason": "ready"})
+
+def transition(to_state, op_id="", actor="engine", reason="", input_refs=None, output_refs=None, mode=None):
+    cur = state_load()
+    from_state = cur.get("state") or "IDLE"
+    now = round(time.time(), 3)
+    entry = {
+        "ts": int(now),
+        "ts_ms": int(now * 1000),
+        "op_id": op_id or cur.get("op_id") or time.strftime("%Y%m%d-%H%M%S"),
+        "from_state": from_state,
+        "to_state": to_state,
+        "actor": actor,
+        "mode": mode or cur.get("mode") or "guided",
+        "reason": reason,
+        "input_refs": list(input_refs or []),
+        "output_refs": list(output_refs or []),
+    }
+    b.jsave(idir() / "state.json", {
+        "state": to_state,
+        "from_state": from_state,
+        "op_id": entry["op_id"],
+        "mode": entry["mode"],
+        "updated": int(now),
+        "reason": reason,
+    })
+    try:
+        with open(idir() / "transitions.jsonl", "a") as f:
+            f.write(json.dumps(entry) + "\n")
+    except Exception:
+        pass
+    return entry
+
+def transitions_load(n=25):
+    p = idir() / "transitions.jsonl"
+    if not p.exists():
+        return []
+    out = []
+    for line in p.read_text().splitlines()[-n:]:
+        try:
+            out.append(json.loads(line))
+        except ValueError:
+            continue
+    return out
+
+def priority_score(expected_user_value, evidence_confidence, urgency, estimated_effort=1.0, risk_multiplier=1.0):
+    """Transparent triage heuristic: (value * confidence * urgency) / (effort * risk)."""
+    denom = max(0.1, float(estimated_effort) * float(risk_multiplier))
+    return round((float(expected_user_value) * float(evidence_confidence) * float(urgency)) / denom, 3)
+
+def index_codebase(cfg):
+    repo = repo_dir(cfg)
+    py_files = sorted(p.name for p in repo.glob("*.py")) if repo.exists() else []
+    test_files = sorted(p.name for p in (repo / "tests").glob("test_*.py")) if (repo / "tests").exists() else []
+    return {
+        "repo_path": str(repo),
+        "git_ready": (repo / ".git").exists(),
+        "modules": py_files,
+        "test_suites": test_files,
+        "protected_files": sorted(PROTECTED_FILES),
+        "protected_functions_count": len(PROTECTED_FUNCS),
+    }
+
+def is_duplicate_rejected(cand, mode="guided"):
+    """Prevent re-proposing a candidate identical to one the user already rejected in the same mode."""
+    for p in props_load():
+        if p.get("status") != "rejected" or p.get("kind") != cand.get("kind") or p.get("problem") != cand.get("problem"):
+            continue
+        if (p.get("contract") or {}).get("mode", "guided") != mode:
+            continue
+        if cand["kind"] == "param" and p.get("change") == cand.get("change"):
+            return True
+        if cand["kind"] == "prompt" and p.get("prompt") == cand.get("prompt"):
+            return True
+    return False
+
+def iteration_contract(cfg, mode, problem, cand=None):
+    info = MODES.get(mode, MODES["guided"])
+    return {
+        "objective": (cand or {}).get("summary") or problem.get("text", ""),
+        "problem_id": problem.get("id", ""),
+        "mode": mode,
+        "authority_level": info["level"],
+        "risk_rating": "low" if (cand or {}).get("kind") in (None, "param") else ("medium" if (cand or {}).get("kind") == "prompt" else "elevated"),
+        "allowed_files": list(cfg.get("improve_code_allowlist", ["briefing.py"])) + ["tunables.json", "prompts.json"],
+        "protected_files": sorted(PROTECTED_FILES),
+        "budget": {
+            "max_diff_lines": cfg.get("improve_max_diff_lines", 60),
+            "max_net_growth": cfg.get("improve_max_net_growth", 20),
+            "min_free_gb": cfg.get("improve_min_free_gb", 2),
+        },
+        "rollback": "git revert --no-edit -m 1 <merge_commit> + pre-merge git bundle in ~/Briefing/improve/backups/",
+    }
+
 # ---------------------------------------------------------------- metrics + problems
 def pct(xs, q):
     xs = sorted(xs)
@@ -84,7 +201,10 @@ def metrics(cfg, now=None):
     rate = lambda k, xs: round(sum(1 for x in xs if k(x)) / len(xs), 3) if xs else None
     auto = [t for t in tel if t["kind"] == "automation" and t.get("decision") in ("approve", "reject")]
     br = [t for t in tel if t["kind"] == "briefing"]
+    nt = [t for t in tel if t["kind"] == "notch"]
     return {
+        "notch": {"n": len(nt), "ack_rate": rate(lambda t: bool(t.get("shown")), nt),
+                  "fallback_rate": rate(lambda t: not t.get("shown"), nt)},
         "companion": {"n": len(comp), "ignore_rate": rate(lambda e: e["outcome"] in IGN, comp), "hit_rate": rate(lambda e: e["hit"], comp),
                       "miss_rate": rate(lambda e: e["outcome"] in ("edited", "typed") and not e["hit"], comp)},
         "nextmove": {"n": len(nm), "dismiss_rate": rate(lambda h: h["outcome"] != "accept", nm)},
@@ -99,21 +219,43 @@ def problems(cfg, m):
     """Ranked list; 'fixable' ones have a candidate generator, others are only reported."""
     ms, out = cfg.get("improve_min_samples", 30), []
     c, n, l = m["companion"], m["nextmove"], m["llm"]
+    nt = m.get("notch") or {"n": 0, "fallback_rate": None}
     if c["n"] >= ms and (c["ignore_rate"] or 0) > 0.35:
+        conf = min(1.0, round(c["n"] / max(ms, 60), 2))
         out.append({"id": "companion_interrupts", "severity": c["ignore_rate"], "fixable": True,
+                    "confidence": conf, "effort": 1.0, "risk": 1.0,
+                    "priority": priority_score(c["ignore_rate"], conf, 1.2, 1.0, 1.0),
                     "text": f"{round(c['ignore_rate'] * 100)}% of companion guesses were ignored"})
     if c["n"] >= ms and (c["miss_rate"] or 0) > 0.2:
+        conf = min(1.0, round(c["n"] / max(ms, 60), 2))
         out.append({"id": "companion_misses", "severity": c["miss_rate"], "fixable": True,
+                    "confidence": conf, "effort": 1.2, "risk": 1.1,
+                    "priority": priority_score(c["miss_rate"], conf, 1.1, 1.2, 1.1),
                     "text": f"{round(c['miss_rate'] * 100)}% of the time you asked something different from the guesses"})
     if n["n"] >= ms and (n["dismiss_rate"] or 0) > 0.5:
+        conf = min(1.0, round(n["n"] / max(ms, 60), 2))
         out.append({"id": "nextmove_dismissed", "severity": n["dismiss_rate"], "fixable": True,
+                    "confidence": conf, "effort": 1.0, "risk": 1.0,
+                    "priority": priority_score(n["dismiss_rate"], conf, 1.1, 1.0, 1.0),
                     "text": f"{round(n['dismiss_rate'] * 100)}% of next-move suggestions were dismissed"})
     if l["n"] >= ms and (l["error_rate"] or 0) > 0.1:
+        conf = min(1.0, round(l["n"] / max(ms, 60), 2))
         out.append({"id": "llm_errors", "severity": l["error_rate"], "fixable": False,
+                    "confidence": conf, "effort": 1.5, "risk": 1.0,
+                    "priority": priority_score(l["error_rate"], conf, 1.4, 1.5, 1.0),
                     "text": f"{round(l['error_rate'] * 100)}% of local model calls failed (is Ollama running / model pulled?)"})
     if m["briefing"]["n"] >= 5 and (m["briefing"]["down_rate"] or 0) > 0.4:
+        conf = min(1.0, round(m["briefing"]["n"] / 10, 2))
         out.append({"id": "briefing_disliked", "severity": m["briefing"]["down_rate"], "fixable": False,
+                    "confidence": conf, "effort": 1.5, "risk": 1.2,
+                    "priority": priority_score(m["briefing"]["down_rate"], conf, 1.2, 1.5, 1.2),
                     "text": "most briefings got a thumbs-down (not enough labelled examples to tune automatically yet)"})
+    if nt["n"] >= 5 and (nt["fallback_rate"] or 0) > 0.5:
+        conf = min(1.0, round(nt["n"] / 10, 2))
+        out.append({"id": "notch_fallback_high", "severity": nt["fallback_rate"], "fixable": False,
+                    "confidence": conf, "effort": 1.0, "risk": 1.0,
+                    "priority": priority_score(nt["fallback_rate"], conf, 1.0, 1.0, 1.0),
+                    "text": f"{round(nt['fallback_rate'] * 100)}% of Briefing notices fell back to macOS dialogs (is Dayframe open with Notch Island enabled?)"})
     return sorted(out, key=lambda p: -p["severity"])
 
 # ---------------------------------------------------------------- replay (pure: reads history, writes nothing)
@@ -613,6 +755,7 @@ def gate(cfg, cand):
                 "deltas": strip_private(cand["deltas"]), "why": cand["why"], "diff": diff[:20000], "branch": branch,
                 "base_commit": git(repo, "rev-parse", "HEAD"), "tests": f"passed in {test_s}s", "status": "pending",
                 "root_cause": cand["root_cause"], "test_first": cand["test_first"],
+                "change": cand.get("change"), "prompt": cand.get("prompt"),
                 "lines": {"added": add, "removed": rem, "net": add - rem},
                 "verified": {"full_suite": True, "held_out_replay": True, "failing_check_first": True}}, "ok"
     finally:
@@ -642,13 +785,30 @@ def mem_hash():
             h.update(f"{p.relative_to(mem)}:{st.st_size}:{st.st_mtime_ns}".encode())
     return h.hexdigest()
 
-def run(cfg, force=False):
+def run_audit(cfg):
+    """L0 Audit-only execution: observes metrics, indexes codebase, and ranks problems without code or branch edits."""
+    return run(cfg, force=True, mode="audit")
+
+def cancel(cfg, reason="user cancelled"):
+    lock = idir() / ".lock"
+    lock.unlink(missing_ok=True)
+    transition("CANCELLED", actor="user", reason=reason)
+    transition("IDLE", actor="engine", reason="reset after cancel")
+    runlog({"result": "cancelled", "reason": reason})
+    return {"ok": True, "state": "IDLE", "reason": reason}
+
+def run(cfg, force=False, mode=None):
+    eff_mode = current_mode(cfg, mode)
+    op_id = f"op-{time.strftime('%Y%m%d-%H%M%S')}-{secrets.token_hex(2)}"
     if not cfg.get("improve_enabled", True) and not force:
+        transition("BLOCKED", op_id=op_id, reason="disabled", mode=eff_mode)
         return {"skipped": "disabled"}
     if not force and on_battery():
+        transition("BLOCKED", op_id=op_id, reason="on battery", mode=eff_mode)
         runlog({"result": "skipped", "reason": "on battery"}); return {"skipped": "on battery"}
     free = shutil.disk_usage(b.HOME).free / 1e9
     if free < cfg.get("improve_min_free_gb", 2):
+        transition("BUDGET_EXCEEDED", op_id=op_id, reason=f"low disk ({free:.1f} GB)", mode=eff_mode)
         runlog({"result": "skipped", "reason": f"low disk ({free:.1f} GB)"}); return {"skipped": "low disk"}
     lock = idir() / ".lock"
     if lock.exists() and time.time() - lock.stat().st_mtime < 3 * 3600:
@@ -657,29 +817,44 @@ def run(cfg, force=False):
     before = mem_hash()
     n_props = len(props_load())
     try:
-        rep = _run(cfg)
+        transition("OBSERVING", op_id=op_id, reason=f"starting {eff_mode} cycle", mode=eff_mode)
+        rep = _run(cfg, mode=eff_mode, op_id=op_id)
         if mem_hash() != before:  # the loop must never write memories; if something did, nothing from this run is kept
             ps = props_load()
             for p in ps[n_props:]:
                 git(repo_dir(cfg), "branch", "-D", p["branch"], check=False)
             props_save(ps[:n_props])
+            transition("FAILED", op_id=op_id, reason="memory changed during the run", mode=eff_mode)
             runlog({"result": "aborted", "reason": "memory changed during the run"})
             return {"aborted": "memory changed during improve run", "proposals": []}
+        transition("RECORDED", op_id=op_id, reason=rep.get("result", "completed"), mode=eff_mode, output_refs=rep.get("proposals", []))
+        transition("IDLE", op_id=op_id, reason="cycle complete", mode=eff_mode)
         return rep
     finally:
         lock.unlink(missing_ok=True)
 
 GENERATORS = {"companion_interrupts": [tune_companion], "companion_misses": [tune_prompt], "nextmove_dismissed": [tune_nextmove]}
 
-def _run(cfg):
+def _run(cfg, mode="guided", op_id=""):
     m = metrics(cfg)
+    transition("ANALYZING", op_id=op_id, reason="analyzing telemetry and quality signals", mode=mode)
     probs = problems(cfg, m)
+    if mode == "audit":
+        transition("REVIEWING", op_id=op_id, reason=f"audit mode (L0): {len(probs)} opportunity(s) ranked; write operations disabled", mode=mode)
+        report = {"result": "audit", "mode": "audit", "metrics": m, "problems": probs, "proposals": [],
+                  "codebase": index_codebase(cfg),
+                  "notes": [f"{p['id']} (priority {p.get('priority', 0)}): {p['text']}" for p in probs] or ["audit clean: no change needed"]}
+        report["retro"] = write_retro(cfg, m, probs, report)
+        runlog({"result": "audit", "mode": "audit", "problems": [p["id"] for p in probs],
+                "notes": report["notes"], "proposals": []})
+        return report
     pending = {p["problem"] for p in props_load() if p["status"] == "pending" and p.get("kind") != "retro"}
-    report = {"metrics": m, "problems": probs, "proposals": [], "notes": []}
+    report = {"result": "no change needed", "mode": mode, "metrics": m, "problems": probs, "proposals": [], "notes": []}
     for prob in [p for p in probs if p["fixable"]][:2]:
         if prob["id"] in pending:
             report["notes"].append(f"{prob['id']}: a proposal is already waiting for you")
             continue
+        transition("PROPOSING", op_id=op_id, reason=f"generating candidates for {prob['id']}", mode=mode)
         cands, reasons = [], []
         for gen in GENERATORS.get(prob["id"], []):  # cheapest first: params/prompts, then optional code
             cand, why = gen(cfg)
@@ -691,22 +866,33 @@ def _run(cfg):
             reasons.append(why)
             if cand:
                 cands.append(cand)
+        transition("REVIEWING", op_id=op_id, reason=f"adversarial review of {len(cands)} candidate(s)", mode=mode)
         winner = min(cands, key=rank_key) if cands else None
         if not winner:
             report["notes"].append(f"{prob['id']}: no change needed ({'; '.join(reasons)})")
             continue
+        if is_duplicate_rejected(winner, mode):
+            report["notes"].append(f"{prob['id']}: skipped duplicate of already-rejected proposal")
+            continue
+        transition("BASELINING", op_id=op_id, reason=f"isolating worktree for {winner['kind']} candidate", mode=mode)
+        transition("IMPLEMENTING", op_id=op_id, reason=f"applying {winner['kind']} candidate in isolated branch", mode=mode)
+        transition("VERIFYING", op_id=op_id, reason="running test suite and held-out replay", mode=mode)
         prop, why = gate(cfg, winner)
         if not prop:
             report["notes"].append(f"{prob['id']}: candidate discarded ({why})")
             continue
+        transition("EVALUATING", op_id=op_id, reason=why, mode=mode, output_refs=[prop["id"]])
+        prop["contract"] = iteration_contract(cfg, mode, prob, winner)
         ps = props_load(); ps.append(prop); props_save(ps)
         report["proposals"].append(prop["id"])
-        if prop["kind"] == "param" and cfg.get("improve_auto_apply_params"):
+        transition("APPROVAL_PENDING", op_id=op_id, reason=f"proposal {prop['id']} ready for review", mode=mode, output_refs=[prop["id"]])
+        if prop["kind"] == "param" and (cfg.get("improve_auto_apply_params") or mode == "controlled_autonomous"):
             decide(cfg, prop["id"], "approve", auto=True)
     if not probs:
         report["notes"].append("no change needed: all metrics within targets or not enough data yet")
+    report["result"] = "proposal" if report["proposals"] else "no change needed"
     report["retro"] = write_retro(cfg, m, probs, report)
-    runlog({"result": "proposal" if report["proposals"] else "no change needed", "problems": [p["id"] for p in probs],
+    runlog({"result": report["result"], "mode": mode, "problems": [p["id"] for p in probs],
             "notes": report["notes"], "proposals": report["proposals"]})
     return report
 
@@ -761,9 +947,10 @@ def rank_key(c):
         return (2, a - r, a + r)
     return (KIND_RANK[c["kind"]], 0, len(c.get("change") or {}) or 1)
 
-def run_async(cfg):
-    threading.Thread(target=run, args=(cfg, True), daemon=True).start()
-    return {"started": True}
+def run_async(cfg, mode=""):
+    eff = mode if mode in MODES else None
+    threading.Thread(target=run, args=(cfg, True, eff), daemon=True).start()
+    return {"started": True, "mode": current_mode(cfg, eff)}
 
 def restart_agents():
     if b.is_mac():
@@ -797,12 +984,16 @@ def decide(cfg, pid, decision, auto=False):
         git(repo, "merge", "--no-ff", "-q", "-m", f"Approve improvement {pid}: {p['summary'][:60]}", p["branch"])
         p.update(status="approved", merge_commit=git(repo, "rev-parse", "HEAD"), decided=int(time.time()), auto=auto)
         git(repo, "branch", "-D", p["branch"], check=False)
+        transition("MERGED", actor="auto" if auto else "user", reason=f"approved {pid}", input_refs=[pid], output_refs=[p["merge_commit"]])
+        transition("IDLE", actor="engine", reason="merge recorded")
         restart_agents()
     elif decision == "reject":
         if p["status"] != "pending":
             return {"error": f"proposal is {p['status']}"}
         git(repo, "branch", "-D", p["branch"], check=False)
         p.update(status="rejected", decided=int(time.time()))
+        transition("REJECTED", actor="user", reason=f"rejected {pid}", input_refs=[pid])
+        transition("IDLE", actor="engine", reason="rejection recorded")
     elif decision == "undo":
         if p["status"] != "approved":
             return {"error": "only approved changes can be undone"}
@@ -811,6 +1002,8 @@ def decide(cfg, pid, decision, auto=False):
             return {"error": why}
         git(repo, "revert", "--no-edit", "-m", "1", p["merge_commit"])
         p.update(status="reverted", revert_commit=git(repo, "rev-parse", "HEAD"), decided=int(time.time()))
+        transition("REVERTED", actor="user", reason=f"reverted {pid}", input_refs=[pid], output_refs=[p["revert_commit"]])
+        transition("IDLE", actor="engine", reason="revert recorded")
         restart_agents()
     else:
         raise ValueError("decision must be approve, reject or undo")
@@ -820,6 +1013,19 @@ def decide(cfg, pid, decision, auto=False):
 
 def overview(cfg):
     repo = repo_dir(cfg)
-    return {"proposals": list(reversed(props_load()))[:20], "runs": list(reversed(runs_load(10))), "metrics": metrics(cfg),
-            "repo": (repo / ".git").exists(), "auto_apply_params": bool(cfg.get("improve_auto_apply_params")),
-            "code_model": cfg.get("improve_code_model") or ""}
+    m = metrics(cfg)
+    mode = current_mode(cfg)
+    return {
+        "proposals": list(reversed(props_load()))[:20],
+        "runs": list(reversed(runs_load(10))),
+        "metrics": m,
+        "problems": problems(cfg, m),
+        "state": state_load(),
+        "transitions": list(reversed(transitions_load(12))),
+        "mode": mode,
+        "modes": MODES,
+        "codebase": index_codebase(cfg),
+        "repo": (repo / ".git").exists(),
+        "auto_apply_params": bool(cfg.get("improve_auto_apply_params")),
+        "code_model": cfg.get("improve_code_model") or "",
+    }

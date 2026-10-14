@@ -21,13 +21,10 @@ class HBase(unittest.TestCase):
 
 class TestSecurity(HBase):
     def serve(self, dist_dir=None):
-        class S(socketserver.ThreadingMixIn, http.server.HTTPServer):
-            daemon_threads = True
-        srv = S(("127.0.0.1", 0), b.make_handler({"cfg": self.cfg}, dist_dir))
+        srv = mocks.start_http_server(b.make_handler({"cfg": self.cfg}, dist_dir))
         port = srv.server_address[1]
         b.CONFIG_PATH.write_text(json.dumps(dict(json.loads(b.CONFIG_PATH.read_text()), dashboard_port=port)))
         srv.RequestHandlerClass = b.make_handler({"cfg": b.load_config()}, dist_dir)
-        threading.Thread(target=srv.serve_forever, daemon=True).start()
         self.addCleanup(lambda: (srv.shutdown(), srv.server_close()))
         return port
 
@@ -198,9 +195,19 @@ class TestJobOutcome(HBase):
         self.assertEqual(b.jload(b.HOME / "status.json", {})["companion"].get("marker"), 1)  # not rewritten
 
     def test_port_in_use_is_explained(self):
-        import socket
-        s = socket.socket(); s.bind(("127.0.0.1", 0)); s.listen(1); self.addCleanup(s.close)
-        cfg = dict(self.cfg, dashboard_port=s.getsockname()[1])
+        import errno, socket
+        s = socket.socket()
+        try:
+            s.bind(("127.0.0.1", 0)); s.listen(1); self.addCleanup(s.close)
+            cfg = dict(self.cfg, dashboard_port=s.getsockname()[1])
+        except PermissionError:
+            s.close()
+            cfg = dict(self.cfg, dashboard_port=8765)
+            orig_init = http.server.HTTPServer.__init__
+            def _busy_init(*a, **kw):
+                raise OSError(errno.EADDRINUSE, "Address already in use")
+            http.server.HTTPServer.__init__ = _busy_init
+            self.addCleanup(lambda: setattr(http.server.HTTPServer, "__init__", orig_init))
         b.time.sleep, orig = (lambda *_: None), b.time.sleep
         try:
             msg = b.cmd_serve(cfg)

@@ -17,6 +17,8 @@ struct BriefingNotice: Identifiable, Equatable {
     case brief
     /// A question with a one-line answer (check-in, session goal).
     case ask
+    /// A one-click confirmation to reopen the last project's apps, links and files.
+    case resume
     /// A short nudge or debrief line; it goes away by itself.
     case peek
   }
@@ -37,6 +39,10 @@ struct BriefingNotice: Identifiable, Equatable {
     switch kind {
     case .ask:
       return Self.firstLine(prompt)
+    case .resume:
+      let head = title.isEmpty ? "Resume project?" : title
+      let detail = Self.firstLine(text)
+      return detail.isEmpty ? head : "\(head) · \(detail)"
     case .peek:
       return title.isEmpty ? Self.firstLine(text) : "\(title): \(Self.firstLine(text))"
     case .brief:
@@ -50,7 +56,7 @@ struct BriefingNotice: Identifiable, Equatable {
   var peekDuration: TimeInterval {
     switch kind {
     case .peek: return 8
-    case .brief, .ask: return 30
+    case .brief, .ask, .resume: return 30
     }
   }
 
@@ -122,6 +128,16 @@ enum BriefingNoticeInbox {
     write(Data(), to: dir.appendingPathComponent("\(id).ack"))
     log.notice("showing \(notice.kind.rawValue, privacy: .public) notice \(id, privacy: .public)")
     return notice
+  }
+
+  /// The user's choice on a resume offer; false means "Not now".
+  static func confirm(_ notice: BriefingNotice, resume: Bool, in dir: URL = directory) {
+    let body: [String: Any] = resume ? ["resume": true] : ["skip": true]
+    guard let data = try? JSONSerialization.data(withJSONObject: body) else { return }
+    write(data, to: dir.appendingPathComponent("\(notice.id).answer"))
+    log.notice(
+      "answered resume notice \(notice.id, privacy: .public): \(resume ? "resume" : "skip", privacy: .public)"
+    )
   }
 
   /// The user's answer to an ask; nil means they skipped it.

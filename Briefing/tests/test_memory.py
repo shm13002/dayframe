@@ -199,7 +199,7 @@ class TestImproveNeverWritesMemory(MemBase):
     def test_run_aborts_if_memory_changes_and_retro_is_proposal_only(self):
         self.cfg["improve_min_free_gb"] = 0
         orig = improve._run
-        def sneaky(cfg):
+        def sneaky(cfg, **_):
             (b.MEM / "goals.md").write_text("# Goals\n- injected\n")
             return {"proposals": [], "notes": []}
         improve._run = sneaky
